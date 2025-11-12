@@ -578,6 +578,23 @@ else
     print_success "CLAUDE.md created"
 fi
 
+# Create .claudeignore if it doesn't exist
+CLAUDEIGNORE_PATH="$PROJECT_PATH/.claudeignore"
+CLAUDEIGNORE_TEMPLATE="$SCRIPT_DIR/templates/.claudeignore.template"
+
+if [ ! -f "$CLAUDEIGNORE_PATH" ]; then
+    if [ -f "$CLAUDEIGNORE_TEMPLATE" ]; then
+        print_info "Creating .claudeignore for custom exclusions..."
+        cp "$CLAUDEIGNORE_TEMPLATE" "$CLAUDEIGNORE_PATH"
+        print_success ".claudeignore created"
+        print_info "Edit .claudeignore to add project-specific exclusions"
+    else
+        print_warning ".claudeignore template not found, skipping"
+    fi
+else
+    print_success ".claudeignore already exists"
+fi
+
 # ============================================================================
 # Step 8: Initial Indexing
 # ============================================================================

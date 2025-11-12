@@ -1,0 +1,86 @@
+# .claudeignore - Custom Exclusions for Code Indexing
+#
+# This file works like .gitignore but is specifically for controlling
+# what gets indexed into semantic memory. Use this for:
+#
+# - Personal notes and TODOs that shouldn't pollute the knowledge graph
+# - Test outputs and coverage reports that vary by developer
+# - Debug artifacts and temporary files
+# - Large generated files not caught by .gitignore
+#
+# Syntax is identical to .gitignore:
+# - Lines starting with # are comments
+# - * matches any string
+# - ? matches any single character
+# - / at end denotes a directory
+# - / at start makes pattern relative to project root
+#
+# Note: .gitignore patterns are automatically respected.
+# This file is for ADDITIONAL exclusions specific to indexing.
+
+# ============================================================================
+# Personal Development Files
+# ============================================================================
+
+# Personal notes and TODOs
+*-notes.md
+*-notes.txt
+TODO-*.md
+NOTES.md
+scratch.*
+
+# ============================================================================
+# Test Artifacts
+# ============================================================================
+
+# Test results and coverage
+test-results/
+test-output/
+.coverage
+htmlcov/
+coverage/
+.pytest_cache/
+junit.xml
+
+# ============================================================================
+# Debug and Profiling
+# ============================================================================
+
+# Debug output
+debug-*.log
+*.dump
+*.prof
+*.trace
+
+# Profiling results
+profile/
+.pprof/
+
+# ============================================================================
+# Temporary and Generated Files
+# ============================================================================
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Generated documentation (optional - comment out if you want these indexed)
+# docs/build/
+# site/
+
+# ============================================================================
+# Large Data Files
+# ============================================================================
+
+# Data dumps and exports (add specific patterns as needed)
+# data/exports/
+# *.csv
+# *.json.gz
+
+# ============================================================================
+# Your Custom Patterns Below
+# ============================================================================
+
+# Add project-specific patterns here

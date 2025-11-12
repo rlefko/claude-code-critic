@@ -91,6 +91,43 @@ Memory Guard is active for this project and will:
 
 ---
 
+## 🎯 Custom Exclusions (.claudeignore)
+
+Control what gets indexed without modifying .gitignore:
+
+**When to use .claudeignore:**
+- Personal notes and TODOs (e.g., `*-notes.md`, `TODO-*.md`)
+- Test outputs and coverage reports
+- Debug artifacts and temporary files
+- Large data files not caught by .gitignore
+
+**Multi-Layer Exclusion System:**
+1. **Universal Defaults** - Binaries, archives, OS artifacts (always applied)
+2. **.gitignore** - Version control ignores (auto-detected)
+3. **.claudeignore** - Custom indexing exclusions (project-specific)
+4. **Binary Detection** - Executables detected via magic numbers
+
+**Example .claudeignore:**
+```
+# Personal development
+*-notes.md
+TODO-*.md
+scratch.*
+
+# Test artifacts
+test-results/
+.coverage
+htmlcov/
+
+# Debug output
+debug-*.log
+*.dump
+```
+
+**.claudeignore uses same syntax as .gitignore** - patterns, wildcards, directory markers.
+
+---
+
 ## 🔧 Memory System Maintenance
 
 ### Automatic Updates
