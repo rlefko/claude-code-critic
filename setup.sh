@@ -482,9 +482,12 @@ print_header "Step 6: Configuring Memory Guard Hooks"
 CLAUDE_DIR="$PROJECT_PATH/.claude"
 mkdir -p "$CLAUDE_DIR"
 
-# Create settings.json with MCP and hooks configuration
-print_info "Creating project settings.json..."
-cat > "$CLAUDE_DIR/settings.json" << EOF
+# Create settings.local.json with MCP and hooks configuration
+print_info "Configuring project-local MCP server..."
+
+# Create temporary JSON config
+TEMP_CONFIG=$(mktemp)
+cat > "$TEMP_CONFIG" << EOF
 {
   "mcpServers": {
     "${COLLECTION_NAME}-memory": {
@@ -541,9 +544,20 @@ cat > "$CLAUDE_DIR/settings.json" << EOF
   }
 }
 EOF
-print_success "Memory Guard hooks configured"
+
+# Merge configuration using Python helper
+$VENV_PATH/bin/python "$SCRIPT_DIR/utils/merge_settings.py" \
+    "$CLAUDE_DIR/settings.local.json" \
+    "$(cat $TEMP_CONFIG)"
+
+# Clean up temp file
+rm -f "$TEMP_CONFIG"
+
+print_success "Project-local MCP server configured"
 print_info "MCP server: ${COLLECTION_NAME}-memory"
+print_info "Location: $CLAUDE_DIR/settings.local.json"
 print_info "Available tools: create_entities, read_graph, search_similar, get_implementation, etc."
+print_warning "Restart Claude Code to load the new MCP server"
 
 # ============================================================================
 # Step 7: Generate CLAUDE.md Documentation
