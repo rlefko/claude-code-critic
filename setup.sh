@@ -123,21 +123,16 @@ if [ ! -f "$SCRIPT_DIR/claude_indexer/__init__.py" ]; then
 fi
 print_success "Running from correct directory"
 
-# Check Python version
-PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-
-if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]; }; then
-    print_error "Python 3.10+ required (found $PYTHON_VERSION)"
-    exit 1
-fi
-print_success "Python version: $PYTHON_VERSION"
-
-# Check/create virtual environment
+# Check/create virtual environment first
 if [ ! -d "$VENV_PATH" ]; then
     print_info "Creating virtual environment..."
+    # Use python3 from system to create venv
     python3 -m venv "$VENV_PATH"
+    if [ $? -ne 0 ]; then
+        print_error "Failed to create virtual environment"
+        print_info "Please ensure python3-venv is installed (e.g., 'apt install python3-venv' on Ubuntu)"
+        exit 1
+    fi
     print_success "Virtual environment created"
 else
     print_success "Virtual environment exists"
@@ -146,6 +141,19 @@ fi
 # Activate virtual environment
 source "$VENV_PATH/bin/activate"
 print_success "Virtual environment activated"
+
+# Check Python version inside venv
+PYTHON_VERSION=$(python --version 2>&1 | awk '{print $2}')
+PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+
+if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]; }; then
+    print_error "Python 3.10+ required in venv (found $PYTHON_VERSION)"
+    print_info "The venv was created with system Python which is too old"
+    print_info "Please install Python 3.10+ and re-run this script"
+    exit 1
+fi
+print_success "Python version in venv: $PYTHON_VERSION"
 
 # Install/upgrade dependencies
 print_info "Installing dependencies..."
