@@ -4,6 +4,7 @@ import contextlib
 import fnmatch
 import hashlib
 import json
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,18 @@ from .indexer_logging import get_logger
 from .storage.base import VectorStore
 
 logger = get_logger()
+
+# Import ExclusionManager for enhanced pattern detection
+try:
+    # Add utils directory to path if not already there
+    utils_path = Path(__file__).parent.parent / "utils"
+    if str(utils_path) not in sys.path:
+        sys.path.insert(0, str(utils_path))
+    from exclusion_manager import ExclusionManager
+    EXCLUSION_MANAGER_AVAILABLE = True
+except ImportError:
+    EXCLUSION_MANAGER_AVAILABLE = False
+    logger.debug("ExclusionManager not available, using config patterns only")
 
 
 def format_change(current: int, previous: int) -> str:
@@ -122,6 +135,27 @@ class CoreIndexer:
         self.vector_store = vector_store
         self.project_path = project_path
         self.logger = get_logger()
+
+        # Enhance exclusion patterns with ExclusionManager if available
+        if EXCLUSION_MANAGER_AVAILABLE:
+            try:
+                exclusion_mgr = ExclusionManager(project_path)
+                enhanced_patterns = exclusion_mgr.get_all_patterns()
+
+                # Merge with config patterns (config takes precedence for manual overrides)
+                all_patterns = list(dict.fromkeys(
+                    enhanced_patterns + self.config.exclude_patterns
+                ))
+
+                # Update config with enhanced patterns
+                self.config.exclude_patterns = all_patterns
+
+                self.logger.debug(
+                    f"Enhanced exclusions: {len(enhanced_patterns)} patterns "
+                    f"(.gitignore + .claudeignore + universal defaults + binaries)"
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not load enhanced exclusions: {e}")
 
         # Initialize parser registry
         self.parser_registry = ParserRegistry(project_path)
