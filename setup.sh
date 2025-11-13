@@ -182,28 +182,40 @@ print_success "npm available"
 # ============================================================================
 print_header "Step 2: Configuring API Keys"
 
-# Load existing settings if available
-declare -A SETTINGS
+# Load existing settings if available (bash 3.2 compatible - no associative arrays)
+OPENAI_API_KEY=""
+VOYAGE_API_KEY=""
+QDRANT_URL="http://localhost:6333"
+QDRANT_API_KEY=""
+
 if [ -f "$SETTINGS_FILE" ]; then
     print_info "Loading existing settings from settings.txt"
+    # Source the file to load variables
     while IFS='=' read -r key value; do
         # Skip comments and empty lines
         [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
         # Remove leading/trailing whitespace
         key=$(echo "$key" | xargs)
         value=$(echo "$value" | xargs)
-        SETTINGS["$key"]="$value"
+        # Set variables dynamically
+        case "$key" in
+            OPENAI_API_KEY) OPENAI_API_KEY="$value" ;;
+            VOYAGE_API_KEY) VOYAGE_API_KEY="$value" ;;
+            QDRANT_URL) QDRANT_URL="$value" ;;
+            QDRANT_API_KEY) QDRANT_API_KEY="$value" ;;
+        esac
     done < "$SETTINGS_FILE"
 fi
 
 # Function to prompt for API key
 prompt_for_key() {
-    local key_name="$1"
+    local var_name="$1"
     local key_description="$2"
     local is_optional="$3"
+    local current_value="${!var_name}"
 
-    # Check if key already exists
-    if [ -n "${SETTINGS[$key_name]}" ] && [ "${SETTINGS[$key_name]}" != "your_${key_name,,}_here" ]; then
+    # Check if key already exists and is valid
+    if [ -n "$current_value" ] && [[ ! "$current_value" =~ ^your_.*_here$ ]]; then
         print_success "$key_description already configured"
         return
     fi
@@ -221,7 +233,7 @@ prompt_for_key() {
     fi
 
     if [ -n "$key_value" ]; then
-        SETTINGS["$key_name"]="$key_value"
+        eval "$var_name=\"$key_value\""
         print_success "$key_description configured"
     else
         print_info "$key_description skipped"
@@ -233,12 +245,9 @@ prompt_for_key "OPENAI_API_KEY" "OpenAI API Key" "false"
 prompt_for_key "VOYAGE_API_KEY" "Voyage AI API Key" "false"
 
 # Prompt for Qdrant configuration
-if [ -z "${SETTINGS[QDRANT_URL]}" ]; then
-    SETTINGS["QDRANT_URL"]="http://localhost:6333"
-fi
-echo -e -n "${YELLOW}Qdrant URL [${SETTINGS[QDRANT_URL]}]:${NC} "
+echo -e -n "${YELLOW}Qdrant URL [$QDRANT_URL]:${NC} "
 read -r qdrant_url
-[ -n "$qdrant_url" ] && SETTINGS["QDRANT_URL"]="$qdrant_url"
+[ -n "$qdrant_url" ] && QDRANT_URL="$qdrant_url"
 
 prompt_for_key "QDRANT_API_KEY" "Qdrant API Key" "true"
 
@@ -246,10 +255,10 @@ prompt_for_key "QDRANT_API_KEY" "Qdrant API Key" "true"
 print_info "Saving settings to settings.txt..."
 cat > "$SETTINGS_FILE" << EOF
 # API Configuration
-OPENAI_API_KEY=${SETTINGS[OPENAI_API_KEY]}
-VOYAGE_API_KEY=${SETTINGS[VOYAGE_API_KEY]}
-QDRANT_URL=${SETTINGS[QDRANT_URL]}
-QDRANT_API_KEY=${SETTINGS[QDRANT_API_KEY]:-}
+OPENAI_API_KEY=$OPENAI_API_KEY
+VOYAGE_API_KEY=$VOYAGE_API_KEY
+QDRANT_URL=$QDRANT_URL
+QDRANT_API_KEY=${QDRANT_API_KEY:-}
 
 # Embedding Configuration
 EMBEDDING_PROVIDER=voyage
@@ -264,7 +273,7 @@ print_success "Settings saved"
 print_header "Step 3: Checking Qdrant Database"
 
 # Check if Qdrant is accessible
-QDRANT_URL="${SETTINGS[QDRANT_URL]}"
+QDRANT_URL="${QDRANT_URL}"
 if curl -s -f "$QDRANT_URL/collections" > /dev/null 2>&1; then
     print_success "Qdrant is running at $QDRANT_URL"
 else
@@ -344,11 +353,11 @@ print_success "MCP server built successfully"
 # Create .env file
 print_info "Creating MCP server .env file..."
 cat > "$MCP_DIR/.env" << EOF
-OPENAI_API_KEY=${SETTINGS[OPENAI_API_KEY]}
-QDRANT_URL=${SETTINGS[QDRANT_URL]}
+OPENAI_API_KEY=${OPENAI_API_KEY}
+QDRANT_URL=${QDRANT_URL}
 QDRANT_COLLECTION_NAME=$COLLECTION_NAME
-QDRANT_API_KEY=${SETTINGS[QDRANT_API_KEY]:-}
-VOYAGE_API_KEY=${SETTINGS[VOYAGE_API_KEY]}
+QDRANT_API_KEY=${QDRANT_API_KEY:-}
+VOYAGE_API_KEY=${VOYAGE_API_KEY}
 EMBEDDING_PROVIDER=voyage
 EMBEDDING_MODEL=voyage-3.5-lite
 EOF
@@ -485,11 +494,11 @@ cat > "$CLAUDE_DIR/settings.json" << EOF
         "$MCP_DIR/dist/index.js"
       ],
       "env": {
-        "OPENAI_API_KEY": "${SETTINGS[OPENAI_API_KEY]}",
-        "QDRANT_URL": "${SETTINGS[QDRANT_URL]}",
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+        "QDRANT_URL": "${QDRANT_URL}",
         "QDRANT_COLLECTION_NAME": "$COLLECTION_NAME",
-        "QDRANT_API_KEY": "${SETTINGS[QDRANT_API_KEY]:-}",
-        "VOYAGE_API_KEY": "${SETTINGS[VOYAGE_API_KEY]}",
+        "QDRANT_API_KEY": "${QDRANT_API_KEY:-}",
+        "VOYAGE_API_KEY": "${VOYAGE_API_KEY}",
         "EMBEDDING_PROVIDER": "voyage",
         "EMBEDDING_MODEL": "voyage-3.5-lite"
       },
