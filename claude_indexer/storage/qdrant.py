@@ -355,8 +355,8 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         else:
             vector_size = len(points[0].vector)
 
-        # Track if we just created the collection
-        collection_just_created = not self.collection_exists(collection_name)
+        # Check if collection exists before ensure_collection
+        collection_existed_before = self.collection_exists(collection_name)
 
         if not self.ensure_collection(collection_name, vector_size):
             return StorageResult(
@@ -365,6 +365,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 processing_time=time.time() - start_time,
                 errors=[f"Collection {collection_name} does not exist"],
             )
+
+        # Track if we just created the collection (it didn't exist before but does now)
+        collection_just_created = not collection_existed_before and self.collection_exists(collection_name)
 
         # CRITICAL FIX: If we just created the collection, we KNOW it has sparse vectors
         # Don't query Qdrant immediately - it needs time to propagate schema
@@ -603,7 +606,7 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                     warnings.filterwarnings(
                         "ignore", message="Api key is used with an insecure connection"
                     )
-                    self.client.upsert(collection_name=collection_name, points=batch)
+                    self.client.upsert(collection_name=collection_name, points=batch, wait=True)
 
                 # Success!
                 return StorageResult(
