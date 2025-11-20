@@ -101,28 +101,6 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 "Qdrant client not available. Install with: pip install qdrant-client"
             )
 
-        # Define distance metrics after import validation
-        self.DISTANCE_METRICS = {
-            "cosine": Distance.COSINE,
-            "euclidean": Distance.EUCLID,
-            "dot": Distance.DOT,
-        }
-
-        super().__init__(auto_create_collections=auto_create_collections)
-
-    def __init__(
-        self,
-        url: str = "http://localhost:6333",
-        api_key: str = None,
-        timeout: float = 60.0,
-        auto_create_collections: bool = True,
-        **kwargs,  # noqa: ARG002
-    ):
-        if not QDRANT_AVAILABLE:
-            raise ImportError(
-                "Qdrant client not available. Install with: pip install qdrant-client"
-            )
-
         super().__init__(auto_create_collections=auto_create_collections)
 
         # Define distance metrics after import validation
@@ -135,6 +113,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         self.url = url
         self.api_key = api_key
         self.timeout = timeout
+
+        # Cache for collection sparse vector support
+        self._sparse_vector_cache = {}
 
         # Initialize client
         try:
@@ -174,6 +155,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 vectors_config=VectorParams(size=vector_size, distance=distance),
                 optimizers_config={"indexing_threshold": 20},  # Lower threshold for better initial indexing performance
             )
+
+            # Cache that this collection does NOT have sparse vector support
+            self._sparse_vector_cache[collection_name] = False
 
             return StorageResult(
                 success=True,
@@ -238,6 +222,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 sparse_vectors_config=sparse_vectors_config,
                 optimizers_config={"indexing_threshold": 20},  # Lower threshold for better initial indexing performance
             )
+
+            # Cache that this collection has sparse vector support
+            self._sparse_vector_cache[collection_name] = True
 
             logger.debug(
                 f"Created collection {collection_name} with dense ({dense_vector_size}D) "
@@ -367,7 +354,10 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
             vector_size = len(points[0].dense_vector)
         else:
             vector_size = len(points[0].vector)
-            
+
+        # Track if we just created the collection
+        collection_just_created = not self.collection_exists(collection_name)
+
         if not self.ensure_collection(collection_name, vector_size):
             return StorageResult(
                 success=False,
@@ -376,8 +366,21 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 errors=[f"Collection {collection_name} does not exist"],
             )
 
-        # AFTER collection creation, check if it has sparse vector support
-        has_sparse_vectors = self._collection_has_sparse_vectors(collection_name)
+        # CRITICAL FIX: If we just created the collection, we KNOW it has sparse vectors
+        # Don't query Qdrant immediately - it needs time to propagate schema
+        if collection_just_created:
+            has_sparse_vectors = True  # We always create with sparse vectors (base.py line 217)
+            logger.debug(f"🔧 Using sparse vectors for newly created collection {collection_name}")
+            # Cache this for future use
+            self._sparse_vector_cache[collection_name] = True
+        else:
+            # Check cache first, then fallback to querying Qdrant
+            if collection_name in self._sparse_vector_cache:
+                has_sparse_vectors = self._sparse_vector_cache[collection_name]
+                logger.debug(f"📦 Using cached sparse vector support for {collection_name}: {has_sparse_vectors}")
+            else:
+                # Existing collection - check its configuration
+                has_sparse_vectors = self._collection_has_sparse_vectors(collection_name)
         logger.debug(f"🔍 SPARSE DEBUG: Collection {collection_name} has_sparse_vectors = {has_sparse_vectors} (checked after creation)")
 
         # Pre-segregate points by type to avoid per-point isinstance calls
@@ -1117,17 +1120,21 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
 
     def _collection_has_sparse_vectors(self, collection_name: str) -> bool:
         """Check if a collection supports sparse vectors with retry for timing issues.
-        
+
         Args:
             collection_name: Name of the collection to check
-            
+
         Returns:
             True if collection has sparse vector support, False otherwise
         """
         import time
-        
-        max_retries = 3
-        retry_delay = 0.1  # 100ms between retries
+
+        # Check cache first
+        if collection_name in self._sparse_vector_cache:
+            return self._sparse_vector_cache[collection_name]
+
+        max_retries = 10  # Increased from 3 to allow more time for schema propagation
+        retry_delay = 0.3  # Increased from 0.1s to 0.3s - total 3 seconds
         
         for attempt in range(max_retries):
             try:
@@ -1148,15 +1155,19 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                         
                         if has_bm25:
                             logger.debug(f"🔍 SPARSE DEBUG: Collection {collection_name} confirmed BM25 support on attempt {attempt + 1}")
+                            # Cache the result before returning
+                            self._sparse_vector_cache[collection_name] = True
                             return True
-                        
+
                 # If no sparse vectors found and we have retries left, wait and try again
                 if attempt < max_retries - 1:
                     logger.debug(f"🔍 SPARSE DEBUG: Collection {collection_name} no sparse vectors on attempt {attempt + 1}, retrying...")
                     time.sleep(retry_delay)
                     continue
-                    
+
                 logger.debug(f"🔍 SPARSE DEBUG: Collection {collection_name} no sparse vectors after {max_retries} attempts")
+                # Cache the negative result
+                self._sparse_vector_cache[collection_name] = False
                 return False
                 
             except Exception as e:
@@ -1165,8 +1176,12 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                     time.sleep(retry_delay)
                 else:
                     logger.debug(f"Error checking sparse vector support for {collection_name} after {max_retries} attempts: {e}")
+                    # Cache the negative result even for errors
+                    self._sparse_vector_cache[collection_name] = False
                     return False
-        
+
+        # Cache the negative result
+        self._sparse_vector_cache[collection_name] = False
         return False
 
     def _build_filter(self, filter_conditions: dict[str, Any]) -> Filter:
