@@ -96,11 +96,17 @@ class IndexerConfig(BaseModel):
     max_file_size: int = Field(default=1048576, ge=1024)  # 1MB default, min 1KB
 
     # Performance Settings
-    batch_size: int = Field(default=50, ge=1, le=1000)
-    max_concurrent_files: int = Field(default=10, ge=1, le=100)
+    batch_size: int = Field(default=25, ge=1, le=1000)  # Reduced from 50 for memory
+    initial_batch_size: int = Field(default=5, ge=1, le=50)  # Reduced from 10 for large projects
+    batch_size_ramp_up: bool = Field(default=True)  # Gradually increase batch size
+    max_concurrent_files: int = Field(default=5, ge=1, le=100)  # Reduced from 10 for memory
     cleanup_interval_minutes: int = Field(
         default=1, ge=0, le=10080
     )  # 0=disabled, max=1 week
+
+    # Parallel Processing
+    use_parallel_processing: bool = Field(default=True)  # Enable multiprocessing
+    max_parallel_workers: int = Field(default=0, ge=0, le=16)  # 0=auto (CPU count - 1)
 
     # State Management
     state_directory: Path | None = Field(default=None)

@@ -41,7 +41,7 @@ print_info() {
 # Usage information
 usage() {
     cat << EOF
-Usage: $0 -p PROJECT_PATH [-c COLLECTION_NAME] [-h]
+Usage: $0 -p PROJECT_PATH [-c COLLECTION_NAME] [-r] [-h]
 
 Automated setup script for semantic code memory system.
 
@@ -50,11 +50,13 @@ Required:
 
 Optional:
   -c COLLECTION_NAME    Collection name (defaults to project folder name)
+  -r, --recreate        Force recreate collection (useful for corrupted collections)
   -h                    Show this help message
 
 Examples:
   $0 -p ~/my-project
   $0 -p ~/my-project -c my-collection
+  $0 -p ~/my-project -c my-collection --recreate
 
 This script will:
   1. Verify environment and dependencies
@@ -73,11 +75,13 @@ EOF
 # Parse arguments
 PROJECT_PATH=""
 COLLECTION_NAME=""
+RECREATE_COLLECTION=false
 
-while getopts "p:c:h" opt; do
+while getopts "p:c:rh" opt; do
     case $opt in
         p) PROJECT_PATH="$OPTARG" ;;
         c) COLLECTION_NAME="$OPTARG" ;;
+        r) RECREATE_COLLECTION=true ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -123,17 +127,48 @@ if [ ! -f "$SCRIPT_DIR/claude_indexer/__init__.py" ]; then
 fi
 print_success "Running from correct directory"
 
-# Check/create virtual environment first
+# Check for Python 3.12 specifically
+print_info "Checking for Python 3.12..."
+PYTHON_CMD=""
+
+# Try different Python 3.12 commands
+for cmd in python3.12 python312 python3; do
+    if command -v $cmd &> /dev/null; then
+        VERSION=$($cmd --version 2>&1 | awk '{print $2}')
+        MAJOR=$(echo "$VERSION" | cut -d. -f1)
+        MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+        if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 12 ]; then
+            PYTHON_CMD=$cmd
+            print_success "Found Python $VERSION at $cmd"
+            break
+        fi
+    fi
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    print_error "Python 3.12+ is required but not found"
+    print_info ""
+    print_info "Please install Python 3.12:"
+    print_info "  macOS:  brew install python@3.12"
+    print_info "  Ubuntu: apt install python3.12 python3.12-venv"
+    print_info "  Other:  Use your system's package manager"
+    exit 1
+fi
+
+# Check/create virtual environment with Python 3.12
 if [ ! -d "$VENV_PATH" ]; then
-    print_info "Creating virtual environment..."
-    # Use python3 from system to create venv
-    python3 -m venv "$VENV_PATH"
+    print_info "Creating virtual environment with Python 3.12..."
+    # Use the specific Python 3.12 command to create venv
+    $PYTHON_CMD -m venv "$VENV_PATH"
     if [ $? -ne 0 ]; then
         print_error "Failed to create virtual environment"
-        print_info "Please ensure python3-venv is installed (e.g., 'apt install python3-venv' on Ubuntu)"
+        print_info "Please ensure python3.12-venv is installed"
+        print_info "  Ubuntu: sudo apt install python3.12-venv"
+        print_info "  macOS:  Should work if python@3.12 is installed via brew"
         exit 1
     fi
-    print_success "Virtual environment created"
+    print_success "Virtual environment created with Python 3.12"
 else
     print_success "Virtual environment exists"
 fi
@@ -160,6 +195,28 @@ print_info "Installing dependencies..."
 pip install -q --upgrade pip
 pip install -q -r "$SCRIPT_DIR/requirements.txt"
 print_success "Dependencies installed"
+
+# Check Docker for Qdrant database
+print_info "Checking for Docker..."
+if ! command -v docker &> /dev/null; then
+    print_error "Docker is required but not installed"
+    print_info ""
+    print_info "Please install Docker:"
+    print_info "  macOS:  brew install --cask docker"
+    print_info "  Ubuntu: apt install docker.io"
+    print_info "  Other:  https://docs.docker.com/get-docker/"
+    exit 1
+fi
+
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+    print_error "Docker is installed but not running"
+    print_info "Please start Docker Desktop (macOS) or Docker daemon (Linux)"
+    exit 1
+fi
+
+DOCKER_VERSION=$(docker --version | awk '{print $3}' | tr -d ',')
+print_success "Docker version: $DOCKER_VERSION (running)"
 
 # Check Node.js for MCP server
 if ! command -v node &> /dev/null; then
@@ -618,6 +675,112 @@ if [ ! -f "$CLAUDEIGNORE_PATH" ]; then
 else
     print_success ".claudeignore already exists"
 fi
+
+# ============================================================================
+# Step 7.5: Collection Health Check & Recovery
+# ============================================================================
+print_header "Step 7.5: Collection Health Check"
+
+# Check for --recreate flag
+if [ "$RECREATE_COLLECTION" = true ]; then
+    print_warning "Force recreate requested - deleting existing collection..."
+    $VENV_PATH/bin/python -c "
+from qdrant_client import QdrantClient
+try:
+    client = QdrantClient('$QDRANT_URL', api_key='$QDRANT_API_KEY' if '$QDRANT_API_KEY' else None)
+    if '$COLLECTION_NAME' in [c.name for c in client.get_collections().collections]:
+        client.delete_collection('$COLLECTION_NAME')
+        print('✓ Collection deleted successfully')
+except Exception as e:
+    print(f'⚠ Warning: Could not delete collection: {e}')
+"
+fi
+
+# Health check for existing collection
+HEALTH_STATUS=$($VENV_PATH/bin/python -c "
+import sys
+from qdrant_client import QdrantClient
+from claude_indexer.storage.qdrant import QdrantStore
+from claude_indexer.config.config_loader import ConfigLoader
+
+try:
+    client = QdrantClient('$QDRANT_URL', api_key='$QDRANT_API_KEY' if '$QDRANT_API_KEY' else None)
+    collections = [c.name for c in client.get_collections().collections]
+
+    if '$COLLECTION_NAME' not in collections:
+        print('MISSING')
+        sys.exit(0)
+
+    # Try a test operation - insert a dummy point
+    try:
+        from qdrant_client.models import PointStruct
+        test_point = PointStruct(
+            id=999999999,
+            vector={'default': [0.0] * 1024},
+            payload={'test': True}
+        )
+        client.upsert(collection_name='$COLLECTION_NAME', points=[test_point])
+        # Delete test point
+        client.delete(collection_name='$COLLECTION_NAME', points_selector=[999999999])
+        print('HEALTHY')
+    except Exception as e:
+        if 'segment creator' in str(e).lower() or 'wal' in str(e).lower():
+            print('CORRUPTED')
+        else:
+            print('UNHEALTHY')
+
+except Exception as e:
+    print(f'ERROR: {e}')
+    sys.exit(1)
+" 2>&1)
+
+case "$HEALTH_STATUS" in
+    CORRUPTED)
+        print_error "Collection $COLLECTION_NAME is corrupted (WAL errors detected)"
+        echo -e -n "${YELLOW}Delete and recreate collection? [y/N]:${NC} "
+        read -r recreate_choice
+
+        if [[ "$recreate_choice" =~ ^[Yy]$ ]]; then
+            print_info "Deleting corrupted collection..."
+            $VENV_PATH/bin/python -c "
+from qdrant_client import QdrantClient
+try:
+    client = QdrantClient('$QDRANT_URL', api_key='$QDRANT_API_KEY' if '$QDRANT_API_KEY' else None)
+    client.delete_collection('$COLLECTION_NAME')
+    print('✓ Collection deleted')
+except Exception as e:
+    print(f'❌ Failed to delete: {e}')
+    exit(1)
+"
+            print_success "Collection deleted - will be recreated during indexing"
+        else
+            print_error "Cannot proceed with corrupted collection"
+            print_info "Run with -r flag to force recreation: $0 -p '$PROJECT_PATH' -c '$COLLECTION_NAME' -r"
+            exit 1
+        fi
+        ;;
+    UNHEALTHY)
+        print_warning "Collection $COLLECTION_NAME may have issues"
+        echo -e -n "${YELLOW}Continue anyway? [y/N]:${NC} "
+        read -r continue_choice
+        if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+        ;;
+    HEALTHY)
+        print_success "Collection $COLLECTION_NAME is healthy"
+        ;;
+    MISSING)
+        print_info "Collection $COLLECTION_NAME will be created during indexing"
+        ;;
+    ERROR:*)
+        print_error "$HEALTH_STATUS"
+        exit 1
+        ;;
+    *)
+        print_warning "Unknown health status: $HEALTH_STATUS"
+        ;;
+esac
 
 # ============================================================================
 # Step 8: Initial Indexing
