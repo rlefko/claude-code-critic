@@ -436,11 +436,13 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         
         # Process regular points in batch (optimized - no per-point branching)
         if has_sparse_vectors:
-            # Collection expects named vectors, so wrap the dense vector
+            # Collection expects BOTH named vectors (dense AND sparse)
+            # Create empty sparse vector for regular points
+            empty_sparse = SparseVector(indices=[], values=[])
             for point in regular_points:
                 qdrant_points.append(PointStruct(
-                    id=point.id, 
-                    vector={"dense": point.vector},
+                    id=point.id,
+                    vector={"dense": point.vector, "bm25": empty_sparse},
                     payload=point.payload
                 ))
         else:
@@ -460,6 +462,37 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
             max_batch_size=1000,  # Configurable batch size
             max_retries=3,
         )
+
+    def _deduplicate_points(
+        self, points: list[PointStruct]
+    ) -> tuple[list[PointStruct], int]:
+        """Remove duplicate IDs, keeping the last occurrence (most recent data).
+
+        Args:
+            points: List of points that may contain duplicates
+
+        Returns:
+            Tuple of (deduplicated points, number of duplicates removed)
+        """
+        seen_ids = {}
+        duplicates_removed = 0
+
+        # Track by ID, keeping last occurrence
+        for point in points:
+            if point.id in seen_ids:
+                duplicates_removed += 1
+            seen_ids[point.id] = point
+
+        # Return deduplicated list preserving insertion order
+        deduplicated = list(seen_ids.values())
+
+        if duplicates_removed > 0:
+            logger.info(
+                f"🔧 Removed {duplicates_removed} duplicate points, "
+                f"proceeding with {len(deduplicated)} unique points"
+            )
+
+        return deduplicated, duplicates_removed
 
     def _reliable_batch_upsert(
         self,
@@ -523,6 +556,17 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                     )
                 if len(colliding_points) > 3:
                     logger.warning(f"       - ... and {len(colliding_points) - 3} more")
+
+            # FIX: Deduplicate points before processing to prevent batch failures
+            qdrant_points, duplicates_removed = self._deduplicate_points(qdrant_points)
+
+            # Update batches after deduplication
+            batches = self._split_into_batches(qdrant_points, max_batch_size)
+
+            if duplicates_removed > 0:
+                logger.info(
+                    f"✅ After deduplication: {len(qdrant_points)} unique points in {len(batches)} batches"
+                )
 
         # Process each batch with retry logic
         total_processed = 0

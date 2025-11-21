@@ -257,16 +257,23 @@ class JavaScriptParser(TreeSitterParser):
 
         # Implementation chunk first
         implementation = self.extract_node_text(node, content)
+        start_line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
         impl_chunk = EntityChunk(
-            id=self._create_chunk_id(file_path, name, "implementation"),
+            id=self._create_chunk_id(
+                file_path, name, "implementation",
+                entity_type="function",
+                line_number=start_line,
+                end_line=end_line
+            ),
             entity_name=name,
             chunk_type="implementation",
             content=implementation,
             metadata={
                 "entity_type": "function",
                 "file_path": str(file_path),
-                "start_line": node.start_point[0] + 1,
-                "end_line": node.end_point[0] + 1,
+                "start_line": start_line,
+                "end_line": end_line,
                 "semantic_metadata": {
                     "calls": self._extract_function_calls(implementation),
                     "complexity": self._calculate_complexity(implementation),
@@ -374,8 +381,15 @@ class JavaScriptParser(TreeSitterParser):
         chunks = []
 
         # Implementation chunk first
+        start_line = node.start_point[0] + 1
+        end_line = node.end_point[0] + 1
         impl_chunk = EntityChunk(
-            id=self._create_chunk_id(file_path, name, "implementation"),
+            id=self._create_chunk_id(
+                file_path, name, "implementation",
+                entity_type="class",
+                line_number=start_line,
+                end_line=end_line
+            ),
             entity_name=name,
             chunk_type="implementation",
             content=self.extract_node_text(node, content),

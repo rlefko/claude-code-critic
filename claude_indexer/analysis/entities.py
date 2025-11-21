@@ -121,8 +121,19 @@ class EntityChunk:
         # Create collision-resistant metadata chunk ID
         import hashlib
 
-        unique_content = f"{str(entity.file_path)}::{entity.entity_type.value}::{entity.name}::metadata::{entity.line_number}"
-        unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[:8]
+        # Enhanced ID generation to prevent collisions for same-named entities on same line
+        # Include end_line_number and observations hash for true uniqueness
+        observations_hash = hashlib.md5(str(entity.observations).encode()).hexdigest()[:8]
+        unique_content = (
+            f"{str(entity.file_path)}::"
+            f"{entity.entity_type.value}::"
+            f"{entity.name}::"
+            f"metadata::"
+            f"{entity.line_number}::"
+            f"{entity.end_line_number}::"  # Differentiates inline vs multi-line entities
+            f"{observations_hash}"  # Uses content hash for uniqueness even at same position
+        )
+        unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[:16]  # Longer hash for better collision resistance
         base_id = f"{str(entity.file_path)}::{entity.entity_type.value}::{entity.name}::metadata"
         collision_resistant_id = f"{base_id}::{unique_hash}"
 

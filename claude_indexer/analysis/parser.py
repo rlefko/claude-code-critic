@@ -107,13 +107,45 @@ class CodeParser(ABC):
         entity_name: str,
         chunk_type: str,
         entity_type: str | None = None,
+        line_number: int | None = None,
+        end_line: int | None = None,
     ) -> str:
-        """Create deterministic chunk ID following existing pattern."""
-        # Pattern: {file_path}::{entity_type}::{entity_name}::{chunk_type} (if entity_type provided)
-        # Pattern: {file_path}::{entity_name}::{chunk_type} (backward compatibility)
+        """Create deterministic chunk ID with collision resistance.
+
+        Enhanced to include line numbers for better uniqueness when multiple
+        entities with same name exist in the same file.
+        """
+        import hashlib
+
+        # Build unique content string with all available identifiers
+        parts = [str(file_path)]
+
         if entity_type:
-            return f"{str(file_path)}::{entity_type}::{entity_name}::{chunk_type}"
-        return f"{str(file_path)}::{entity_name}::{chunk_type}"
+            parts.append(entity_type)
+
+        parts.append(entity_name)
+        parts.append(chunk_type)
+
+        # Add line numbers for better uniqueness
+        if line_number is not None:
+            parts.append(str(line_number))
+        if end_line is not None:
+            parts.append(str(end_line))
+
+        # Create base ID for readability
+        base_parts = [str(file_path)]
+        if entity_type:
+            base_parts.append(entity_type)
+        base_parts.append(entity_name)
+        base_parts.append(chunk_type)
+
+        base_id = "::".join(base_parts)
+
+        # Add hash of full unique content for collision resistance
+        unique_content = "::".join(parts)
+        unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[:16]
+
+        return f"{base_id}::{unique_hash}"
 
 
 class PythonParser(CodeParser):
