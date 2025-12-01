@@ -68,6 +68,17 @@ This script will:
   7. Generate CLAUDE.md documentation
   8. Run initial indexing
 
+Multi-Project Support:
+  The MCP server supports multiple projects simultaneously via dynamic
+  collection routing. Each project should use a unique collection name.
+  All MCP tools accept an optional 'collection' parameter to override
+  the default collection, enabling cross-project queries.
+
+  Example: Multiple projects open at once
+    mcp__project_a__search_similar("query")           # Uses project_a collection
+    mcp__project_b__search_similar("query")           # Uses project_b collection
+    mcp__project_a__search_similar("query", collection="project_b")  # Query project_b from project_a
+
 EOF
     exit 0
 }
