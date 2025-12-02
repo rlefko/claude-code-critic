@@ -28,6 +28,52 @@ class CodeAnalyzer:
             ),  # JS: const X = require()
         ]
 
+        # Type hint patterns (Python type annotations)
+        self.type_hint_patterns: list[Pattern] = [
+            re.compile(r"^\s*\w+\s*:\s*\w+\s*$"),  # var: Type
+            re.compile(r"^\s*\w+\s*:\s*\w+\s*="),  # var: Type =
+            re.compile(r"^\s*\w+\s*=\s*\w+\s*$"),  # TypeAlias = Type
+            re.compile(r"^\s*[A-Z]\w*\s*=\s*TypeVar\s*\("),  # T = TypeVar(...)
+            re.compile(r"^\s*[A-Z]\w*\s*:\s*TypeAlias\s*="),  # MyType: TypeAlias =
+        ]
+
+        # Decorator patterns (Python decorators - trivial alone)
+        self.decorator_patterns: list[Pattern] = [
+            re.compile(r"^\s*@property\s*$"),
+            re.compile(r"^\s*@staticmethod\s*$"),
+            re.compile(r"^\s*@classmethod\s*$"),
+            re.compile(r"^\s*@abstractmethod\s*$"),
+            re.compile(r"^\s*@dataclass\s*$"),
+            re.compile(r"^\s*@dataclass\(.*\)\s*$"),
+            re.compile(r"^\s*@override\s*$"),
+            re.compile(r"^\s*@deprecated\s*$"),
+            re.compile(r"^\s*@\w+\s*$"),  # Generic single decorator
+            re.compile(r"^\s*@\w+\(.*\)\s*$"),  # Decorator with args
+        ]
+
+        # TypeScript interface/type patterns (trivial type definitions)
+        self.typescript_type_patterns: list[Pattern] = [
+            re.compile(r"^\s*interface\s+\w+\s*\{?\s*$"),  # interface Name {
+            re.compile(r"^\s*type\s+\w+\s*="),  # type Name =
+            re.compile(r"^\s*export\s+interface\s+\w+"),  # export interface
+            re.compile(r"^\s*export\s+type\s+\w+"),  # export type
+            re.compile(r"^\s*\}\s*$"),  # closing brace
+            re.compile(r"^\s*\w+\s*:\s*\w+[\[\]<>,\s\w]*;?\s*$"),  # property: Type;
+            re.compile(r"^\s*\w+\?\s*:\s*\w+"),  # optional?: Type
+            re.compile(r"^\s*readonly\s+\w+\s*:"),  # readonly prop:
+        ]
+
+        # Docstring patterns (Python/JS documentation)
+        self.docstring_patterns: list[Pattern] = [
+            re.compile(r'^\s*"""'),  # Python docstring start/end
+            re.compile(r"^\s*'''"),  # Python docstring alt
+            re.compile(r"^\s*/\*\*"),  # JSDoc start
+            re.compile(r"^\s*\*"),  # JSDoc middle line
+            re.compile(r"^\s*\*/"),  # JSDoc end
+            re.compile(r"^\s*//"),  # Single-line comment
+            re.compile(r"^\s*#"),  # Python comment
+        ]
+
         # Assignment patterns (Python and JavaScript)
         self.assignment_patterns: list[Pattern] = [
             re.compile(r"^[a-z_][a-zA-Z0-9_]*\s*=\s*.+$"),  # Python: variable = value
@@ -162,6 +208,82 @@ class CodeAnalyzer:
             for line in non_empty_lines
         )
 
+    def is_type_hint_only(self, lines: list[str]) -> bool:
+        """
+        Check if lines contain only type hints/annotations.
+
+        Args:
+            lines: List of code lines
+
+        Returns:
+            True if all lines are type hints, False otherwise
+        """
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
+        if not non_empty_lines:
+            return False
+
+        return all(
+            any(pattern.match(line) for pattern in self.type_hint_patterns)
+            for line in non_empty_lines
+        )
+
+    def is_decorator_only(self, lines: list[str]) -> bool:
+        """
+        Check if lines contain only decorators (without function body).
+
+        Args:
+            lines: List of code lines
+
+        Returns:
+            True if all lines are decorators, False otherwise
+        """
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
+        if not non_empty_lines:
+            return False
+
+        return all(
+            any(pattern.match(line) for pattern in self.decorator_patterns)
+            for line in non_empty_lines
+        )
+
+    def is_typescript_type_only(self, lines: list[str]) -> bool:
+        """
+        Check if lines contain only TypeScript interface/type definitions.
+
+        Args:
+            lines: List of code lines
+
+        Returns:
+            True if all lines are TS type definitions, False otherwise
+        """
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
+        if not non_empty_lines:
+            return False
+
+        return all(
+            any(pattern.match(line) for pattern in self.typescript_type_patterns)
+            for line in non_empty_lines
+        )
+
+    def is_docstring_only(self, lines: list[str]) -> bool:
+        """
+        Check if lines contain only docstrings/comments.
+
+        Args:
+            lines: List of code lines
+
+        Returns:
+            True if all lines are documentation, False otherwise
+        """
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
+        if not non_empty_lines:
+            return False
+
+        return all(
+            any(pattern.match(line) for pattern in self.docstring_patterns)
+            for line in non_empty_lines
+        )
+
     def has_definitions(self, content: str) -> bool:
         """
         Check if content contains function or class definitions.
@@ -204,6 +326,42 @@ class CodeAnalyzer:
                 "is_empty": False,
                 "is_trivial": True,
                 "reason": "Import statements only - no duplication risk",
+                "has_definitions": False,
+            }
+
+        # Check docstring/comment-only changes
+        if self.is_docstring_only(lines):
+            return {
+                "is_empty": False,
+                "is_trivial": True,
+                "reason": "Documentation/comments only - no duplication risk",
+                "has_definitions": False,
+            }
+
+        # Check decorator-only changes (decorators without function body)
+        if self.is_decorator_only(lines):
+            return {
+                "is_empty": False,
+                "is_trivial": True,
+                "reason": "Decorators only - no duplication risk",
+                "has_definitions": False,
+            }
+
+        # Check type hint-only changes
+        if self.is_type_hint_only(lines):
+            return {
+                "is_empty": False,
+                "is_trivial": True,
+                "reason": "Type annotations only - no duplication risk",
+                "has_definitions": False,
+            }
+
+        # Check TypeScript interface/type-only changes
+        if self.is_typescript_type_only(lines):
+            return {
+                "is_empty": False,
+                "is_trivial": True,
+                "reason": "TypeScript type definitions - no duplication risk",
                 "has_definitions": False,
             }
 

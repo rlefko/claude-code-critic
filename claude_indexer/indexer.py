@@ -174,8 +174,18 @@ class CoreIndexer:
             except Exception as e:
                 self.logger.warning(f"Could not load enhanced exclusions: {e}")
 
-        # Initialize parser registry
-        self.parser_registry = ParserRegistry(project_path)
+        # Initialize parse cache for skipping re-parsing of unchanged files
+        self._parse_cache = None
+        try:
+            from .analysis.parse_cache import ParseResultCache
+            cache_dir = project_path / ".index_cache"
+            self._parse_cache = ParseResultCache(cache_dir)
+            self.logger.debug(f"Parse cache initialized with {len(self._parse_cache)} entries")
+        except Exception as e:
+            self.logger.debug(f"Parse cache initialization failed: {e}")
+
+        # Initialize parser registry with optional parse cache
+        self.parser_registry = ParserRegistry(project_path, parse_cache=self._parse_cache)
 
         # Initialize session cost tracking
         self._session_cost_data: dict[str, int | float] = {

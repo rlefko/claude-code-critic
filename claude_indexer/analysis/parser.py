@@ -2141,9 +2141,10 @@ class MarkdownParser(CodeParser, TiktokenMixin):
 class ParserRegistry:
     """Registry for managing multiple code parsers."""
 
-    def __init__(self, project_path: Path):
+    def __init__(self, project_path: Path, parse_cache: Any = None):
         self.project_path = project_path
         self._parsers: list[CodeParser] = []
+        self._parse_cache = parse_cache  # Optional ParseResultCache for skipping re-parsing
 
         # Load project config for parser initialization
         self.project_config = self._load_project_config()
@@ -2268,7 +2269,7 @@ class ParserRegistry:
     def parse_file(
         self, file_path: Path, batch_callback: Any = None, global_entity_names: Any = None
     ) -> ParserResult:
-        """Parse a file using the appropriate parser."""
+        """Parse a file using the appropriate parser with optional caching."""
         parser = self.get_parser_for_file(file_path)
 
         if parser is None:
@@ -2276,9 +2277,24 @@ class ParserRegistry:
             result.errors.append(f"No parser available for {file_path.suffix}")  # type: ignore[union-attr]
             return result
 
-        # Try to pass both batch_callback and global_entity_names if parser supports them
+        # Check parse cache if available
+        content_hash = None
+        if self._parse_cache is not None:
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+                from .parse_cache import ParseResultCache
+                content_hash = ParseResultCache.compute_content_hash(content)
+
+                cached = self._parse_cache.get(content_hash)
+                if cached is not None:
+                    # Reconstruct ParserResult from cached data
+                    return self._reconstruct_result(cached, file_path)
+            except Exception as e:
+                logger.debug(f"Parse cache lookup failed for {file_path}: {e}")
+
+        # Parse the file
         try:
-            return parser.parse(
+            result = parser.parse(
                 file_path,
                 batch_callback=batch_callback,  # type: ignore[call-arg]
                 global_entity_names=global_entity_names,
@@ -2286,10 +2302,53 @@ class ParserRegistry:
         except TypeError:
             # Fallback for parsers that don't support new parameters
             try:
-                return parser.parse(file_path, batch_callback=batch_callback)  # type: ignore[call-arg]
+                result = parser.parse(file_path, batch_callback=batch_callback)  # type: ignore[call-arg]
             except TypeError:
                 # Final fallback for basic parsers
-                return parser.parse(file_path)
+                result = parser.parse(file_path)
+
+        # Save to cache if available
+        if self._parse_cache is not None and content_hash is not None:
+            try:
+                self._parse_cache.set(content_hash, result)
+            except Exception as e:
+                logger.debug(f"Failed to cache parse result for {file_path}: {e}")
+
+        return result
+
+    def _reconstruct_result(self, cached: dict[str, Any], file_path: Path) -> ParserResult:
+        """Reconstruct ParserResult from cached data."""
+        from .models import Entity, EntityChunk, Relation
+
+        entities = []
+        for entity_data in cached.get("entities", []):
+            # Convert file_path back to Path if present
+            if "file_path" in entity_data and entity_data["file_path"]:
+                entity_data["file_path"] = Path(entity_data["file_path"])
+            entities.append(Entity(**entity_data))
+
+        relations = []
+        for relation_data in cached.get("relations", []):
+            relations.append(Relation(**relation_data))
+
+        implementation_chunks = None
+        if cached.get("implementation_chunks"):
+            implementation_chunks = []
+            for chunk_data in cached["implementation_chunks"]:
+                if "file_path" in chunk_data and chunk_data["file_path"]:
+                    chunk_data["file_path"] = Path(chunk_data["file_path"])
+                implementation_chunks.append(EntityChunk(**chunk_data))
+
+        return ParserResult(
+            file_path=file_path,
+            entities=entities,
+            relations=relations,
+            implementation_chunks=implementation_chunks,
+            parsing_time=cached.get("parsing_time", 0.0),
+            file_hash=cached.get("file_hash", ""),
+            errors=cached.get("errors"),
+            warnings=cached.get("warnings"),
+        )
 
     def get_supported_extensions(self) -> list[str]:
         """Get all supported file extensions."""
