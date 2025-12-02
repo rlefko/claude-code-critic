@@ -610,7 +610,7 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
                     "--output-format",
                     "json",
                     "--max-turns",
-                    "6",  # Reduced from 20 for faster analysis (~1000ms savings)
+                    "30",
                     "--model",
                     "sonnet",
                     "--allowedTools",
@@ -619,7 +619,7 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=20,  # Reduced from 60 for faster failure detection
+                timeout=60,
                 cwd=str(work_dir),
             )
 
