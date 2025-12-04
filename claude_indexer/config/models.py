@@ -87,6 +87,11 @@ class IndexerConfig(BaseModel):
             "package-lock.json",
             "memory_guard_debug.txt",
             "memory_guard_debug_*.txt",
+            # Indexer cache files - CRITICAL: prevent indexing our own caches
+            ".index_cache/",
+            ".embedding_cache/",
+            "isolated_test/",
+            "*_file_hashes.json",
         ]
     )
 
