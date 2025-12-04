@@ -57,8 +57,9 @@ SIMPLE_EVALUATION_TESTING_PLAN.md
 docs/evaluation2.md
 docs/refactor.md
 
-# Claude config (development only)
-.claude/
+# Claude config (development only - but keep commands for distribution)
+.claude/*
+!.claude/commands/
 
 # Memory Guard debug logs
 memory_guard_debug.txt

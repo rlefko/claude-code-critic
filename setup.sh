@@ -861,6 +861,31 @@ else
 fi
 
 # ============================================================================
+# Step 10: Install Slash Commands
+# ============================================================================
+print_header "Step 10: Installing Slash Commands"
+
+COMMANDS_SRC="$SCRIPT_DIR/.claude/commands"
+COMMANDS_DEST="$PROJECT_PATH/.claude/commands"
+
+if [ -d "$COMMANDS_SRC" ]; then
+    mkdir -p "$COMMANDS_DEST"
+
+    # Copy all slash command files
+    for cmd_file in "$COMMANDS_SRC"/*.md; do
+        if [ -f "$cmd_file" ]; then
+            cp "$cmd_file" "$COMMANDS_DEST/"
+            cmd_name=$(basename "$cmd_file" .md)
+            print_success "Installed /$cmd_name command"
+        fi
+    done
+
+    print_success "Slash commands installed to $COMMANDS_DEST"
+else
+    print_info "No slash commands to install (directory not found)"
+fi
+
+# ============================================================================
 # Setup Complete!
 # ============================================================================
 print_header "✨ Setup Complete!"
@@ -873,6 +898,7 @@ echo "  • Collection: $COLLECTION_NAME"
 echo "  • MCP Server: ${COLLECTION_NAME}-memory"
 echo "  • Git Hooks: ✓ Installed (pre-commit, post-merge, post-checkout)"
 echo "  • Memory Guard: ✓ Configured (UserPromptSubmit, PreToolUse)"
+echo "  • Slash Commands: ✓ /refactor (SOLID, DRY, orphan detection)"
 echo "  • Documentation: ✓ CLAUDE.md created/updated"
 echo ""
 
