@@ -456,6 +456,9 @@ class MemoryGuard:
         - Stage 2: BM25 keyword (<30ms) - High keyword similarity (currently skipped)
         - Stage 3: Semantic search (<100ms) - Vector similarity
 
+        Uses FastDuplicateDetectorRegistry for per-collection detectors to support
+        multiple indexed repositories without connection thrashing.
+
         Returns:
             Result dict with 'decision' and 'reason' if definitive, None to escalate
         """
@@ -463,10 +466,7 @@ class MemoryGuard:
             return None
 
         try:
-            from utils.fast_duplicate_detector import FastDuplicateDetector
-
-            if self.tier2_detector is None:
-                self.tier2_detector = FastDuplicateDetector.get_instance()
+            from utils.fast_duplicate_detector import FastDuplicateDetectorRegistry
 
             # Extract entities from the operation
             entities = self.extractor.extract_entities_from_operation(tool_name, tool_input)
@@ -478,8 +478,13 @@ class MemoryGuard:
             if not collection:
                 return None  # Can't determine collection - escalate
 
+            # Get per-collection detector from registry
+            detector = FastDuplicateDetectorRegistry.get_detector(
+                collection, self.project_root
+            )
+
             file_path = tool_input.get("file_path", "")
-            result = self.tier2_detector.check_duplicate(
+            result = detector.check_duplicate(
                 code_info=code_info,
                 entity_names=entities,
                 file_path=file_path,

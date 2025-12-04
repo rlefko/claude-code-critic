@@ -230,6 +230,64 @@ class CoreIndexer:
 
         return batch_callback
 
+    def _populate_signature_table(
+        self,
+        collection_name: str,
+        entities: list[Entity],
+        implementation_chunks: list[EntityChunk] | None,
+    ) -> None:
+        """Populate signature hash table for O(1) duplicate detection.
+
+        Called during indexing to enable Memory Guard Tier 2 fast path.
+        Signature tables are stored per-collection for multi-repo support.
+
+        Args:
+            collection_name: Collection name for cache organization
+            entities: List of parsed entities
+            implementation_chunks: List of implementation chunks with code content
+        """
+        if not implementation_chunks:
+            return
+
+        try:
+            from utils.signature_table_manager import SignatureTableManager
+
+            sig_manager = SignatureTableManager.get_instance(
+                self.project_path / ".index_cache"
+            )
+
+            # Build entity lookup for type info
+            entity_map = {e.name: e for e in entities}
+
+            # Process implementation chunks
+            for chunk in implementation_chunks:
+                if chunk.chunk_type != "implementation":
+                    continue
+
+                entity = entity_map.get(chunk.entity_name)
+                if not entity:
+                    continue
+
+                # Only add signatures for function/class/method entities
+                entity_type = entity.entity_type.value
+                if entity_type not in ("function", "class", "method"):
+                    continue
+
+                file_path = str(entity.file_path) if entity.file_path else ""
+                sig_manager.update_from_chunk(
+                    collection_name, chunk.content, chunk.entity_name, entity_type, file_path
+                )
+
+            # Persist changes
+            sig_manager.save_all()
+
+        except ImportError:
+            # Memory Guard not installed - silently skip
+            pass
+        except Exception as e:
+            # Non-critical - don't break indexing, just log
+            self.logger.debug(f"Signature table update failed: {e}")
+
     def _parse_light_tier(self, file_path: Path, global_entity_names: set[str]) -> Any:
         """
         Light parsing for generated files and type definitions.
@@ -1554,6 +1612,11 @@ class CoreIndexer:
                     all_implementation_chunks.extend(result.implementation_chunks or [])
                     successfully_processed_files.append(file_path)
 
+                    # Populate signature table for O(1) duplicate detection (Memory Guard Tier 2)
+                    self._populate_signature_table(
+                        collection_name, result.entities, result.implementation_chunks
+                    )
+
                     # Only log if we found something meaningful (reduce noise)
                     if result.entities or result.relations:
                         self.logger.info(
@@ -1574,6 +1637,11 @@ class CoreIndexer:
                             all_relations.extend(fallback_result.relations)
                             all_implementation_chunks.extend(fallback_result.implementation_chunks or [])
                             successfully_processed_files.append(file_path)
+
+                            # Populate signature table for O(1) duplicate detection (Memory Guard Tier 2)
+                            self._populate_signature_table(
+                                collection_name, fallback_result.entities, fallback_result.implementation_chunks
+                            )
 
                             self.logger.info(
                                 f"  Fallback parser recovered {len(fallback_result.entities)} entities, "

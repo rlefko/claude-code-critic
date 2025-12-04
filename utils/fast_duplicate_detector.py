@@ -7,8 +7,13 @@ Stages:
 1. Signature Hash (O(1), <5ms) - Exact matches
 2. BM25 Keyword (<30ms) - High keyword similarity
 3. Semantic Search (<100ms) - Vector similarity
+
+Multi-Collection Support:
+Uses FastDuplicateDetectorRegistry for per-collection detectors to support
+multiple indexed repositories simultaneously.
 """
 
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,6 +35,60 @@ class DuplicateResult:
     matches: list[dict[str, Any]] = field(default_factory=list)
 
 
+class FastDuplicateDetectorRegistry:
+    """Thread-safe registry for per-collection duplicate detectors.
+
+    Manages FastDuplicateDetector instances per collection to support
+    multiple indexed repositories simultaneously without connection thrashing.
+
+    Usage:
+        detector = FastDuplicateDetectorRegistry.get_detector("my-collection", project_root)
+        result = detector.check_duplicate(code_info, entities, file_path, "my-collection")
+    """
+
+    _detectors: dict[str, "FastDuplicateDetector"] = {}
+    _lock = threading.Lock()
+
+    @classmethod
+    def get_detector(
+        cls, collection: str, project_root: Path | None = None
+    ) -> "FastDuplicateDetector":
+        """Get or create a detector for the specified collection.
+
+        Args:
+            collection: Collection name (e.g., "my-project")
+            project_root: Project root for config and cache paths
+
+        Returns:
+            FastDuplicateDetector instance for the collection
+        """
+        with cls._lock:
+            if collection not in cls._detectors:
+                cls._detectors[collection] = FastDuplicateDetector(collection, project_root)
+            return cls._detectors[collection]
+
+    @classmethod
+    def clear(cls) -> None:
+        """Clear all detectors (for testing)."""
+        with cls._lock:
+            # Save all signature tables before clearing
+            for detector in cls._detectors.values():
+                detector.save_signature_table()
+            cls._detectors.clear()
+
+    @classmethod
+    def get_all_stats(cls) -> dict[str, Any]:
+        """Get statistics for all registered detectors."""
+        with cls._lock:
+            return {
+                "total_detectors": len(cls._detectors),
+                "collections": {
+                    name: detector.get_stats()
+                    for name, detector in cls._detectors.items()
+                },
+            }
+
+
 class FastDuplicateDetector:
     """High-performance duplicate detection bypassing Claude CLI.
 
@@ -37,6 +96,8 @@ class FastDuplicateDetector:
     1. Signature Hash: O(1) exact match via hash table
     2. BM25 Keyword: Local keyword search (no API calls)
     3. Semantic Search: Vector similarity with cached embeddings
+
+    Prefer using FastDuplicateDetectorRegistry.get_detector() for multi-collection support.
     """
 
     # Confidence thresholds
@@ -51,11 +112,23 @@ class FastDuplicateDetector:
     BUDGET_SEMANTIC = 100
     BUDGET_TOTAL = 200
 
-    # Singleton instance
+    # Singleton instance (for backward compatibility)
     _instance: "FastDuplicateDetector | None" = None
 
-    def __init__(self):
-        """Initialize with lazy-loaded components."""
+    def __init__(
+        self, collection: str | None = None, project_root: Path | None = None
+    ):
+        """Initialize with lazy-loaded components.
+
+        Args:
+            collection: Collection name for collection-specific caching.
+                        If None, uses default paths.
+            project_root: Project root for config and cache paths.
+        """
+        # Collection-specific configuration
+        self._collection = collection
+        self._project_root = project_root or Path.cwd()
+
         # Lazy-loaded components
         self._qdrant = None
         self._embedder = None
@@ -66,13 +139,21 @@ class FastDuplicateDetector:
 
     @classmethod
     def get_instance(cls) -> "FastDuplicateDetector":
-        """Get singleton instance for connection reuse."""
+        """Get singleton instance for connection reuse.
+
+        Note: Prefer FastDuplicateDetectorRegistry.get_detector() for
+        multi-collection support. This method exists for backward compatibility.
+        """
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     def _lazy_init(self, collection: str, project_root: Path | None = None) -> bool:
         """Lazily initialize Qdrant, embedder, and signature table.
+
+        Args:
+            collection: Qdrant collection name
+            project_root: Project root for config loading (uses instance default if None)
 
         Returns:
             True if initialization successful, False otherwise
@@ -82,6 +163,10 @@ class FastDuplicateDetector:
 
         self._initialized = True
 
+        # Use instance values if not provided
+        effective_root = project_root or self._project_root or Path.cwd()
+        effective_collection = collection or self._collection or "default"
+
         try:
             from claude_indexer.config.config_loader import ConfigLoader
             from claude_indexer.embeddings.registry import create_embedder_from_config
@@ -90,22 +175,25 @@ class FastDuplicateDetector:
             from utils.signature_hash import SignatureHashTable
 
             # Load configuration
-            loader = ConfigLoader(project_root or Path.cwd())
+            loader = ConfigLoader(effective_root)
             self._config = loader.load()
 
             # Initialize Qdrant store
             self._qdrant = QdrantStore(
                 url=self._config.qdrant_url,
                 api_key=self._config.qdrant_api_key,
-                collection_name=collection,
+                collection_name=effective_collection,
             )
 
             # Initialize embedder with caching
-            cache_dir = (project_root or Path.cwd()) / ".index_cache"
+            cache_dir = effective_root / ".index_cache"
             self._embedder = create_embedder_from_config(self._config, cache_dir=cache_dir)
 
-            # Initialize signature hash table
-            sig_cache = cache_dir / "signature_hashes.json"
+            # Initialize signature hash table with collection-specific path
+            # Use per-collection cache for multi-repo support
+            sig_cache_dir = cache_dir / "collections" / effective_collection
+            sig_cache_dir.mkdir(parents=True, exist_ok=True)
+            sig_cache = sig_cache_dir / "signature_hashes.json"
             self._signature_table = SignatureHashTable(cache_file=sig_cache)
 
             return True
@@ -442,7 +530,9 @@ class FastDuplicateDetector:
 
     def get_stats(self) -> dict[str, Any]:
         """Get detector statistics."""
-        stats = {
+        stats: dict[str, Any] = {
+            "collection": self._collection,
+            "project_root": str(self._project_root) if self._project_root else None,
             "initialized": self._initialized,
             "init_error": self._init_error,
             "thresholds": {
