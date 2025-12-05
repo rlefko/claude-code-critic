@@ -532,6 +532,83 @@ EOF
 fi
 
 # ============================================================================
+# Step 5.5: Claude Code Hooks Installation
+# ============================================================================
+print_header "Step 5.5: Installing Claude Code Hooks"
+
+HOOKS_SRC="$SCRIPT_DIR/hooks"
+HOOKS_DEST="$PROJECT_PATH/.claude/hooks"
+SETTINGS_LOCAL="$PROJECT_PATH/.claude/settings.local.json"
+SETTINGS_TEMPLATE="$SCRIPT_DIR/templates/settings.local.json.template"
+
+# Create .claude directory if it doesn't exist
+mkdir -p "$PROJECT_PATH/.claude"
+
+# Copy hook scripts
+if [ -d "$HOOKS_SRC" ]; then
+    mkdir -p "$HOOKS_DEST"
+
+    for hook_file in "$HOOKS_SRC"/*.sh; do
+        if [ -f "$hook_file" ]; then
+            cp "$hook_file" "$HOOKS_DEST/"
+            chmod +x "$HOOKS_DEST/$(basename "$hook_file")"
+            print_success "Installed hook: $(basename "$hook_file")"
+        fi
+    done
+else
+    print_warning "Hooks source directory not found: $HOOKS_SRC"
+fi
+
+# Create settings.local.json from template
+if [ -f "$SETTINGS_TEMPLATE" ]; then
+    if [ -f "$SETTINGS_LOCAL" ]; then
+        # Backup existing settings
+        BACKUP_PATH="${SETTINGS_LOCAL}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$SETTINGS_LOCAL" "$BACKUP_PATH"
+        print_warning "Existing settings.local.json backed up to $(basename "$BACKUP_PATH")"
+
+        echo -e -n "${YELLOW}Overwrite existing Claude Code hooks config? [y/N]:${NC} "
+        read -r overwrite_hooks
+
+        if [[ ! "$overwrite_hooks" =~ ^[Yy]$ ]]; then
+            print_info "Skipping hooks configuration (backup available)"
+        else
+            # Create new settings.local.json
+            HOOKS_CONTENT=$(cat "$SETTINGS_TEMPLATE")
+            HOOKS_CONTENT="${HOOKS_CONTENT//\{\{HOOKS_PATH\}\}/$HOOKS_DEST}"
+            HOOKS_CONTENT="${HOOKS_CONTENT//\{\{COLLECTION_NAME\}\}/$COLLECTION_NAME}"
+            echo "$HOOKS_CONTENT" > "$SETTINGS_LOCAL"
+            print_success "Claude Code hooks configured"
+        fi
+    else
+        # Create new settings.local.json
+        HOOKS_CONTENT=$(cat "$SETTINGS_TEMPLATE")
+        HOOKS_CONTENT="${HOOKS_CONTENT//\{\{HOOKS_PATH\}\}/$HOOKS_DEST}"
+        HOOKS_CONTENT="${HOOKS_CONTENT//\{\{COLLECTION_NAME\}\}/$COLLECTION_NAME}"
+        echo "$HOOKS_CONTENT" > "$SETTINGS_LOCAL"
+        print_success "Claude Code hooks configured"
+    fi
+
+    print_info "Hooks installed:"
+    print_info "  - PreToolUse: Guards against dangerous operations"
+    print_info "  - PostToolUse: Auto-indexes files after Write/Edit"
+else
+    print_warning "Settings template not found: $SETTINGS_TEMPLATE"
+fi
+
+# Add .claude/hooks to .gitignore (contains project-specific paths)
+if [ -f "$GITIGNORE_PATH" ]; then
+    if ! grep -q "^\.claude/hooks" "$GITIGNORE_PATH"; then
+        echo ".claude/hooks/" >> "$GITIGNORE_PATH"
+        print_success "Added .claude/hooks/ to .gitignore"
+    fi
+    if ! grep -q "^\.claude/settings\.local\.json" "$GITIGNORE_PATH"; then
+        echo ".claude/settings.local.json" >> "$GITIGNORE_PATH"
+        print_success "Added .claude/settings.local.json to .gitignore"
+    fi
+fi
+
+# ============================================================================
 # Step 6: MCP Server Configuration
 # ============================================================================
 print_header "Step 6: Configuring MCP Server"
@@ -897,8 +974,8 @@ echo "  • Project: $PROJECT_PATH"
 echo "  • Collection: $COLLECTION_NAME"
 echo "  • MCP Server: ${COLLECTION_NAME}-memory"
 echo "  • Git Hooks: ✓ Installed (pre-commit, post-merge, post-checkout)"
-echo "  • Memory Guard: ✓ Configured (UserPromptSubmit, PreToolUse)"
-echo "  • Slash Commands: ✓ /refactor (SOLID, DRY, orphan detection)"
+echo "  • Claude Code Hooks: ✓ Installed (PreToolUse guard, PostToolUse auto-index)"
+echo "  • Slash Commands: ✓ /refactor, /restructure"
 echo "  • Documentation: ✓ CLAUDE.md created/updated"
 echo ""
 

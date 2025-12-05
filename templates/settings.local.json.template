@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_PATH}}/pre-tool-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{HOOKS_PATH}}/post-file-change.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_MEMORY_COLLECTION": "{{COLLECTION_NAME}}"
+  }
+}
