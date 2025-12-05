@@ -1,17 +1,32 @@
 ---
 description: Identify refactoring opportunities (SOLID, DRY, orphaned code, conventions)
-argument-hint: [number-of-issues]
+argument-hint: [count] [feature-focus]
 ---
 
 # Refactoring Analysis
 
 You are analyzing this codebase for refactoring opportunities. Find the top $1 issues (default: 3 if not specified).
 
+**Feature focus**: $2 (if specified, only analyze code related to this feature/area)
+
 **Priority order**: SOLID violations > DRY violations > Orphaned code > Convention issues
 
 ## Analysis Protocol
 
 Execute this multi-phase analysis using the memory MCP tools available to you.
+
+### Phase 0: Feature Discovery (if feature focus specified)
+
+If a feature focus was provided (e.g., "authentication", "payments", "user service"):
+
+1. **Discover related entities**: Use `search_similar("$2", limit=50)` to find all code related to the feature
+2. **Map the feature boundary**: Use `read_graph(entity="<top_match>", mode="relationships")` for key entities
+3. **Include dependencies**: Add immediate dependencies (1 hop) to the analysis scope
+4. **Scope limitation**: ALL subsequent analysis phases only consider entities discovered here
+
+**If no feature focus**: Analyze the entire codebase.
+
+---
 
 ### Phase 1: SOLID Principle Violations (Highest Priority)
 
