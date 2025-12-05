@@ -21,18 +21,38 @@ fi
 
 # Skip non-code files
 case "$FILE_PATH" in
-    *.log|*.tmp|*.bak|*.swp|*.pyc|*.pyo|__pycache__/*|.git/*|node_modules/*|.venv/*)
+    *.log|*.tmp|*.bak|*.swp|*.pyc|*.pyo|__pycache__/*|.git/*|node_modules/*|.venv/*|.claude/*|.index_cache/*)
         exit 0
         ;;
 esac
+
+# Find project root by looking for .git or .mcp.json
+find_project_root() {
+    local dir="$1"
+    while [ "$dir" != "/" ]; do
+        if [ -d "$dir/.git" ] || [ -f "$dir/.mcp.json" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+    return 1
+}
+
+# Get project root from file path
+PROJECT_DIR=$(find_project_root "$(dirname "$FILE_PATH")")
+if [ -z "$PROJECT_DIR" ]; then
+    # Fallback to current directory
+    PROJECT_DIR=$(pwd)
+fi
 
 # Get collection name from environment (set by setup.sh)
 COLLECTION="${CLAUDE_MEMORY_COLLECTION:-}"
 
 if [ -z "$COLLECTION" ]; then
-    # Try to read from .mcp.json in current directory
-    if [ -f ".mcp.json" ]; then
-        COLLECTION=$(jq -r '.mcpServers | keys[0] | sub("-memory$"; "")' .mcp.json 2>/dev/null)
+    # Try to read from .mcp.json in project directory
+    if [ -f "$PROJECT_DIR/.mcp.json" ]; then
+        COLLECTION=$(jq -r '.mcpServers | keys[0] | sub("-memory$"; "")' "$PROJECT_DIR/.mcp.json" 2>/dev/null)
     fi
 fi
 
@@ -47,12 +67,9 @@ if ! command -v claude-indexer &> /dev/null; then
     exit 0
 fi
 
-# Queue the file for indexing (async, non-blocking)
-# Using a simple approach: just run indexer on the single file's directory
-PROJECT_DIR=$(pwd)
-
-# Run indexer in background to avoid blocking Claude
-(claude-indexer index -p "$PROJECT_DIR" -c "$COLLECTION" --quiet 2>/dev/null &)
+# Use single-file indexing (fast ~100ms) instead of full project index
+# The 'file' command indexes just one file efficiently
+claude-indexer file -p "$PROJECT_DIR" -c "$COLLECTION" "$FILE_PATH" --quiet 2>/dev/null
 
 # Always succeed - this is a post-hook, we don't want to block
 exit 0
