@@ -118,10 +118,15 @@ case "$TOOL_NAME" in
 
         # Check for linter disables without explanation
         # Fixed: Check each suppression line individually
+        # Accept as explained if: has code (E501), brackets ([attr]), colon+code, or trailing comment
         while IFS= read -r line; do
             if [ -n "$line" ]; then
-                # Check if there's an explanation after the suppression (comment with reason)
-                if ! echo "$line" | grep -qE '(noqa|type:\s*ignore|@ts-ignore|eslint-disable|pylint:\s*disable).+[#-]'; then
+                # Consider it explained if there's meaningful content after keyword:
+                # - Colon followed by code: "noqa: E501"
+                # - Brackets: "type: ignore[attr-defined]"
+                # - Trailing comment: "noqa  # reason"
+                # - Or any content >= 3 chars after keyword
+                if ! echo "$line" | grep -qE '(noqa|type:\s*ignore|@ts-ignore|eslint-disable|pylint:\s*disable)(\s*[:\[].+|.{3,})'; then
                     truncated="${line:0:60}"
                     add_warning "[QUALITY] Unexplained suppression: $truncated"
                     break  # Only warn once per edit
@@ -151,24 +156,26 @@ case "$TOOL_NAME" in
         done < <(echo "$CONTENT" | grep -E 'requests\.(get|post|put|delete|patch)\(')
 
         # === DOCUMENTATION CHECKS ===
+        # Note: These checks have a fundamental limitation - they can only detect if
+        # ANY docstring/JSDoc exists in the content, not whether each function has one.
+        # This is a bash limitation; proper per-function detection requires AST parsing.
+        # Messages are advisory rather than diagnostic.
 
         # Check for public function without docstring (Python)
-        # Fixed: Use proper triple-quote detection
         if echo "$FILE_PATH" | grep -qE '\.py$'; then
             if echo "$CONTENT" | grep -qE '^def [a-z]'; then
                 # Check for triple quotes (either """ or ''')
-                if ! echo "$CONTENT" | grep -qE '^\s*("""|'"'"''"'"''"'"')'; then
-                    add_warning "[DOCS] Python function may need docstring. Consider adding documentation."
+                if ! echo "$CONTENT" | grep -qE '("""|'"'"''"'"''"'"')'; then
+                    add_warning "[DOCS] Python function added - ensure it has a docstring if public."
                 fi
             fi
         fi
 
         # Check for public function without JSDoc (JavaScript/TypeScript)
-        # Fixed: Include more export patterns
         if echo "$FILE_PATH" | grep -qE '\.(js|ts|jsx|tsx)$'; then
             if echo "$CONTENT" | grep -qE '^export\s+(async\s+)?(function|const|default)'; then
                 if ! echo "$CONTENT" | grep -qE '/\*\*'; then
-                    add_warning "[DOCS] Exported function may need JSDoc. Consider adding documentation."
+                    add_warning "[DOCS] Exported function added - ensure it has JSDoc if public API."
                 fi
             fi
         fi
