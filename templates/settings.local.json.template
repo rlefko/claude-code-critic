@@ -3,13 +3,13 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "python3 {{HOOKS_PATH}}/session_start.py"
+        "command": "{{VENV_PYTHON}} {{HOOKS_PATH}}/session_start.py"
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "python3 {{HOOKS_PATH}}/prompt_handler.py"
+        "command": "{{VENV_PYTHON}} {{HOOKS_PATH}}/prompt_handler.py"
       }
     ],
     "PreToolUse": [

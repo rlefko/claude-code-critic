@@ -587,6 +587,7 @@ if [ -f "$SETTINGS_TEMPLATE" ]; then
             HOOKS_CONTENT=$(cat "$SETTINGS_TEMPLATE")
             HOOKS_CONTENT="${HOOKS_CONTENT//\{\{HOOKS_PATH\}\}/$HOOKS_DEST}"
             HOOKS_CONTENT="${HOOKS_CONTENT//\{\{COLLECTION_NAME\}\}/$COLLECTION_NAME}"
+            HOOKS_CONTENT="${HOOKS_CONTENT//\{\{VENV_PYTHON\}\}/$VENV_PATH/bin/python}"
             echo "$HOOKS_CONTENT" > "$SETTINGS_LOCAL"
             print_success "Claude Code hooks configured"
         fi
@@ -595,11 +596,14 @@ if [ -f "$SETTINGS_TEMPLATE" ]; then
         HOOKS_CONTENT=$(cat "$SETTINGS_TEMPLATE")
         HOOKS_CONTENT="${HOOKS_CONTENT//\{\{HOOKS_PATH\}\}/$HOOKS_DEST}"
         HOOKS_CONTENT="${HOOKS_CONTENT//\{\{COLLECTION_NAME\}\}/$COLLECTION_NAME}"
+        HOOKS_CONTENT="${HOOKS_CONTENT//\{\{VENV_PYTHON\}\}/$VENV_PATH/bin/python}"
         echo "$HOOKS_CONTENT" > "$SETTINGS_LOCAL"
         print_success "Claude Code hooks configured"
     fi
 
     print_info "Hooks installed:"
+    print_info "  - SessionStart: Provides git activity and memory reminders"
+    print_info "  - UserPromptSubmit: Analyzes prompts for memory tool suggestions"
     print_info "  - PreToolUse: Guards against dangerous operations"
     print_info "  - PostToolUse: Auto-indexes files after Write/Edit"
 else
@@ -984,7 +988,7 @@ echo "  • Project: $PROJECT_PATH"
 echo "  • Collection: $COLLECTION_NAME"
 echo "  • MCP Server: ${COLLECTION_NAME}-memory"
 echo "  • Git Hooks: ✓ Installed (pre-commit, post-merge, post-checkout)"
-echo "  • Claude Code Hooks: ✓ Installed (UserPromptSubmit context, PreToolUse guard, PostToolUse auto-index)"
+echo "  • Claude Code Hooks: ✓ Installed (SessionStart context, UserPromptSubmit analysis, PreToolUse guard, PostToolUse auto-index)"
 echo "  • Slash Commands: ✓ 10 commands (/refactor, /restructure, /redocument, /resecure, /reresilience, /reoptimize, /retype, /retest, /rebuild, /resolve)"
 echo "  • Documentation: ✓ CLAUDE.md created/updated"
 echo ""
