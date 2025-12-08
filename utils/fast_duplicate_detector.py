@@ -100,11 +100,15 @@ class FastDuplicateDetector:
     Prefer using FastDuplicateDetectorRegistry.get_detector() for multi-collection support.
     """
 
-    # Confidence thresholds
+    # Confidence thresholds (v4.1 - optimized for fast mode)
+    # Tighter thresholds to reduce Tier 3 escalations while maintaining quality
     THRESHOLD_HIGH_BM25 = 0.85  # BM25 score to auto-block
-    THRESHOLD_HIGH_SEMANTIC = 0.95  # Semantic score to auto-block
-    THRESHOLD_MEDIUM_SEMANTIC = 0.80  # Semantic score for medium confidence
-    THRESHOLD_APPROVE = 0.60  # Below this = auto-approve
+    THRESHOLD_HIGH_SEMANTIC = 0.95  # Semantic score to auto-block (unchanged - high confidence)
+    THRESHOLD_MEDIUM_SEMANTIC = 0.85  # Was 0.80 - narrower escalation band
+    THRESHOLD_APPROVE = 0.55  # Was 0.60 - more aggressive approval
+
+    # Escalation band is now 0.55-0.85 (was 0.60-0.80)
+    # This catches clear duplicates while reducing false escalations
 
     # Latency budgets (ms)
     BUDGET_SIGNATURE = 5

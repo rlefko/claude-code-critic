@@ -1,18 +1,28 @@
 #!/bin/bash
 # ============================================================================
-# Memory Guard v4.0 - Unified Intelligent Guard System
+# Memory Guard v4.1 - Unified Intelligent Guard System
 # ============================================================================
 #
 # A professional-grade security and quality hook for Claude Code.
-# Combines fast pattern matching with intelligent AI-powered analysis.
+# Combines fast pattern matching with fast duplicate detection.
 #
-# Architecture:
-#   Bash Guard (fast patterns) → Python Guard (MCP memory + AI)
+# Two-Mode Architecture:
+#   PreToolUse (this hook): FAST mode - Tier 0-2 only (<300ms)
+#   Pre-commit (separate):  FULL mode - All tiers including Tier 3 (5-30s)
+#
+# This design enables:
+#   - Snappy editing experience (fast mode during work)
+#   - Thorough checks before code enters repo (full mode on commit)
+#
+# Tiers:
+#   - Tier 0: Trivial operation skip (<5ms)
+#   - Tier 1: Pattern-based checks (~30ms) - THIS FILE
+#   - Tier 2: Fast duplicate detection (<150ms)
+#   - Tier 3: Full Claude CLI + MCP analysis (5-30s) - pre-commit only
 #
 # Features:
-#   - 18 pattern-based checks with severity levels
-#   - Intelligent analysis via MCP memory tools
-#   - Dependency impact, duplicate detection, test coverage
+#   - 18 pattern-based security and quality checks
+#   - Fast duplicate detection via semantic search
 #   - Actionable fix suggestions
 #   - Event logging for data-driven improvement
 #
@@ -23,14 +33,16 @@
 #
 # Design principles:
 #   - NEVER block legitimate work; when in doubt, allow
-#   - Fast pattern checks (~50ms) + intelligent analysis (when needed)
+#   - Fast response (<300ms total) during editing
+#   - Full analysis runs before commit, not during edit
 #   - Graceful degradation on errors
 #   - Modular, testable, extensible
 # ============================================================================
 
 # === CONFIGURATION ===
-readonly GUARD_VERSION="4.0"
+readonly GUARD_VERSION="4.1"
 readonly MAX_CONTENT_SIZE=1000000  # 1MB
+readonly FAST_MODE_TIMEOUT=5       # Fast mode timeout (Tier 0-2 only)
 readonly LOG_DIR="${HOME}/.claude-code-memory"
 readonly LOG_FILE="${LOG_DIR}/guard.log"
 readonly CONFIG_FILE="${LOG_DIR}/guard.conf"
@@ -462,9 +474,15 @@ run_bash_checks() {
     return 0
 }
 
-# === INTELLIGENT GUARD INTEGRATION ===
+# === INTELLIGENT GUARD INTEGRATION (FAST MODE) ===
+#
+# Runs Python guard in FAST mode (Tier 0-2 only):
+#   - Tier 0: Trivial operation detection (<5ms)
+#   - Tier 2: Fast duplicate detection (<150ms)
+#
+# Tier 3 (full Claude CLI analysis) is DEFERRED to pre-commit hook.
+# This keeps editing fast while ensuring thorough checks before commit.
 
-# Python guard for intelligent analysis
 call_python_guard() {
     local input="$1"
     local script_dir="$(dirname "$0")"
@@ -476,9 +494,10 @@ call_python_guard() {
     # Check if intelligent analysis is enabled
     [[ "$DISABLE_INTELLIGENT" == "true" ]] && return 0
 
-    # Call Python guard with timeout (max 60s for Tier 3 analysis)
+    # Call Python guard in FAST mode (Tier 0-2 only, <300ms target)
+    # Tier 3 is deferred to pre-commit for thorough analysis before commit
     local python_result
-    python_result=$(timeout 60s python3 "$python_guard" <<< "$input" 2>&1) || return 0
+    python_result=$(timeout "${FAST_MODE_TIMEOUT}s" python3 "$python_guard" --fast <<< "$input" 2>&1) || return 0
 
     # Parse Python result (JSON format)
     if [[ -n "$python_result" ]]; then
@@ -487,10 +506,13 @@ call_python_guard() {
         reason=$(jq -r '.reason // empty' <<< "$python_result" 2>/dev/null)
 
         if [[ "$decision" == "block" ]]; then
-            BLOCKS+=("[INTELLIGENT] $reason")
+            BLOCKS+=("[MEMORY] $reason")
         elif [[ -n "$reason" && "$reason" != "null" ]]; then
-            # Add non-blocking intelligent analysis results
-            WARNINGS+=("[INTELLIGENT] $reason")
+            # Add non-blocking analysis results (info only in fast mode)
+            # Skip verbose "passed Tier 0-2" messages in fast mode
+            if [[ "$reason" != *"FAST MODE"* ]]; then
+                WARNINGS+=("[MEMORY] $reason")
+            fi
         fi
     fi
 

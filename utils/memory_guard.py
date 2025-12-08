@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
-Memory Guard - Comprehensive Code Quality Gate for Claude Code
-Prevents duplication, ensures logic completeness, maintains flow integrity, and preserves features.
+Memory Guard v4.1 - Comprehensive Code Quality Gate for Claude Code
+
+Two-mode operation for optimal speed vs. thoroughness:
+- FAST MODE (default): Tier 0-2 only (<300ms) - for PreToolUse during editing
+- FULL MODE (--full): All tiers including Tier 3 - for pre-commit validation
+
+Tiers:
+- Tier 0: Trivial operation skip (<5ms)
+- Tier 1: Pattern-based checks via bash guard (~30ms)
+- Tier 2: Fast duplicate detection (<150ms)
+- Tier 3: Full Claude CLI + MCP analysis (5-30s) - only in full mode
 
 Claude Code Hook Response Schema:
 {
@@ -13,6 +22,7 @@ Claude Code Hook Response Schema:
 }
 """
 
+import argparse
 import json
 import os
 import re
@@ -21,7 +31,7 @@ import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 try:
     from utils.code_analyzer import CodeAnalyzer
@@ -36,12 +46,19 @@ except ImportError:
 # Configuration
 DEBUG_ENABLED = os.getenv("MEMORY_GUARD_DEBUG", "true").lower() == "true"
 TIER2_ENABLED = os.getenv("MEMORY_GUARD_TIER2", "true").lower() == "true"
+TIER3_ENABLED = os.getenv("MEMORY_GUARD_TIER3", "true").lower() == "true"
+
+# Mode configuration
+# FAST mode: Tier 0-2 only (<300ms) - for PreToolUse during editing
+# FULL mode: All tiers including Tier 3 - for pre-commit validation
+DEFAULT_MODE = os.getenv("MEMORY_GUARD_MODE", "fast")  # "fast" or "full"
+MAX_LATENCY_MS = int(os.getenv("MEMORY_GUARD_MAX_LATENCY_MS", "300"))
 
 
 class BypassManager:
     """Manages Memory Guard bypass state with simple on/off commands."""
 
-    def __init__(self, project_root: Path | None = None):
+    def __init__(self, project_root: Optional[Path] = None):
         self.project_root = project_root or Path.cwd()
         self.state_file = self.project_root / ".claude" / "guard_state.json"
         self.lock = threading.Lock()
@@ -131,12 +148,24 @@ class EntityExtractor:
 
 
 class MemoryGuard:
-    """Comprehensive code quality gate - checks duplication, logic, flow integrity, and feature preservation."""
+    """Comprehensive code quality gate - checks duplication, logic, flow integrity, and feature preservation.
 
-    def __init__(self, hook_data: dict[str, Any] | None = None):
+    Supports two modes:
+    - FAST mode (default): Tier 0-2 only, <300ms target - for PreToolUse during editing
+    - FULL mode: All tiers including Tier 3 - for pre-commit validation
+    """
+
+    def __init__(self, hook_data: Optional[dict[str, Any]] = None, mode: str = DEFAULT_MODE):
+        """Initialize Memory Guard.
+
+        Args:
+            hook_data: Hook data from Claude Code (optional)
+            mode: Operating mode - "fast" (Tier 0-2) or "full" (all tiers)
+        """
         self.extractor = EntityExtractor()
         self.code_analyzer = CodeAnalyzer()
-        
+        self.mode = mode.lower() if mode else DEFAULT_MODE
+
         # Early project detection using hook data or current directory
         self.project_root = None
         self.project_name = "unknown"
@@ -144,15 +173,16 @@ class MemoryGuard:
         self.bypass_manager = None
         self.current_debug_log = None  # Selected once per hook execution for proper rotation
         self.tier2_detector = None  # Lazy-loaded Tier 2 fast duplicate detector
+        self._guard_cache = None  # Lazy-loaded cache
 
         # Attempt early project detection
         self._early_project_detection(hook_data)
-        
+
         # Ensure all three debug log files exist (only if debug is enabled)
         if DEBUG_ENABLED:
             self._ensure_debug_files_exist()
 
-    def _early_project_detection(self, hook_data: dict[str, Any] | None = None) -> None:
+    def _early_project_detection(self, hook_data: Optional[dict[str, Any]] = None) -> None:
         """Attempt early project detection from hook data or current directory."""
         try:
             file_path = None
@@ -188,7 +218,7 @@ class MemoryGuard:
             # If detection fails, we'll retry later in process_hook
             pass
 
-    def _detect_project_root(self, file_path: str | None = None) -> Path | None:
+    def _detect_project_root(self, file_path: Optional[str] = None) -> Optional[Path]:
         """Detect the project root directory using Claude-first weighted scoring."""
         try:
             marker_weights = {
@@ -349,7 +379,7 @@ class MemoryGuard:
             # Silently fail if we can't create files (permissions issue, etc.)
             pass
 
-    def should_process(self, hook_data: dict[str, Any]) -> tuple[bool, str | None]:
+    def should_process(self, hook_data: dict[str, Any]) -> tuple[bool, Optional[str]]:
         """Determine if this hook event should be processed."""
         # Check global bypass state first
         if self.bypass_manager.is_global_disabled():
@@ -433,7 +463,7 @@ class MemoryGuard:
         analysis = self.code_analyzer.analyze_code(code_info)
         return analysis["has_definitions"]
 
-    def _get_qdrant_collection_name(self) -> str | None:
+    def _get_qdrant_collection_name(self) -> Optional[str]:
         """Extract Qdrant collection name from MCP collection prefix.
 
         The MCP collection is formatted as 'mcp__collection-name-memory__'.
@@ -448,7 +478,7 @@ class MemoryGuard:
 
     def _run_tier2_check(
         self, tool_name: str, tool_input: dict[str, Any], code_info: str
-    ) -> dict[str, Any] | None:
+    ) -> Optional[dict[str, Any]]:
         """Run Tier 2 fast duplicate detection. Returns result or None to escalate.
 
         Tier 2 uses direct Qdrant search to bypass Claude CLI for clear-cut cases:
@@ -1006,7 +1036,19 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             if tier2_result is not None:
                 return tier2_result
 
-            # Tier 3: Full Claude CLI analysis for ambiguous cases
+            # In FAST mode, stop here - Tier 3 only runs in FULL mode (pre-commit)
+            if self.mode == "fast":
+                result["reason"] = "✅ FAST MODE: Passed Tier 0-2 checks (Tier 3 deferred to pre-commit)"
+                self.save_debug_info(
+                    f"\nFAST MODE: Skipping Tier 3 - deferred to pre-commit validation\n"
+                )
+                return result
+
+            # Tier 3: Full Claude CLI analysis (only in FULL mode)
+            if not TIER3_ENABLED:
+                result["reason"] = "✅ Tier 3 disabled - passed Tier 0-2 checks"
+                return result
+
             file_path = tool_input.get("file_path", "unknown")
             prompt = self.build_memory_search_prompt(file_path, tool_name, code_info)
 
@@ -1047,20 +1089,83 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
 
 
 def main():
-    """Main entry point for the hook."""
+    """Main entry point for the hook.
+
+    Supports two invocation modes:
+    1. Hook mode (stdin JSON): Called by Claude Code PreToolUse hook
+    2. CLI mode (--full/--fast): Called by pre-commit hook or manually
+
+    Examples:
+        # Hook mode (default, fast)
+        echo '{"tool_name": "Write", ...}' | python memory_guard.py
+
+        # CLI mode for pre-commit (full analysis)
+        python memory_guard.py --full --file path/to/file.py --content "..."
+
+        # Analyze specific files
+        python memory_guard.py --full --files file1.py file2.py
+    """
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Memory Guard - Code Quality Gate for Claude Code"
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Fast mode: Tier 0-2 only (<300ms) - default for PreToolUse",
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Full mode: All tiers including Tier 3 - for pre-commit validation",
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        help="Single file to analyze (for pre-commit mode)",
+    )
+    parser.add_argument(
+        "--files",
+        nargs="+",
+        type=str,
+        help="Multiple files to analyze (for pre-commit mode)",
+    )
+    parser.add_argument(
+        "--content",
+        type=str,
+        help="Code content to analyze (optional, reads from file if not provided)",
+    )
+
+    args = parser.parse_args()
+
+    # Determine mode
+    mode = "full" if args.full else "fast"
+
+    # Check if we're in CLI mode (files specified) or hook mode (stdin)
+    if args.file or args.files:
+        # CLI mode - analyze specified files
+        run_cli_mode(args, mode)
+    else:
+        # Hook mode - read from stdin
+        run_hook_mode(mode)
+
+
+def run_hook_mode(mode: str) -> None:
+    """Run in hook mode - read JSON from stdin."""
     try:
         # Read hook data from stdin
         hook_data = json.loads(sys.stdin.read())
 
         # Initialize guard with hook data for early project detection
-        guard = MemoryGuard(hook_data)
+        guard = MemoryGuard(hook_data, mode=mode)
 
         # Clear debug file at start and save initial info with timestamp
-        debug_info = f"HOOK CALLED:\n{json.dumps(hook_data, indent=2)}\n\n"
+        debug_info = f"HOOK CALLED (mode={mode}):\n{json.dumps(hook_data, indent=2)}\n\n"
         debug_info += "PROJECT INFO:\n"
         debug_info += f"- Root: {guard.project_root}\n"
         debug_info += f"- Name: {guard.project_name}\n"
-        debug_info += f"- MCP Collection: {guard.mcp_collection}\n\n"
+        debug_info += f"- MCP Collection: {guard.mcp_collection}\n"
+        debug_info += f"- Mode: {mode.upper()}\n\n"
         guard.save_debug_info(
             debug_info, mode="w", timestamp=True
         )  # Clear file with timestamp
@@ -1078,6 +1183,84 @@ def main():
             "suppressOutput": False,
         }
         print(json.dumps(result))
+
+
+def run_cli_mode(args: argparse.Namespace, mode: str) -> None:
+    """Run in CLI mode - analyze specified files.
+
+    Used by pre-commit hook for full Tier 3 analysis.
+    """
+    files_to_analyze = []
+
+    if args.file:
+        files_to_analyze.append(args.file)
+    if args.files:
+        files_to_analyze.extend(args.files)
+
+    if not files_to_analyze:
+        print(json.dumps({"error": "No files specified"}))
+        sys.exit(1)
+
+    # Initialize guard (no hook data in CLI mode)
+    guard = MemoryGuard(mode=mode)
+
+    all_results = []
+    any_blocked = False
+
+    for file_path in files_to_analyze:
+        file_path = Path(file_path)
+
+        # Skip non-existent files
+        if not file_path.exists():
+            continue
+
+        # Skip non-code files
+        skip_extensions = {".md", ".txt", ".json", ".yml", ".yaml", ".rst", ".xml"}
+        if file_path.suffix.lower() in skip_extensions:
+            continue
+
+        # Read content
+        try:
+            if args.content and len(files_to_analyze) == 1:
+                content = args.content
+            else:
+                content = file_path.read_text()
+        except Exception as e:
+            all_results.append(
+                {"file": str(file_path), "error": f"Could not read file: {e}"}
+            )
+            continue
+
+        # Build hook-like data structure
+        hook_data = {
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(file_path.resolve()), "content": content},
+            "hook_event_name": "PreToolUse",
+        }
+
+        # Reinitialize guard with file context
+        guard = MemoryGuard(hook_data, mode=mode)
+
+        # Process
+        result = guard.process_hook(hook_data)
+        result["file"] = str(file_path)
+
+        all_results.append(result)
+
+        if result.get("decision") == "block":
+            any_blocked = True
+
+    # Output results
+    output = {"mode": mode, "files_analyzed": len(all_results), "results": all_results}
+
+    if any_blocked:
+        output["blocked"] = True
+        print(json.dumps(output, indent=2))
+        sys.exit(1)
+    else:
+        output["blocked"] = False
+        print(json.dumps(output, indent=2))
+        sys.exit(0)
 
 
 if __name__ == "__main__":
