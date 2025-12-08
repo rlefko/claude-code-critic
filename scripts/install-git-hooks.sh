@@ -174,19 +174,49 @@ if [ "$prev_head" = "0000000000000000000000000000000000000000" ]; then
     exit 0
 fi
 
-# Get files changed between commits, filter to only existing files
-CHANGED_FILES=$(git diff --name-only "$prev_head" "$new_head" 2>/dev/null | while read -r f; do [ -f "$f" ] && echo "$f"; done)
+# Get all changed files between commits
+ALL_CHANGED=$(git diff --name-only "$prev_head" "$new_head" 2>/dev/null)
 
-if [ -z "$CHANGED_FILES" ]; then
-    echo "✅ No files to index"
+if [ -z "$ALL_CHANGED" ]; then
+    echo "✅ No files changed between branches"
     exit 0
 fi
 
-FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
+# Separate into files that exist vs don't exist
+EXISTING_FILES=""
+REMOVED_COUNT=0
+
+while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if [ -f "$f" ]; then
+        EXISTING_FILES="${EXISTING_FILES}${f}"$'\n'
+    else
+        REMOVED_COUNT=$((REMOVED_COUNT + 1))
+    fi
+done <<< "$ALL_CHANGED"
+
+# Trim trailing newline
+EXISTING_FILES="${EXISTING_FILES%$'\n'}"
+
+# Handle case where only files were removed (no files to index)
+if [ -z "$EXISTING_FILES" ]; then
+    if [ "$REMOVED_COUNT" -gt 0 ]; then
+        echo "✅ $REMOVED_COUNT file(s) no longer exist on this branch"
+    else
+        echo "✅ No files to index"
+    fi
+    exit 0
+fi
+
+# Index existing files
+FILE_COUNT=$(echo "$EXISTING_FILES" | wc -l | tr -d ' ')
 echo "📁 Batch indexing $FILE_COUNT file(s)..."
+if [ "$REMOVED_COUNT" -gt 0 ]; then
+    echo "ℹ️  $REMOVED_COUNT file(s) no longer exist on this branch"
+fi
 
 # Pipe files to batch indexer (single process, shared embeddings)
-echo "$CHANGED_FILES" | claude-indexer index -p "$(pwd)" -c "COLLECTION_PLACEHOLDER" --files-from-stdin --quiet
+echo "$EXISTING_FILES" | claude-indexer index -p "$(pwd)" -c "COLLECTION_PLACEHOLDER" --files-from-stdin --quiet
 
 if [ $? -eq 0 ]; then
     echo "✅ Indexed $FILE_COUNT file(s)"
