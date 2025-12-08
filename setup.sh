@@ -444,14 +444,25 @@ if [ ! -d "$PROJECT_PATH/.git" ]; then
 else
     HOOKS_DIR="$PROJECT_PATH/.git/hooks"
 
-    # Create pre-commit hook (diff-aware: batch index staged files)
-    print_info "Creating pre-commit hook..."
+    # Create pre-commit hook (Tier 3 Memory Guard + batch indexing)
+    print_info "Creating pre-commit hook with Memory Guard..."
     cat > "$HOOKS_DIR/pre-commit" << 'HOOK_EOF'
 #!/bin/bash
 # Semantic Code Memory - Pre-commit Hook
-# Batch index staged files using --files-from-stdin (4-15x faster)
+# Tier 3 Memory Guard + Batch indexing
 # Collection: COLLECTION_PLACEHOLDER
 
+# Run Tier 3 guard first (full analysis before commit)
+GUARD_SCRIPT="$(git rev-parse --show-toplevel)/.claude/hooks/pre-commit-guard.sh"
+if [ -x "$GUARD_SCRIPT" ]; then
+    echo "🛡️  Running Memory Guard (Tier 3)..."
+    if ! "$GUARD_SCRIPT"; then
+        echo "❌ Pre-commit guard failed"
+        exit 1
+    fi
+fi
+
+# Then do batch indexing
 echo "🔄 Indexing staged files..."
 
 # Get staged files (Added, Copied, Modified - not Deleted)
@@ -481,7 +492,7 @@ HOOK_EOF
     # Replace placeholder with actual collection name
     sed -i '' "s/COLLECTION_PLACEHOLDER/$COLLECTION_NAME/g" "$HOOKS_DIR/pre-commit"
     chmod +x "$HOOKS_DIR/pre-commit"
-    print_success "Pre-commit hook installed (diff-aware)"
+    print_success "Pre-commit hook installed (Tier 3 guard + batch indexing)"
 
     # Create post-merge hook (diff-aware: batch index merged files)
     print_info "Creating post-merge hook..."
@@ -613,6 +624,47 @@ else
     print_warning "Hooks source directory not found: $HOOKS_SRC"
 fi
 
+# Copy utils directory for Tier 2 Memory Guard support
+UTILS_SRC="$SCRIPT_DIR/utils"
+UTILS_DEST="$PROJECT_PATH/.claude/utils"
+
+if [ -d "$UTILS_SRC" ]; then
+    mkdir -p "$UTILS_DEST"
+
+    # Copy required Python files for Memory Guard Tier 2
+    for util_file in memory_guard.py code_analyzer.py fast_duplicate_detector.py guard_cache.py; do
+        if [ -f "$UTILS_SRC/$util_file" ]; then
+            cp "$UTILS_SRC/$util_file" "$UTILS_DEST/"
+            print_success "Installed util: $util_file"
+        fi
+    done
+
+    # Create __init__.py for imports
+    touch "$UTILS_DEST/__init__.py"
+    print_success "Tier 2 utilities installed"
+else
+    print_warning "Utils source directory not found: $UTILS_SRC (Tier 2 disabled)"
+fi
+
+# Copy scripts directory (reinstall helpers)
+SCRIPTS_SRC="$SCRIPT_DIR/scripts"
+SCRIPTS_DEST="$PROJECT_PATH/.claude/scripts"
+
+if [ -d "$SCRIPTS_SRC" ]; then
+    mkdir -p "$SCRIPTS_DEST"
+
+    # Copy shell scripts for reinstall/maintenance
+    for script_file in "$SCRIPTS_SRC"/*.sh; do
+        if [ -f "$script_file" ]; then
+            cp "$script_file" "$SCRIPTS_DEST/"
+            chmod +x "$SCRIPTS_DEST/$(basename "$script_file")"
+            print_success "Installed script: $(basename "$script_file")"
+        fi
+    done
+else
+    print_warning "Scripts source directory not found: $SCRIPTS_SRC"
+fi
+
 # Create/merge settings.local.json from template
 if [ -f "$SETTINGS_TEMPLATE" ]; then
     # Prepare new hooks config with substitutions
@@ -691,7 +743,7 @@ if [ ! -f "$GITIGNORE_PATH" ]; then
     touch "$GITIGNORE_PATH"
 fi
 
-for pattern in ".claude/hooks/" ".claude/settings.local.json"; do
+for pattern in ".claude/hooks/" ".claude/settings.local.json" ".claude/utils/" ".claude/scripts/"; do
     if ! grep -qF "$pattern" "$GITIGNORE_PATH"; then
         echo "$pattern" >> "$GITIGNORE_PATH"
         print_success "Added $pattern to .gitignore"
