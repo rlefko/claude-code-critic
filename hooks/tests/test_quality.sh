@@ -89,6 +89,28 @@ assert_exit_and_output "Detects console.log" 1 "Debug statement" \
 assert_exit "Allows logger.info" 0 \
     '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def foo():\n    \"\"\"Does foo.\"\"\"\n    logger.info(x)\n    return x"}}'
 
+# === Bare except clause ===
+
+assert_exit_and_output "Detects bare except clause" 1 "Bare except" \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"try:\n    foo()\nexcept:\n    logger.error(\"failed\")"}}'
+
+assert_exit "Allows except Exception" 0 \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def foo():\n    \"\"\"Does foo.\"\"\"\n    try:\n        bar()\n    except Exception as e:\n        logger.error(e)"}}'
+
+assert_exit "Allows except with specific type" 0 \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def foo():\n    \"\"\"Does foo.\"\"\"\n    try:\n        bar()\n    except ValueError:\n        logger.warning(\"value error\")"}}'
+
+# === Mutable default arguments ===
+
+assert_exit_and_output "Detects mutable default list" 1 "Mutable default" \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def foo(items=[]):\n    \"\"\"Does foo.\"\"\"\n    items.append(1)\n    return items"}}'
+
+assert_exit_and_output "Detects mutable default dict" 1 "Mutable default" \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def bar(config={}):\n    \"\"\"Does bar.\"\"\"\n    config[\"key\"] = \"value\"\n    return config"}}'
+
+assert_exit "Allows None default with initialization" 0 \
+    '{"tool_name":"Write","tool_input":{"file_path":"test.py","content":"def foo(items=None):\n    \"\"\"Does foo.\"\"\"\n    items = items or []\n    return items"}}'
+
 # === Clean code passes ===
 
 assert_exit "Clean Python code passes" 0 \

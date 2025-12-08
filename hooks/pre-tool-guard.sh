@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Memory Guard v4.1 - Unified Intelligent Guard System
+# Memory Guard v4.2 - Unified Intelligent Guard System
 # ============================================================================
 #
 # A professional-grade security and quality hook for Claude Code.
@@ -21,7 +21,7 @@
 #   - Tier 3: Full Claude CLI + MCP analysis (5-30s) - pre-commit only
 #
 # Features:
-#   - 18 pattern-based security and quality checks
+#   - 20 pattern-based security and quality checks
 #   - Fast duplicate detection via semantic search
 #   - Actionable fix suggestions
 #   - Event logging for data-driven improvement
@@ -40,7 +40,7 @@
 # ============================================================================
 
 # === CONFIGURATION ===
-readonly GUARD_VERSION="4.1"
+readonly GUARD_VERSION="4.2"
 readonly MAX_CONTENT_SIZE=1000000  # 1MB
 readonly FAST_MODE_TIMEOUT=5       # Fast mode timeout (Tier 0-2 only)
 readonly LOG_DIR="${HOME}/.claude-code-memory"
@@ -331,6 +331,30 @@ check_debug_statements() {
     fi
 }
 
+check_bare_except() {
+    local content="$1" file="$2"
+    # Match 'except:' without an exception type (but not 'except Exception:' etc.)
+    if grep -qE '^\s*except\s*:' <<< "$content"; then
+        add_issue $SEV_MEDIUM "bare_except" \
+"[QUALITY] Bare except clause catches all exceptions
+  Fix: Specify exception type to avoid catching KeyboardInterrupt, SystemExit
+  Before: except:
+  After:  except Exception as e:" "$file"
+    fi
+}
+
+check_mutable_default() {
+    local content="$1" file="$2"
+    # Match 'def func(arg=[])' or 'def func(arg={})' - mutable default arguments
+    if grep -qE 'def\s+\w+\s*\([^)]*=\s*(\[\]|\{\})' <<< "$content"; then
+        add_issue $SEV_MEDIUM "mutable_default" \
+"[QUALITY] Mutable default argument (list/dict)
+  Fix: Use None and initialize inside function
+  Before: def foo(items=[]):
+  After:  def foo(items=None): items = items or []" "$file"
+    fi
+}
+
 # === RESILIENCE CHECKS ===
 
 check_swallowed_exceptions() {
@@ -448,6 +472,8 @@ run_file_checks() {
             check_python_docstrings "$content" "$file"
             check_swallowed_exceptions "$content" "$file"
             check_missing_timeouts "$content" "$file"
+            check_bare_except "$content" "$file"
+            check_mutable_default "$content" "$file"
             ;;
         *.js|*.ts|*.jsx|*.tsx)
             check_jsdoc_comments "$content" "$file"
