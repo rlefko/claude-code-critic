@@ -584,7 +584,7 @@ OPERATION CONTEXT:
 - Code changes:
 {code_info}
 
-🔍 COMPREHENSIVE QUALITY ANALYSIS - CHECK ALL AREAS:
+🔍 COMPREHENSIVE QUALITY ANALYSIS - CHECK ALL 8 DIMENSIONS:
 
 ❌ BLOCK FOR ANY OF THESE ISSUES:
 
@@ -615,6 +615,32 @@ OPERATION CONTEXT:
 - Breaking existing integrations or dependencies
 - Removing accessibility features or degrading UX
 
+📊 5. DEPENDENCY IMPACT (NEW):
+- Use {self.mcp_collection}read_graph(entity="<entity>", mode="relationships")
+  to find what depends on entities being modified
+- Report number of files/functions that would be affected
+- WARN if changing public API signatures with >3 dependents
+- BLOCK if removing exports used by other files
+
+💡 6. SIMILAR CODE SUGGESTIONS (NEW):
+- When writing NEW functions, search for existing implementations
+- Use {self.mcp_collection}search_similar("<function_name>", entityTypes=["function", "class"])
+- If score > 0.7: SUGGEST "Consider using existing <match_name> in <file_path>"
+- Help avoid wheel reinvention
+
+🧪 7. TEST COVERAGE (NEW):
+- Use {self.mcp_collection}search_similar("<entity_name> test", entityTypes=["function"])
+- Check if tests exist for the code being modified
+- WARN if modifying untested critical code (auth, payment, data)
+- SUGGEST adding tests for new functionality
+
+⚠️ 8. CODE QUALITY MARKERS (NEW):
+- Check for FIXME markers (known bugs requiring fix)
+- Check for HACK markers (fragile workarounds)
+- Check for DEPRECATED markers (needs migration)
+- Check for debug statements (print, console.log, breakpoint)
+- WARN if any of these are present in new code
+
 ✅ ALWAYS ALLOW:
 - Function calls, imports, variable assignments, using existing code
 - Proper refactoring that maintains functionality
@@ -644,38 +670,75 @@ OPERATION CONTEXT:
    - IGNORE: test/debug files (tests/, debug/, *test*, *debug*) - not production code
    - FOCUS ONLY ON: actual production code implementations (functions, classes, interfaces)
 
-🎯 ANALYSIS STRATEGY:
-- Use entityTypes filters: ["metadata", "function", "class"] for overview
+🎯 ANALYSIS STRATEGY (8-DIMENSION CHECK):
+
+STEP 1 - Entity Extraction:
+- EXTRACT all function/class names from new code being written
+
+STEP 2 - Duplication Check:
+- Use {self.mcp_collection}search_similar("<entity_name>", entityTypes=["function", "class"], limit=5)
+- If score > 0.8: BLOCK for duplication
+- If score > 0.7: WARN and suggest using existing implementation
+
+STEP 3 - Dependency Impact:
+- Use {self.mcp_collection}read_graph(entity="<entity>", mode="relationships")
+- Count incoming relations (callers/importers)
+- If >3 dependents: WARN about impact
+- If removing export: BLOCK
+
+STEP 4 - Test Coverage:
+- Use {self.mcp_collection}search_similar("<entity_name> test", entityTypes=["function"])
+- Check if matching test functions exist
+- If modifying critical code without tests: WARN
+
+STEP 5 - Logic & Flow Analysis:
 - Use entityTypes=["implementation"] for detailed code analysis
 - Use entityTypes=["relation"] for dependency analysis
-- Search for related patterns: error handling, validation, similar flows
-- Look for dependencies and integration points
-- Check function usage with read_graph(entity="function_name", mode="relationships")
-- Check for existing feature implementations
+- Check for missing error handling, validation, security
+
+STEP 6 - Quality Markers:
+- Scan new code for FIXME, HACK, DEPRECATED, debug statements
+- WARN if any detected in new code
+
+STEP 7 - Similar Code Suggestions:
+- Search for related patterns that could be reused
+- SUGGEST existing implementations when applicable
+
+STEP 8 - Feature Preservation:
+- Verify existing features remain functional
+- Check for breaking changes
 
 📋 RESPONSE FORMAT (JSON only):
 ⚠️ VALIDATION: If your reason mentions past commits, historical context, or specific feature implementations without showing actual code → you used manual entries! Re-analyze with proper filters.
 
 For BLOCKING (quality issues found): {{
   "hasIssues": true,
-  "issueType": "duplication|logic|flow|feature|dependency",
+  "issueType": "duplication|logic|flow|feature|dependency|test_coverage|quality_marker",
   "reason": "Specific issue description with location and impact",
   "suggestion": "Concrete recommendation to fix the issue",
+  "dependents_count": "number of files/functions that depend on modified code (if applicable)",
+  "similar_code": "file:line of similar existing implementation (if found)",
+  "test_coverage": "exists|missing|unknown",
+  "quality_markers": ["FIXME", "HACK", "DEPRECATED", "debug"] (if found),
   "debug": "2-3 sentences: What you found + Why it's problematic + What should be done",
   "turns_used": "number of turns for analysis",
-  "steps_summary": ["search_similar(query='<query>', entityTypes=['<types>'], limit=<n>)", "read_graph(entity='<entity>', mode='<mode>')", "search_similar(query='<refinement>', entityTypes=['<types>'])"]
+  "steps_summary": ["search_similar(...)", "read_graph(...)", ...]
 }}
 
 For APPROVING (no quality issues): {{
   "hasIssues": false,
   "decision": "approve",
   "reason": "Your analysis of why this code is acceptable",
+  "dependents_count": "number of files/functions that depend on modified code",
+  "similar_code": null,
+  "test_coverage": "exists|not_applicable",
+  "quality_markers": [],
   "debug": "Your detailed analysis findings",
   "turns_used": "number of turns for analysis",
-  "steps_summary": ["search_similar(query='<query>', entityTypes=['<types>'], limit=<n>)", "read_graph(entity='<entity>', mode='<mode>')", "search_similar(query='<refinement>', entityTypes=['<types>'])"]
+  "steps_summary": ["search_similar(...)", "read_graph(...)", ...]
 }}
 
-🚨 CRITICAL: Thoroughly analyze ALL four quality dimensions. Only approve if code passes ALL checks.
+🚨 CRITICAL: Thoroughly analyze ALL 8 quality dimensions. Only approve if code passes ALL checks.
 IMPORTANT: Return ONLY the JSON object, no explanatory text."""
 
     def call_claude_cli(self, prompt: str) -> tuple[bool, str, dict[str, Any]]:
@@ -806,9 +869,32 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
                     "logic": "🧠",
                     "flow": "🔗",
                     "feature": "⚙️",
+                    "dependency": "📊",
+                    "test_coverage": "🧪",
+                    "quality_marker": "⚠️",
                 }
                 icon = issue_icons.get(issue_type, "⚠️")
                 reason = f"{icon} CODE QUALITY ISSUE DETECTED ({issue_type.upper()}):\n{response.get('reason', '')}"
+
+                # Add dependency impact info if available
+                dependents = response.get("dependents_count")
+                if dependents and dependents != "0":
+                    reason += f"\n\n📊 IMPACT: {dependents} files/functions depend on this code"
+
+                # Add similar code suggestion if available
+                similar = response.get("similar_code")
+                if similar and similar != "null":
+                    reason += f"\n💡 EXISTING CODE: {similar}"
+
+                # Add test coverage info
+                test_cov = response.get("test_coverage")
+                if test_cov == "missing":
+                    reason += "\n🧪 TEST COVERAGE: Missing - consider adding tests"
+
+                # Add quality markers if found
+                markers = response.get("quality_markers", [])
+                if markers:
+                    reason += f"\n⚠️ QUALITY MARKERS: {', '.join(markers)}"
 
                 # Add analysis steps if available
                 if response.get("steps_summary"):
@@ -822,9 +908,21 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
                     reason += f"\n💡 SUGGESTION: {response.get('suggestion')}"
                 return True, reason, response
             else:
+                # Build approval message with context
+                approval_reason = response.get("reason", "Approved")
+
+                # Add helpful context for approvals
+                dependents = response.get("dependents_count")
+                if dependents and int(dependents) > 0:
+                    approval_reason += f" (Note: {dependents} dependents)"
+
+                test_cov = response.get("test_coverage")
+                if test_cov == "exists":
+                    approval_reason += " ✅ Tests exist"
+
                 return (
                     False,
-                    response.get("reason", ""),
+                    approval_reason,
                     response,
                 )
 

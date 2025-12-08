@@ -1,15 +1,20 @@
 #!/bin/bash
 # ============================================================================
-# Memory Guard v3.0 - The Intelligent Guard
+# Memory Guard v4.0 - Unified Intelligent Guard System
 # ============================================================================
 #
 # A professional-grade security and quality hook for Claude Code.
+# Combines fast pattern matching with intelligent AI-powered analysis.
+#
+# Architecture:
+#   Bash Guard (fast patterns) → Python Guard (MCP memory + AI)
 #
 # Features:
-#   - 14 security/quality checks with severity levels
+#   - 18 pattern-based checks with severity levels
+#   - Intelligent analysis via MCP memory tools
+#   - Dependency impact, duplicate detection, test coverage
 #   - Actionable fix suggestions
 #   - Event logging for data-driven improvement
-#   - Configuration file support
 #
 # Exit codes:
 #   0 = Allow (proceed with tool execution)
@@ -18,13 +23,13 @@
 #
 # Design principles:
 #   - NEVER block legitimate work; when in doubt, allow
-#   - Fast execution (~20-40ms target)
+#   - Fast pattern checks (~50ms) + intelligent analysis (when needed)
 #   - Graceful degradation on errors
 #   - Modular, testable, extensible
 # ============================================================================
 
 # === CONFIGURATION ===
-readonly GUARD_VERSION="3.1"
+readonly GUARD_VERSION="4.0"
 readonly MAX_CONTENT_SIZE=1000000  # 1MB
 readonly LOG_DIR="${HOME}/.claude-code-memory"
 readonly LOG_FILE="${LOG_DIR}/guard.log"
@@ -457,6 +462,41 @@ run_bash_checks() {
     return 0
 }
 
+# === INTELLIGENT GUARD INTEGRATION ===
+
+# Python guard for intelligent analysis
+call_python_guard() {
+    local input="$1"
+    local script_dir="$(dirname "$0")"
+    local python_guard="$script_dir/../utils/memory_guard.py"
+
+    # Check if Python guard exists
+    [[ ! -f "$python_guard" ]] && return 0
+
+    # Check if intelligent analysis is enabled
+    [[ "$DISABLE_INTELLIGENT" == "true" ]] && return 0
+
+    # Call Python guard with timeout (max 60s for Tier 3 analysis)
+    local python_result
+    python_result=$(timeout 60s python3 "$python_guard" <<< "$input" 2>&1) || return 0
+
+    # Parse Python result (JSON format)
+    if [[ -n "$python_result" ]]; then
+        local decision reason
+        decision=$(jq -r '.decision // empty' <<< "$python_result" 2>/dev/null)
+        reason=$(jq -r '.reason // empty' <<< "$python_result" 2>/dev/null)
+
+        if [[ "$decision" == "block" ]]; then
+            BLOCKS+=("[INTELLIGENT] $reason")
+        elif [[ -n "$reason" && "$reason" != "null" ]]; then
+            # Add non-blocking intelligent analysis results
+            WARNINGS+=("[INTELLIGENT] $reason")
+        fi
+    fi
+
+    return 0
+}
+
 # === OUTPUT ===
 
 output_results() {
@@ -508,6 +548,9 @@ main() {
 
             check_sensitive_files "$file_path" || exit 2
             run_file_checks "$file_path" "$content"
+
+            # Run intelligent analysis for code changes (non-blocking pattern checks passed)
+            call_python_guard "$input"
             ;;
 
         Bash)
