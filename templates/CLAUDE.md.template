@@ -125,6 +125,29 @@ Memory automatically stays current when you make changes:
 
 **You never need to manually re-index** - the system keeps memory synchronized.
 
+### 🚀 Session Context (SessionStart)
+
+A **SessionStart hook** provides immediate context when you start a Claude Code session:
+
+- **Git Activity**: Shows current branch, uncommitted changes, and recent commits
+- **Memory Reminder**: Reminds you to use memory-first workflow
+- **Instant Orientation**: Understand project state without running commands
+
+**Example output**:
+```
+=== Session Context ===
+Branch: feature/new-auth
+Uncommitted changes: 3 file(s)
+Recent commits:
+  - Add user validation
+  - Fix login redirect
+  - Update auth middleware
+
+Memory-First Reminder:
+  Use `mcp__{{COLLECTION_NAME}}-memory__search_similar()` before reading files
+  Use `mcp__{{COLLECTION_NAME}}-memory__read_graph()` to understand relationships
+```
+
 ### 🧠 Smart Prompt Analysis (UserPromptSubmit)
 
 A **UserPromptSubmit hook** analyzes your prompts BEFORE Claude processes them:

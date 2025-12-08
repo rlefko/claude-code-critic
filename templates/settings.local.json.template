@@ -1,5 +1,11 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 {{HOOKS_PATH}}/session_start.py"
+      }
+    ],
     "UserPromptSubmit": [
       {
         "type": "command",
