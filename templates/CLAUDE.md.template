@@ -22,22 +22,22 @@ Memory search is 3-5ms vs 500ms+ for file operations.
 
 ```python
 # 🔍 Fast semantic search (3-5ms) - START HERE
-mcp__{{COLLECTION_NAME}}_memory__search_similar("feature/component name", limit=20)
+mcp__{{COLLECTION_NAME}}-memory__search_similar("feature/component name", limit=20)
 
 # 📚 Find patterns before implementing
-mcp__{{COLLECTION_NAME}}_memory__search_similar("pattern description", entityTypes=["implementation_pattern", "architecture_pattern"])
+mcp__{{COLLECTION_NAME}}-memory__search_similar("pattern description", entityTypes=["implementation_pattern", "architecture_pattern"])
 
 # 🐛 Debug faster with past solutions
-mcp__{{COLLECTION_NAME}}_memory__search_similar("error description", entityTypes=["debugging_pattern"])
+mcp__{{COLLECTION_NAME}}-memory__search_similar("error description", entityTypes=["debugging_pattern"])
 
 # 🏗️ Understand architecture and relationships
-mcp__{{COLLECTION_NAME}}_memory__read_graph(entity="ComponentName", mode="smart")
+mcp__{{COLLECTION_NAME}}-memory__read_graph(entity="ComponentName", mode="smart")
 
 # 💡 Get implementation details when needed
-mcp__{{COLLECTION_NAME}}_memory__get_implementation("function_name", scope="logical")
+mcp__{{COLLECTION_NAME}}-memory__get_implementation("function_name", scope="logical")
 
 # ➕ Add new knowledge to memory
-mcp__{{COLLECTION_NAME}}_memory__create_entities([{
+mcp__{{COLLECTION_NAME}}-memory__create_entities([{
   "name": "NewComponent",
   "entityType": "class",
   "observations": ["Component purpose", "Key patterns used"]
@@ -74,20 +74,131 @@ cp .mcp.json.example .mcp.json
 
 **🔄 Restart Required:** After setup or changes, restart Claude Code to load the MCP server
 
-### Memory Guard Protection (Optional)
+### 🛡️ Memory Guard Protection (AUTOMATIC)
 
-Memory Guard hooks provide additional code quality protection but are **not configured automatically**.
+Memory Guard is **installed automatically** by setup.sh - no manual configuration needed.
 
-**Manual Setup (Optional):**
-- Add UserPromptSubmit hooks for semantic command detection
-- Add PreToolUse hooks for duplicate code prevention
-- See main project documentation for hook configuration
+**27 pattern-based checks** run on every Write/Edit operation:
 
-**Benefits when configured:**
-- Prevent duplicate code creation
-- Catch missing error handling patterns
-- Block breaking API changes
-- Protect functionality during refactoring
+**Security (11 checks)**:
+- SQL injection, XSS, command injection prevention
+- Hardcoded secrets and weak crypto detection
+- Logging secrets (credential leak prevention)
+- Path traversal, insecure deserialization blocking
+- Sensitive file and dangerous git operation protection
+
+**Tech Debt (9 checks)**:
+- TODO/FIXME/HACK/DEPRECATED markers
+- Debug statements (print, console.log, breakpoint)
+- Unexplained lint suppressions (bare noqa, eslint-disable)
+- Bare except clauses (Python anti-pattern)
+- Mutable default arguments (Python footgun)
+- Swallowed exceptions
+
+**Documentation (2 checks)**:
+- Missing Python docstrings (functions >10 lines)
+- Missing JSDoc comments (JS/TS functions >10 lines)
+
+**Resilience (2 checks)**:
+- Swallowed exceptions (empty except/catch blocks)
+- Missing HTTP timeouts (requests without timeout)
+
+**Git Safety (3 checks)**:
+- Force push blocking
+- Hard reset blocking
+- Destructive rm blocking
+
+**Two-Mode Architecture**:
+- **Fast mode (editing)**: <300ms latency, checks Tiers 0-2
+- **Full mode (pre-commit)**: 5-30s, comprehensive Tier 3 AI analysis
+
+### 📝 Auto-Indexing After Writes
+
+Memory automatically stays current when you make changes:
+
+| Trigger | When | What Happens |
+|---------|------|--------------|
+| **PostToolUse hook** | After Write/Edit passes guard | Indexes changed file (~100ms) |
+| **pre-commit hook** | Before each commit | Ensures staged files are indexed |
+| **post-merge hook** | After `git pull` | Re-indexes changed files |
+| **post-checkout hook** | After branch switch | Updates index for new branch |
+
+**You never need to manually re-index** - the system keeps memory synchronized.
+
+### 🔧 Complete MCP Tool Reference
+
+**Available Tools** (prefix: `mcp__{{COLLECTION_NAME}}-memory__`):
+
+| Tool | Purpose | Key Parameters |
+|------|---------|----------------|
+| `search_similar` | Semantic search across codebase | `query`, `limit`, `entityTypes`, `searchMode` |
+| `read_graph` | Understand entity relationships | `entity`, `mode` (smart/entities/relationships/raw) |
+| `get_implementation` | Get detailed code | `name`, `scope` (exact/logical/dependencies) |
+| `create_entities` | Add new knowledge | `entities` (array of {name, entityType, observations}) |
+| `add_observations` | Update existing entities | `observations` (array of {entityName, contents}) |
+| `delete_entities` | Remove entities | `entityNames` (array) |
+
+**Search Modes**:
+- `hybrid` (default): Best of semantic + keyword matching
+- `semantic`: AI understanding only (concept matching)
+- `keyword`: BM25 exact term matching
+
+**Entity Types for Filtering**:
+- Code entities: `function`, `class`, `file`, `documentation`, `relation`
+- Chunk types: `metadata` (fast overview), `implementation` (detailed code)
+- Patterns: `implementation_pattern`, `architecture_pattern`, `debugging_pattern`
+
+**Usage Examples**:
+```python
+# Fast metadata search for quick overview
+mcp__{{COLLECTION_NAME}}-memory__search_similar("auth", entityTypes=["metadata"], limit=20)
+
+# Find specific function implementations
+mcp__{{COLLECTION_NAME}}-memory__search_similar("validate user", entityTypes=["function", "implementation"])
+
+# Understand component dependencies
+mcp__{{COLLECTION_NAME}}-memory__read_graph(entity="AuthService", mode="smart")
+
+# Get function with all related helpers
+mcp__{{COLLECTION_NAME}}-memory__get_implementation("process_login", scope="logical")
+```
+
+### 📋 Slash Commands Reference
+
+**10 specialized commands** for systematic codebase improvement:
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/refactor` | Find SOLID, DRY, orphaned code issues | After feature complete, before PR |
+| `/restructure` | Analyze cycles, coupling, module stability | Architecture reviews |
+| `/redocument` | Check documentation coverage and quality | Before releases |
+| `/resecure` | Detect security vulnerabilities | Security audits |
+| `/reresilience` | Find error handling and retry gaps | Reliability improvements |
+| `/reoptimize` | Identify performance bottlenecks | Performance tuning |
+| `/retype` | Check type safety issues | TypeScript/Python typing |
+| `/retest` | Analyze test coverage gaps | Test planning |
+| `/rebuild` | Find build/dependency issues | Build troubleshooting |
+| `/resolve` | Guided issue resolution workflow | Bug fixing |
+
+**Usage**: Just type the command (e.g., `/refactor`) and follow the prompts.
+
+### 🌐 Multi-Repository Support
+
+This memory system supports multiple indexed codebases without conflicts:
+
+- **Unique collection**: Each project has its own `{{COLLECTION_NAME}}` collection
+- **Isolated MCP server**: Server name is `{{COLLECTION_NAME}}-memory`
+- **No cross-contamination**: Searches stay within your project's collection
+- **Parallel indexing**: Multiple projects can be indexed simultaneously
+
+**Querying other collections** (if needed):
+```python
+# Your project (default)
+mcp__{{COLLECTION_NAME}}-memory__search_similar("pattern")
+
+# Another project (if configured)
+mcp__other_project_memory__search_similar("shared utility")
+```
 
 ---
 
