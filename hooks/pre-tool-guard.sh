@@ -62,6 +62,37 @@ ENABLE_LOGGING="${ENABLE_LOGGING:-true}"
 # === STABILITY: Global error trap ===
 trap 'exit 0' ERR
 
+# === CROSS-PLATFORM TIMEOUT ===
+# macOS doesn't have timeout by default, try gtimeout (from coreutils) as fallback
+run_with_timeout() {
+    local timeout_secs="$1"
+    shift
+    if command -v timeout &> /dev/null; then
+        timeout "${timeout_secs}s" "$@"
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "${timeout_secs}s" "$@"
+    else
+        "$@"  # Run without timeout (may hang on problematic operations)
+    fi
+}
+
+# Read stdin with timeout - prevents hang in background mode
+read_stdin_with_timeout() {
+    local timeout_secs="${1:-5}"
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_secs" cat
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "$timeout_secs" cat
+    else
+        # Fallback: use read with built-in timeout (line by line)
+        local input=""
+        while IFS= read -r -t "$timeout_secs" line; do
+            input+="$line"$'\n'
+        done
+        printf '%s' "$input"
+    fi
+}
+
 # === LOAD CONFIGURATION ===
 load_config() {
     # Load global config
@@ -544,7 +575,7 @@ call_python_guard() {
     # Call Python guard in FAST mode (Tier 0-2 only, <300ms target)
     # Tier 3 is deferred to pre-commit for thorough analysis before commit
     local python_result
-    python_result=$(timeout "${FAST_MODE_TIMEOUT}s" python3 "$python_guard" --fast <<< "$input" 2>&1) || return 0
+    python_result=$(run_with_timeout "$FAST_MODE_TIMEOUT" python3 "$python_guard" --fast <<< "$input" 2>&1) || return 0
 
     # Parse Python result (JSON format)
     if [[ -n "$python_result" ]]; then
@@ -594,9 +625,9 @@ main() {
     # Load configuration
     load_config
 
-    # Read input
+    # Read input with timeout (prevents hang in background mode)
     local input
-    input=$(cat)
+    input=$(read_stdin_with_timeout 5) || exit 0
 
     # Dependency check
     if ! command -v jq &>/dev/null; then

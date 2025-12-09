@@ -8,8 +8,25 @@
 #   1 = Non-blocking error (shown to user)
 #   2 = Blocking error (shown to Claude) - not used here since this is post-hook
 
-# Read JSON input from stdin
-INPUT=$(cat)
+# Cross-platform stdin read with timeout (prevents hang in background mode)
+read_stdin_with_timeout() {
+    local timeout_secs="${1:-5}"
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_secs" cat
+    elif command -v gtimeout &> /dev/null; then
+        gtimeout "$timeout_secs" cat
+    else
+        # Fallback: use read with built-in timeout (line by line)
+        local input=""
+        while IFS= read -r -t "$timeout_secs" line; do
+            input+="$line"$'\n'
+        done
+        printf '%s' "$input"
+    fi
+}
+
+# Read JSON input from stdin with timeout
+INPUT=$(read_stdin_with_timeout 5) || exit 0
 
 # Extract file path from tool input
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
