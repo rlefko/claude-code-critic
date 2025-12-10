@@ -1707,6 +1707,279 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 traceback.print_exc()
             sys.exit(1)
 
+    # ========================================
+    # Quality Gates Commands (UI Consistency)
+    # ========================================
+
+    @cli.group("quality-gates")
+    def quality_gates():
+        """Quality gate commands for UI consistency checking."""
+        pass
+
+    @quality_gates.command("run")
+    @click.argument("gate_type", type=click.Choice(["ui", "all"]))
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--base-branch",
+        default="main",
+        help="Base branch for comparison",
+    )
+    @click.option(
+        "--format",
+        "output_format",
+        type=click.Choice(["json", "cli", "sarif"]),
+        default="cli",
+        help="Output format",
+    )
+    @click.option(
+        "--output",
+        "-o",
+        type=click.Path(),
+        help="Output file path",
+    )
+    @click.option(
+        "--update-baseline",
+        is_flag=True,
+        help="Update baseline with current findings",
+    )
+    @click.option(
+        "--no-cache",
+        is_flag=True,
+        help="Disable caching",
+    )
+    @click.option(
+        "--no-clustering",
+        is_flag=True,
+        help="Disable cross-file clustering",
+    )
+    @common_options
+    def run_quality_gate(
+        gate_type,
+        project,
+        base_branch,
+        output_format,
+        output,
+        update_baseline,
+        no_cache,
+        no_clustering,
+        verbose,
+        quiet,
+        config,
+    ):
+        """Run quality gates.
+
+        Examples:
+            claude-indexer quality-gates run ui
+            claude-indexer quality-gates run ui --format sarif --output report.sarif
+            claude-indexer quality-gates run ui --base-branch develop
+        """
+        try:
+            from .ui.ci import CIAuditConfig, CIAuditRunner
+            from .ui.reporters.sarif import SARIFExporter
+
+            project_path = Path(project).resolve()
+
+            if not quiet:
+                click.echo(f"🔍 Running UI quality gate on: {project_path}")
+
+            # Create audit config
+            audit_config = CIAuditConfig(
+                base_branch=base_branch,
+                enable_caching=not no_cache,
+                enable_clustering=not no_clustering,
+                update_baseline=update_baseline,
+            )
+
+            # Run audit
+            runner = CIAuditRunner(
+                project_path=project_path,
+                audit_config=audit_config,
+            )
+
+            result = runner.run()
+
+            # Output based on format
+            if output_format == "sarif":
+                exporter = SARIFExporter()
+                sarif_doc = exporter.export(
+                    result, Path(output) if output else None
+                )
+                if not output:
+                    import json
+                    click.echo(json.dumps(sarif_doc, indent=2))
+            elif output_format == "json":
+                import json
+                output_data = result.to_dict()
+                if output:
+                    with open(output, "w") as f:
+                        json.dump(output_data, f, indent=2)
+                else:
+                    click.echo(json.dumps(output_data, indent=2))
+            else:
+                # CLI format
+                if not quiet:
+                    click.echo()
+                    click.echo(f"📊 UI Quality Gate Results")
+                    click.echo(f"   Analysis time: {result.analysis_time_ms:.0f}ms")
+                    click.echo(f"   Files analyzed: {result.files_analyzed}")
+                    click.echo(f"   Cache hit rate: {result.cache_hit_rate:.1%}")
+                    click.echo()
+
+                    # New findings
+                    if result.new_findings:
+                        click.echo(f"🆕 New Findings ({len(result.new_findings)}):")
+                        for finding in result.new_findings:
+                            severity_icon = {
+                                "FAIL": "❌",
+                                "WARN": "⚠️",
+                                "INFO": "ℹ️",
+                            }.get(finding.severity.name, "•")
+                            location = ""
+                            if finding.source_ref:
+                                location = f"{finding.source_ref.file_path}:{finding.source_ref.start_line}"
+                            click.echo(
+                                f"   {severity_icon} [{finding.rule_id}] {finding.summary}"
+                            )
+                            if location:
+                                click.echo(f"      📍 {location}")
+                        click.echo()
+
+                    # Baseline findings summary
+                    if result.baseline_findings:
+                        click.echo(
+                            f"📋 Baseline Findings: {len(result.baseline_findings)} (not blocking)"
+                        )
+                        click.echo()
+
+                    # Cross-file clusters
+                    if result.cross_file_clusters:
+                        clusters = result.cross_file_clusters
+                        if clusters.cross_file_duplicates:
+                            click.echo(
+                                f"🔗 Cross-file Duplicates: {len(clusters.cross_file_duplicates)}"
+                            )
+                            for dup in clusters.cross_file_duplicates[:5]:
+                                click.echo(
+                                    f"   • {dup.duplicate_type}: {len(dup.file_locations)} locations "
+                                    f"({dup.impact_estimate} impact)"
+                                )
+                            if len(clusters.cross_file_duplicates) > 5:
+                                click.echo(
+                                    f"   ... and {len(clusters.cross_file_duplicates) - 5} more"
+                                )
+                            click.echo()
+
+                    # Cleanup map
+                    if result.cleanup_map:
+                        cmap = result.cleanup_map
+                        click.echo(f"🧹 Cleanup Map ({cmap.total_baseline_issues} issues):")
+                        click.echo(f"   Estimated effort: {cmap.estimated_total_effort}")
+                        for item in cmap.items[:5]:
+                            click.echo(
+                                f"   • [{item.rule_id}] {item.count} issues "
+                                f"(priority {item.priority}, {item.estimated_effort} effort)"
+                            )
+                        click.echo()
+
+                    # Final status
+                    if result.should_fail:
+                        click.echo("❌ Quality gate FAILED - new blocking issues found")
+                    else:
+                        click.echo("✅ Quality gate PASSED")
+
+            sys.exit(result.exit_code)
+
+        except ImportError as e:
+            click.echo(f"❌ UI module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
+    @quality_gates.command("baseline")
+    @click.argument("action", type=click.Choice(["show", "update", "reset"]))
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @common_options
+    def manage_baseline(action, project, verbose, quiet, config):
+        """Manage UI quality baseline.
+
+        Actions:
+            show   - Display current baseline statistics
+            update - Update baseline with current findings
+            reset  - Clear baseline and start fresh
+        """
+        try:
+            from .ui.ci import BaselineManager, CIAuditRunner
+            from .ui.config import load_ui_config
+
+            project_path = Path(project).resolve()
+            ui_config = load_ui_config(project_path)
+            baseline_manager = BaselineManager(project_path, ui_config)
+
+            if action == "show":
+                baseline = baseline_manager.load()
+                if not quiet:
+                    click.echo(f"📋 Baseline for: {project_path}")
+                    click.echo(f"   Total entries: {baseline.total_entries}")
+                    click.echo(f"   Suppressed: {baseline.suppressed_count}")
+                    click.echo(f"   Created: {baseline.created_at}")
+                    click.echo(f"   Last updated: {baseline.last_updated}")
+                    click.echo()
+                    if baseline.rule_counts:
+                        click.echo("   Rule counts:")
+                        for rule_id, count in sorted(
+                            baseline.rule_counts.items(),
+                            key=lambda x: -x[1]
+                        ):
+                            click.echo(f"      {rule_id}: {count}")
+
+            elif action == "update":
+                if not quiet:
+                    click.echo("🔄 Running audit to update baseline...")
+
+                # Run audit
+                from .ui.ci import CIAuditConfig
+
+                audit_config = CIAuditConfig(update_baseline=True)
+                runner = CIAuditRunner(
+                    project_path=project_path,
+                    audit_config=audit_config,
+                )
+                result = runner.run()
+
+                if not quiet:
+                    click.echo(f"✅ Baseline updated with {result.total_findings} findings")
+
+            elif action == "reset":
+                baseline_manager.reset()
+                if not quiet:
+                    click.echo("✅ Baseline reset")
+
+        except ImportError as e:
+            click.echo(f"❌ UI module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
     # End of Click-available conditional block
 
 if __name__ == "__main__":

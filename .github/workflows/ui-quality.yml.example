@@ -1,0 +1,203 @@
+# UI Quality Gate - GitHub Actions Workflow Example
+#
+# This workflow runs the UI consistency checker on pull requests
+# and uploads results to GitHub's Security tab via SARIF.
+#
+# To use:
+# 1. Copy to .github/workflows/ui-quality.yml
+# 2. Configure .ui-quality.yaml in project root
+# 3. Ensure SARIF upload permissions are enabled
+
+name: UI Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - '**/*.css'
+      - '**/*.scss'
+      - '**/*.less'
+      - '.ui-quality.yaml'
+      - 'tailwind.config.*'
+
+  push:
+    branches: [main, master]
+    paths:
+      - '**/*.tsx'
+      - '**/*.jsx'
+      - '**/*.css'
+      - '.ui-quality.yaml'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  ui-quality-check:
+    name: UI Consistency Check
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write  # Required for SARIF upload
+      contents: read
+      pull-requests: write    # For PR comments (optional)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for baseline comparison
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install claude-indexer
+        run: |
+          pip install --upgrade pip
+          pip install claude-indexer
+
+      - name: Cache UI quality fingerprints
+        uses: actions/cache@v4
+        with:
+          path: .ui-quality/cache
+          key: ui-quality-${{ runner.os }}-${{ hashFiles('.ui-quality.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ui-quality-${{ runner.os }}-${{ hashFiles('.ui-quality.yaml') }}-
+            ui-quality-${{ runner.os }}-
+
+      - name: Run UI Quality Gate
+        id: ui-quality
+        run: |
+          # Run the quality gate and capture exit code
+          set +e
+          claude-indexer quality-gates run ui \
+            --format sarif \
+            -o results.sarif
+          EXIT_CODE=$?
+          set -e
+
+          # Also generate JSON for summary
+          claude-indexer quality-gates run ui \
+            --format json \
+            -o results.json
+
+          # Store exit code for later
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+          # Parse JSON for summary stats
+          if [ -f results.json ]; then
+            NEW_COUNT=$(cat results.json | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('counts',{}).get('new',{}).get('total',0))" 2>/dev/null || echo "0")
+            BASELINE_COUNT=$(cat results.json | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('counts',{}).get('baseline',{}).get('total',0))" 2>/dev/null || echo "0")
+            echo "new_count=$NEW_COUNT" >> $GITHUB_OUTPUT
+            echo "baseline_count=$BASELINE_COUNT" >> $GITHUB_OUTPUT
+          fi
+
+          exit $EXIT_CODE
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('results.sarif') != ''
+        with:
+          sarif_file: results.sarif
+          category: ui-consistency
+
+      - name: Create PR Comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newCount = '${{ steps.ui-quality.outputs.new_count }}' || '0';
+            const baselineCount = '${{ steps.ui-quality.outputs.baseline_count }}' || '0';
+            const exitCode = '${{ steps.ui-quality.outputs.exit_code }}' || '0';
+
+            let status = exitCode === '0' ? ':white_check_mark: **Passed**' : ':x: **Failed**';
+
+            const body = `## UI Quality Gate Results
+
+            ${status}
+
+            | Metric | Count |
+            |--------|-------|
+            | New issues | ${newCount} |
+            | Baseline issues | ${baselineCount} |
+
+            ${exitCode !== '0' ? '> :warning: This PR introduces new UI consistency issues that must be fixed.' : '> No new UI consistency issues detected.'}
+
+            [View detailed results in Security tab](${context.payload.repository.html_url}/security/code-scanning)
+            `;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('UI Quality Gate Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: body
+              });
+            }
+
+      - name: Check result
+        if: steps.ui-quality.outputs.exit_code != '0'
+        run: |
+          echo "::error::UI Quality Gate failed with ${{ steps.ui-quality.outputs.new_count }} new issues"
+          exit 1
+
+  # Optional: Run full audit on main branch to update baseline
+  update-baseline:
+    name: Update Baseline (main only)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install claude-indexer
+        run: pip install claude-indexer
+
+      - name: Update baseline
+        run: |
+          claude-indexer quality-gates baseline update
+
+      - name: Commit baseline if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet .ui-quality/baseline.json 2>/dev/null; then
+            echo "No baseline changes"
+          else
+            git add .ui-quality/baseline.json
+            git commit -m "chore: Update UI quality baseline [skip ci]"
+            git push
+          fi

@@ -6,9 +6,12 @@ in different formats suitable for CLI display and Claude Code hook responses.
 
 import json
 import sys
-from typing import Any, TextIO
+from typing import TYPE_CHECKING, Any, TextIO
 
 from ..models import Finding, Severity, UIAnalysisResult
+
+if TYPE_CHECKING:
+    from ..ci.audit_runner import CIAuditResult
 
 
 class CLIReporter:
@@ -118,6 +121,93 @@ class CLIReporter:
 
         print(summary, file=self.stream)
 
+    def report_ci_result(self, result: "CIAuditResult") -> None:
+        """Output CI audit findings with baseline separation.
+
+        Args:
+            result: CI audit result to report.
+        """
+        reset = self.RESET if self.use_color else ""
+        dim = self.DIM if self.use_color else ""
+
+        # Header
+        print(f"\n{'='*60}", file=self.stream)
+        print("UI Quality Gate Results", file=self.stream)
+        print(f"{'='*60}", file=self.stream)
+
+        # Stats
+        print(f"\nAnalysis time: {result.analysis_time_ms:.0f}ms", file=self.stream)
+        print(f"Files analyzed: {result.files_analyzed}", file=self.stream)
+        print(f"Cache hit rate: {result.cache_hit_rate:.1%}", file=self.stream)
+
+        # New findings (blocking)
+        if result.new_findings:
+            print(f"\n{'='*40}", file=self.stream)
+            print(f"NEW FINDINGS ({len(result.new_findings)})", file=self.stream)
+            print(f"{'='*40}", file=self.stream)
+            for finding in result.new_findings:
+                self._report_finding(finding)
+
+        # Baseline findings (informational)
+        if result.baseline_findings:
+            print(f"\n{dim}{'='*40}{reset}", file=self.stream)
+            print(
+                f"{dim}BASELINE FINDINGS ({len(result.baseline_findings)}) - not blocking{reset}",
+                file=self.stream,
+            )
+            print(f"{dim}{'='*40}{reset}", file=self.stream)
+
+            # Group by rule for brevity
+            rules: dict[str, int] = {}
+            for finding in result.baseline_findings:
+                rules[finding.rule_id] = rules.get(finding.rule_id, 0) + 1
+
+            for rule_id, count in sorted(rules.items(), key=lambda x: -x[1]):
+                print(f"{dim}  {rule_id}: {count} issue(s){reset}", file=self.stream)
+
+        # Cross-file duplicates
+        if result.cross_file_clusters and result.cross_file_clusters.cross_file_duplicates:
+            dups = result.cross_file_clusters.cross_file_duplicates
+            print(f"\n{'='*40}", file=self.stream)
+            print(f"CROSS-FILE DUPLICATES ({len(dups)})", file=self.stream)
+            print(f"{'='*40}", file=self.stream)
+
+            for dup in dups[:10]:  # Show top 10
+                files_str = ", ".join(dup.details.get("unique_files", [])[:3])
+                if len(dup.details.get("unique_files", [])) > 3:
+                    files_str += "..."
+                print(
+                    f"  [{dup.duplicate_type}] {dup.recommended_action}: "
+                    f"{dup.details.get('cluster_size', 0)} items across {files_str}",
+                    file=self.stream,
+                )
+
+        # Cleanup map
+        if result.cleanup_map and result.cleanup_map.items:
+            cmap = result.cleanup_map
+            print(f"\n{'='*40}", file=self.stream)
+            print(f"CLEANUP MAP ({cmap.total_baseline_issues} total issues)", file=self.stream)
+            print(f"Estimated effort: {cmap.estimated_total_effort}", file=self.stream)
+            print(f"{'='*40}", file=self.stream)
+
+            for item in cmap.items[:5]:  # Top 5
+                print(
+                    f"  P{item.priority}: [{item.rule_id}] {item.count} issues "
+                    f"({item.estimated_effort} effort)",
+                    file=self.stream,
+                )
+                if item.suggested_approach:
+                    print(f"       -> {item.suggested_approach}", file=self.stream)
+
+        # Final verdict
+        print(f"\n{'='*60}", file=self.stream)
+        if result.should_fail:
+            color = self.COLORS.get(Severity.FAIL, "")
+            print(f"{color}FAILED{reset} - {len(result.new_findings)} new blocking issues", file=self.stream)
+        else:
+            print(f"\033[0;32mPASSED{reset}", file=self.stream)
+        print(f"{'='*60}\n", file=self.stream)
+
 
 class JSONReporter:
     """JSON reporter for Claude Code agent consumption.
@@ -196,3 +286,80 @@ class JSONReporter:
             return f"Blocked: {len(unique_rules)} rule violations ({', '.join(unique_rules)})"
         else:
             return f"Blocked: {len(unique_rules)} rule violations ({', '.join(unique_rules[:3])}...)"
+
+    def report_ci_result(self, result: "CIAuditResult") -> dict[str, Any]:
+        """Output CI audit findings as JSON with baseline separation.
+
+        Args:
+            result: CI audit result to report.
+
+        Returns:
+            The output dictionary (also written to stream).
+        """
+        # Count by severity for new findings
+        new_fail = sum(1 for f in result.new_findings if f.severity == Severity.FAIL)
+        new_warn = sum(1 for f in result.new_findings if f.severity == Severity.WARN)
+        new_info = sum(1 for f in result.new_findings if f.severity == Severity.INFO)
+
+        # Build output structure
+        output: dict[str, Any] = {
+            "decision": "block" if result.should_fail else "approve",
+            "reason": self._build_ci_reason(result),
+            "tier": result.tier,
+            "analysis_time_ms": result.analysis_time_ms,
+            "files_analyzed": result.files_analyzed,
+            "cache_hit_rate": result.cache_hit_rate,
+            "new_findings": [f.to_dict() for f in result.new_findings],
+            "baseline_findings": [f.to_dict() for f in result.baseline_findings],
+            "counts": {
+                "new": {
+                    "total": len(result.new_findings),
+                    "fail": new_fail,
+                    "warn": new_warn,
+                    "info": new_info,
+                },
+                "baseline": {
+                    "total": len(result.baseline_findings),
+                },
+            },
+        }
+
+        # Add cross-file clusters if available
+        if result.cross_file_clusters:
+            output["cross_file_clusters"] = result.cross_file_clusters.to_dict()
+
+        # Add cleanup map if available
+        if result.cleanup_map:
+            output["cleanup_map"] = result.cleanup_map.to_dict()
+
+        json.dump(output, self.stream, indent=2)
+        return output
+
+    def _build_ci_reason(self, result: "CIAuditResult") -> str:
+        """Build reason summary for CI audit result.
+
+        Args:
+            result: CI audit result to summarize.
+
+        Returns:
+            Human-readable summary string.
+        """
+        if not result.should_fail:
+            if len(result.new_findings) == 0:
+                if len(result.baseline_findings) > 0:
+                    return f"UI checks passed ({len(result.baseline_findings)} baseline issues)"
+                return "UI checks passed"
+            return f"UI checks passed ({len(result.new_findings)} non-blocking issues)"
+
+        # Count fail severity
+        fail_count = sum(1 for f in result.new_findings if f.severity == Severity.FAIL)
+        fail_rules = list(set(
+            f.rule_id for f in result.new_findings if f.severity == Severity.FAIL
+        ))
+
+        if len(fail_rules) == 1:
+            return f"Blocked: {fail_count} {fail_rules[0]} violation(s)"
+        elif len(fail_rules) <= 3:
+            return f"Blocked: {fail_count} violation(s) ({', '.join(fail_rules)})"
+        else:
+            return f"Blocked: {fail_count} violation(s) across {len(fail_rules)} rules"
