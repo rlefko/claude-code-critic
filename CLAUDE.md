@@ -16,6 +16,8 @@ This file provides guidance to Claude Code when working with code in this reposi
 | [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) | Complete CLI command reference |
 | [docs/HOOKS.md](docs/HOOKS.md) | Claude Code hooks system |
 | [docs/MEMORY_GUARD.md](docs/MEMORY_GUARD.md) | Code quality enforcement (27 checks) |
+| [docs/UI_CONSISTENCY_GUIDE.md](docs/UI_CONSISTENCY_GUIDE.md) | UI consistency checking guide |
+| [docs/UI_CI_SETUP.md](docs/UI_CI_SETUP.md) | CI integration for UI quality gates |
 
 ---
 
@@ -135,6 +137,38 @@ claude-indexer add-mcp -c collection-name
 **🧪 Testing:** Use `parser-test-memory` MCP for isolated testing without contaminating production collections.
 
 **🔑 API Configuration:** OpenAI and Voyage AI keys configured in `settings.txt` for cleanup scoring and embeddings. Contains active API keys for GPT-4.1-mini scoring and Voyage AI embedding generation.
+
+### UI Consistency Tools
+
+```bash
+# Pre-commit guard (Tier 0: <300ms)
+claude-indexer ui-guard src/components/Button.tsx
+
+# CI audit with SARIF output (Tier 1: <10min for 1000 files)
+claude-indexer quality-gates run ui --format sarif -o results.sarif
+
+# Design critique command (Tier 2: <5min focused audit)
+claude-indexer redesign --focus "button components"
+
+# View/update baseline
+claude-indexer quality-gates baseline show
+claude-indexer quality-gates baseline update
+```
+
+**Three-Tier System:**
+- **Tier 0** (Pre-commit): <300ms p95, catches token drift and new violations
+- **Tier 1** (CI Audit): <10min for 1000+ files, cross-file duplicate detection
+- **Tier 2** (/redesign): <5min focused audit with actionable recommendations
+
+**Quick Reference:**
+| Command | Purpose |
+|---------|---------|
+| `ui-guard` | Fast pre-commit check for changed files |
+| `quality-gates run ui` | Full CI audit with SARIF export |
+| `redesign` | On-demand design critique |
+| `quality-gates baseline` | Manage baseline issues |
+
+See [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) for complete documentation.
 
 ## Key Architecture Components
 
@@ -477,6 +511,8 @@ python utils/find_missing_files.py                # File sync debugging
 - [CLI Reference](docs/CLI_REFERENCE.md) - Complete command documentation
 - [Hooks System](docs/HOOKS.md) - Claude Code integration hooks
 - [Memory Guard](docs/MEMORY_GUARD.md) - 27 code quality checks
+- [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) - Design token compliance
+- [UI CI Setup](docs/UI_CI_SETUP.md) - CI integration for UI quality gates
 - [Architecture](ARCHITECTURE.md) - System design diagrams
 - [Changelog](CHANGELOG.md) - Version history
 
@@ -485,3 +521,4 @@ python utils/find_missing_files.py                # File sync debugging
 - Configuration system details
 - Performance optimization patterns
 - Advanced debugging workflows
+- UI consistency rule configuration

@@ -1,0 +1,145 @@
+# UI Quality Configuration
+#
+# This configuration file is used by the UI consistency checker
+# to validate this test fixture repository.
+
+# Token sources - where design tokens are defined
+tokens:
+  # CSS custom properties (primary source)
+  css_vars:
+    paths:
+      - styles/tokens.css
+
+  # Tailwind configuration (secondary source)
+  tailwind:
+    config_path: tailwind.config.js
+
+# Scanning configuration
+scanning:
+  # Files to include
+  paths:
+    - components/**/*.tsx
+    - components/**/*.vue
+    - components/**/*.svelte
+    - styles/**/*.css
+    - styles/**/*.scss
+
+  # Files to exclude
+  exclude:
+    - node_modules
+    - dist
+    - build
+    - "*.test.*"
+    - "*.spec.*"
+
+# Gating configuration
+gating:
+  # Mode: strict (fail on WARN), lenient (only fail on FAIL)
+  mode: strict
+
+  # Similarity thresholds for duplicate detection
+  similarity_thresholds:
+    # Exact duplicates (should be consolidated)
+    duplicate: 0.95
+    # Near duplicates (worth reviewing)
+    near_duplicate: 0.85
+    # Outlier detection threshold (standard deviations)
+    outlier: 1.5
+
+  # Minimum confidence to report a finding
+  min_confidence: 0.7
+
+# Rule-specific configuration
+rules:
+  # Token drift rules
+  COLOR.NON_TOKEN:
+    severity: FAIL
+    enabled: true
+
+  SPACING.OFF_SCALE:
+    severity: FAIL
+    enabled: true
+    # Allowed off-scale values (escape hatch)
+    allowed_values:
+      - "1px"  # Border widths are okay
+
+  RADIUS.OFF_SCALE:
+    severity: FAIL
+    enabled: true
+
+  TYPOGRAPHY.OFF_SCALE:
+    severity: WARN
+    enabled: true
+
+  # Duplication rules
+  STYLE.DUPLICATE_SET:
+    severity: WARN
+    enabled: true
+    min_occurrences: 2
+
+  STYLE.NEAR_DUPLICATE_SET:
+    severity: WARN
+    enabled: true
+
+  UTILITY.DUPLICATE_SEQUENCE:
+    severity: WARN
+    enabled: true
+    min_length: 3  # Minimum number of utilities in sequence
+
+  COMPONENT.DUPLICATE_CLUSTER:
+    severity: WARN
+    enabled: true
+
+  # Inconsistency rules
+  ROLE.OUTLIER.BUTTON:
+    severity: WARN
+    enabled: true
+
+  ROLE.OUTLIER.INPUT:
+    severity: WARN
+    enabled: true
+
+  ROLE.OUTLIER.CARD:
+    severity: WARN
+    enabled: true
+
+  FOCUS.RING.INCONSISTENT:
+    severity: WARN
+    enabled: true
+
+  # CSS smell rules
+  CSS.SPECIFICITY.ESCALATION:
+    severity: WARN
+    enabled: true
+    max_specificity: 100  # Max specificity score
+
+  IMPORTANT.NEW_USAGE:
+    severity: FAIL
+    enabled: true
+    # Files where !important is acceptable
+    allowed_files:
+      - styles/legacy.css  # Baseline file
+
+  SUPPRESSION.NO_RATIONALE:
+    severity: WARN
+    enabled: true
+
+# Baseline configuration
+baseline:
+  # Files that are considered baseline (won't block CI)
+  files:
+    - styles/legacy.css
+
+  # Patterns that are considered baseline
+  patterns:
+    - "legacy-*"
+    - "*-legacy"
+
+# Reporting configuration
+reporting:
+  # Include code snippets in findings
+  include_snippets: true
+  # Maximum snippet length
+  max_snippet_length: 100
+  # Group findings by file
+  group_by_file: true

@@ -18,7 +18,7 @@ graph LR
     PO -.-> IDX
 ```
 
-**[Architecture](ARCHITECTURE.md)** | **[Changelog](CHANGELOG.md)** | **[CLI Reference](docs/CLI_REFERENCE.md)** | **[Memory Guard](docs/MEMORY_GUARD.md)**
+**[Architecture](ARCHITECTURE.md)** | **[Changelog](CHANGELOG.md)** | **[CLI Reference](docs/CLI_REFERENCE.md)** | **[Memory Guard](docs/MEMORY_GUARD.md)** | **[UI Consistency](docs/UI_CONSISTENCY_GUIDE.md)**
 
 ---
 
@@ -112,6 +112,68 @@ Memory Guard v4.3 enforces code quality through **27 pattern-based checks** acro
 - **Debug Logging**: `memory_guard_debug.txt` in each project root
 - **Graceful Degradation**: Always approves on errors - never blocks legitimate work
 
+## UI Consistency Guard - Design System Enforcement
+
+```mermaid
+flowchart LR
+    A[UI Code] --> B{Tier?}
+    B -->|Pre-commit| C[Tier 0: < 300ms<br/>Token drift check]
+    B -->|CI| D[Tier 1: < 10min<br/>Full audit]
+    B -->|On-demand| E[Tier 2: < 5min<br/>Design critique]
+    C --> F{Issue?}
+    D --> F
+    E --> G[Recommendations]
+    F -->|FAIL| H[Block]
+    F -->|WARN| I[Report]
+```
+
+Prevents design system drift and enforces token usage across your codebase:
+
+| Category | Rules | Examples |
+|----------|-------|----------|
+| **Token Drift** | 4 | Hardcoded colors, spacing, radius, typography |
+| **Duplication** | 4 | Duplicate styles, near-duplicates, component clusters |
+| **CSS Smells** | 3 | Specificity escalation, !important abuse, missing rationale |
+| **Inconsistency** | 4 | Button/input/card outliers, inconsistent focus rings |
+
+### Three-Tier Architecture
+
+- **Tier 0** (Pre-commit): <300ms p95 - Catches token drift in changed files
+- **Tier 1** (CI Audit): <10min for 1000+ files - Cross-file duplicate detection
+- **Tier 2** (/redesign): <5min focused audit - Actionable design critique
+
+### Quick Commands
+
+```bash
+# Pre-commit check (Tier 0)
+claude-indexer ui-guard src/components/Button.tsx
+
+# CI audit with SARIF for GitHub (Tier 1)
+claude-indexer quality-gates run ui --format sarif -o results.sarif
+
+# Design critique (Tier 2)
+claude-indexer redesign --focus "button components"
+
+# Baseline management
+claude-indexer quality-gates baseline show
+claude-indexer quality-gates baseline update
+```
+
+### Cross-Framework Detection
+
+Detects duplicates across React, Vue, and Svelte:
+
+```
+Duplicate cluster detected:
+  - src/components/Button.tsx (React)
+  - src/components/VueButton.vue (Vue)
+  - src/components/SvelteButton.svelte (Svelte)
+
+Similarity: 87%
+RECOMMENDATION: Extract shared design tokens
+```
+
+See [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) for complete documentation.
 
 ## ⚡ Activate God Mode in 30 Seconds
 
@@ -531,6 +593,8 @@ claude --version   # Claude Code CLI
 - [Installation Guide](docs/installation.md) - Platform-specific setup
 - [Memory Functions](docs/memory-functions.md) - Advanced memory usage
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) - Design system enforcement
+- [UI CI Setup](docs/UI_CI_SETUP.md) - CI integration for UI quality
 
 ## 🔧 Common Setup Issues
 

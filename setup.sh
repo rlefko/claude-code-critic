@@ -1134,6 +1134,115 @@ else
 fi
 
 # ============================================================================
+# Step 9.5: UI Consistency Tools Installation
+# ============================================================================
+print_header "Step 9.5: Installing UI Consistency Tools"
+
+print_info "UI Consistency Guard provides design system enforcement..."
+
+# Install additional UI dependencies
+print_info "Installing UI dependencies (imagehash, playwright)..."
+pip install -q imagehash playwright 2>/dev/null || true
+
+# Check if playwright browsers should be installed
+if command -v playwright &> /dev/null; then
+    print_info "Playwright available - browser binaries can be installed with: playwright install"
+else
+    print_info "Playwright CLI not in PATH (optional for runtime mode)"
+fi
+print_success "UI dependencies installed"
+
+# Copy UI-specific hook
+UI_HOOK_SRC="$HOOKS_SRC/ui-pre-tool-guard.sh"
+if [ -f "$UI_HOOK_SRC" ]; then
+    cp "$UI_HOOK_SRC" "$HOOKS_DEST/"
+    chmod +x "$HOOKS_DEST/ui-pre-tool-guard.sh"
+    print_success "Installed UI pre-tool guard hook"
+fi
+
+# Create default ui-quality.yaml if it doesn't exist
+UI_CONFIG_PATH="$PROJECT_PATH/.ui-quality.yaml"
+UI_CONFIG_TEMPLATE="$SCRIPT_DIR/templates/ui-quality.config.template.yaml"
+
+if [ ! -f "$UI_CONFIG_PATH" ]; then
+    if [ -f "$UI_CONFIG_TEMPLATE" ]; then
+        # Copy template and substitute project name
+        UI_CONFIG_CONTENT=$(cat "$UI_CONFIG_TEMPLATE")
+        UI_CONFIG_CONTENT="${UI_CONFIG_CONTENT//\{\{PROJECT_NAME\}\}/$PROJECT_NAME}"
+        echo "$UI_CONFIG_CONTENT" > "$UI_CONFIG_PATH"
+        print_success "Created .ui-quality.yaml configuration"
+    else
+        # Create minimal default config
+        cat > "$UI_CONFIG_PATH" << 'UI_CONFIG_EOF'
+# UI Quality Configuration
+# See docs/UI_CONSISTENCY_GUIDE.md for full documentation
+
+tokens:
+  css_vars:
+    paths:
+      - src/styles/tokens.css
+      - src/styles/variables.css
+    prefixes:
+      - --color-
+      - --spacing-
+      - --radius-
+      - --font-
+      - --shadow-
+
+scanning:
+  paths:
+    - src/**/*.tsx
+    - src/**/*.jsx
+    - src/**/*.vue
+    - src/**/*.svelte
+    - src/**/*.css
+    - src/**/*.scss
+  exclude:
+    - node_modules
+    - dist
+    - build
+    - coverage
+    - "**/*.test.tsx"
+    - "**/*.stories.tsx"
+
+gating:
+  mode: strict
+  similarity_thresholds:
+    duplicate: 0.95
+    near_duplicate: 0.85
+    outlier: 1.5
+  min_confidence: 0.7
+
+baseline:
+  path: .ui-quality/baseline.json
+  auto_update: false
+UI_CONFIG_EOF
+        print_success "Created default .ui-quality.yaml"
+    fi
+    print_info "Edit .ui-quality.yaml to customize token sources and scan paths"
+else
+    print_success ".ui-quality.yaml already exists"
+fi
+
+# Add UI quality cache to .gitignore
+if [ -f "$GITIGNORE_PATH" ]; then
+    if ! grep -qF ".ui-quality/" "$GITIGNORE_PATH"; then
+        echo ".ui-quality/" >> "$GITIGNORE_PATH"
+        print_success "Added .ui-quality/ to .gitignore"
+    fi
+fi
+
+print_info "UI Consistency Tools installed:"
+print_info "  - Tier 0: Pre-commit token drift check (<300ms)"
+print_info "  - Tier 1: CI audit with SARIF export (<10min)"
+print_info "  - Tier 2: /redesign command for design critique (<5min)"
+print_info ""
+print_info "Quick commands:"
+print_info "  claude-indexer ui-guard <file>              # Pre-commit check"
+print_info "  claude-indexer quality-gates run ui         # Full CI audit"
+print_info "  claude-indexer redesign --focus \"buttons\"   # Design critique"
+
+# ============================================================================
 # Step 10: Install Slash Commands
 # ============================================================================
 print_header "Step 10: Installing Slash Commands"
@@ -1171,7 +1280,8 @@ echo "  • Collection: $COLLECTION_NAME"
 echo "  • MCP Server: ${COLLECTION_NAME}-memory"
 echo "  • Git Hooks: ✓ Installed (pre-commit, post-merge, post-checkout)"
 echo "  • Claude Code Hooks: ✓ Installed (SessionStart context, UserPromptSubmit analysis, PreToolUse guard, PostToolUse auto-index)"
-echo "  • Slash Commands: ✓ 10 commands (/refactor, /restructure, /redocument, /resecure, /reresilience, /reoptimize, /retype, /retest, /rebuild, /resolve)"
+echo "  • Slash Commands: ✓ 11 commands (/refactor, /restructure, /redocument, /resecure, /reresilience, /reoptimize, /retype, /retest, /rebuild, /resolve, /redesign)"
+echo "  • UI Consistency: ✓ Installed (token drift, duplicates, CSS smells)"
 echo "  • Documentation: ✓ CLAUDE.md created/updated"
 echo ""
 
