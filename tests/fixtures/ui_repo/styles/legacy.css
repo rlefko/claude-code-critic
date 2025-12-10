@@ -1,0 +1,222 @@
+/**
+ * Legacy Styles
+ *
+ * BASELINE ISSUES: This file contains legacy code with various issues
+ * that should be detected but classified as BASELINE (not blocking CI).
+ *
+ * These represent technical debt that existed before UI consistency
+ * checking was implemented.
+ */
+
+/* BASELINE: Legacy button with hardcoded colors */
+.legacy-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  background-color: #007bff; /* Legacy blue - not a design token */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.legacy-btn:hover {
+  background-color: #0056b3; /* Legacy hover - not a design token */
+}
+
+.legacy-btn:disabled {
+  background-color: #6c757d; /* Legacy disabled - not a design token */
+  cursor: not-allowed;
+}
+
+/* BASELINE: Legacy form styles with non-standard values */
+.legacy-form-control {
+  display: block;
+  width: 100%;
+  padding: 6px 12px; /* Non-standard spacing */
+  font-size: 14px;
+  line-height: 1.42857143; /* Magic number */
+  color: #555;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+
+.legacy-form-control:focus {
+  border-color: #66afe9;
+  outline: 0;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+/* BASELINE: Legacy card with inline measurements */
+.legacy-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: #fff;
+  background-clip: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.25rem;
+}
+
+.legacy-card-header {
+  padding: 0.75rem 1.25rem; /* Non-standard spacing */
+  margin-bottom: 0;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.legacy-card-body {
+  flex: 1 1 auto;
+  min-height: 1px;
+  padding: 1.25rem; /* Non-standard spacing */
+}
+
+/* BASELINE: Legacy alert with hardcoded semantic colors */
+.legacy-alert {
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.legacy-alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.legacy-alert-danger {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.legacy-alert-warning {
+  color: #856404;
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.legacy-alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+/* BASELINE: Legacy table with hardcoded colors */
+.legacy-table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #212529;
+  border-collapse: collapse;
+}
+
+.legacy-table th,
+.legacy-table td {
+  padding: 0.75rem;
+  vertical-align: top;
+  border-top: 1px solid #dee2e6;
+}
+
+.legacy-table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.legacy-table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.legacy-table-hover tbody tr:hover {
+  color: #212529;
+  background-color: rgba(0, 0, 0, 0.075);
+}
+
+/* BASELINE: Legacy modal with magic numbers */
+.legacy-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1050;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  outline: 0;
+}
+
+.legacy-modal-dialog {
+  position: relative;
+  width: auto;
+  margin: 0.5rem;
+  pointer-events: none;
+}
+
+@media (min-width: 576px) {
+  .legacy-modal-dialog {
+    max-width: 500px;
+    margin: 1.75rem auto;
+  }
+}
+
+.legacy-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  pointer-events: auto;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0.3rem;
+  outline: 0;
+}
+
+/* BASELINE: Legacy badge styles */
+.legacy-badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.legacy-badge-primary {
+  color: #fff;
+  background-color: #007bff;
+}
+
+.legacy-badge-secondary {
+  color: #fff;
+  background-color: #6c757d;
+}
+
+/* BASELINE: Legacy utility classes with !important */
+.legacy-d-none {
+  display: none !important;
+}
+
+.legacy-d-block {
+  display: block !important;
+}
+
+.legacy-text-center {
+  text-align: center !important;
+}
+
+.legacy-text-muted {
+  color: #6c757d !important;
+}

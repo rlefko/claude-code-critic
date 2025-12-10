@@ -1,0 +1,99 @@
+/**
+ * CSS Overrides
+ *
+ * CSS SMELLS: This file demonstrates CSS specificity escalation
+ * and other CSS smells that should be detected by the UI checker.
+ *
+ * Issues:
+ * - CSS.SPECIFICITY.ESCALATION: Deep selector chains
+ * - IMPORTANT.NEW_USAGE: !important declarations
+ * - Non-modular override patterns
+ */
+
+/* CSS.SPECIFICITY.ESCALATION: Deep selector chain */
+.app-container .main-content .sidebar .nav-list .nav-item .nav-link {
+  color: var(--color-primary-600);
+  text-decoration: none;
+}
+
+/* CSS.SPECIFICITY.ESCALATION: Even deeper chain */
+.app-container .main-content .sidebar .nav-list .nav-item .nav-link:hover span {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
+/* CSS.SPECIFICITY.ESCALATION: ID combined with classes */
+#main-nav .nav-container .nav-list > li.nav-item > a.nav-link {
+  padding: var(--spacing-2) var(--spacing-4);
+}
+
+/* IMPORTANT.NEW_USAGE: Override with !important */
+.button-override {
+  background-color: var(--color-primary-600) !important;
+  color: var(--color-text-inverse) !important;
+  border: none !important;
+}
+
+/* IMPORTANT.NEW_USAGE: Multiple !important declarations */
+.force-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* CSS.SPECIFICITY.ESCALATION: Attribute selectors with classes */
+div.form-group[data-validated="true"] input.form-control:not(:disabled) {
+  border-color: var(--color-success);
+}
+
+/* CSS.SPECIFICITY.ESCALATION: Complex pseudo-selectors */
+.table-container > table > tbody > tr:nth-child(odd):not(.selected):hover > td {
+  background-color: var(--color-neutral-50);
+}
+
+/* IMPORTANT.NEW_USAGE: Override third-party styles */
+.third-party-widget .widget-header {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-base) !important;
+}
+
+/* CSS.SPECIFICITY.ESCALATION: Multiple IDs */
+#app #sidebar #navigation .menu-item {
+  margin-bottom: var(--spacing-2);
+}
+
+/* Problematic nesting pattern */
+.modal-wrapper {
+  .modal-content {
+    .modal-header {
+      .modal-title {
+        .title-text {
+          /* CSS.SPECIFICITY.ESCALATION: Deep nesting */
+          font-size: var(--text-xl);
+        }
+      }
+    }
+  }
+}
+
+/* IMPORTANT.NEW_USAGE: Animation override */
+.no-animation * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* CSS.SPECIFICITY.ESCALATION: Overly specific form styles */
+form.contact-form fieldset.form-section .form-row .input-wrapper label.form-label {
+  display: block;
+  margin-bottom: var(--spacing-1);
+  font-weight: var(--font-medium);
+}
+
+/* Utility class that shouldn't need !important but does due to specificity war */
+.text-center-override {
+  text-align: center !important;
+}
+
+.margin-top-override {
+  margin-top: var(--spacing-4) !important;
+}
