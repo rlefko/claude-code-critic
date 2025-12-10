@@ -1,0 +1,347 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-memory.dev/schemas/ui-quality.schema.json",
+  "title": "UI Quality Configuration",
+  "description": "Configuration schema for UI consistency guard and /redesign planner",
+  "type": "object",
+  "properties": {
+    "designSystem": {
+      "type": "object",
+      "description": "Design system token sources and allowed scales",
+      "properties": {
+        "tokenSources": {
+          "type": "array",
+          "description": "Paths to token definition files (CSS, Tailwind config, JSON)",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "allowedScales": {
+          "type": "object",
+          "description": "Allowed value scales for consistency checking",
+          "properties": {
+            "spacing": {
+              "type": "array",
+              "description": "Allowed spacing values in pixels",
+              "items": {
+                "type": "number"
+              },
+              "default": [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128]
+            },
+            "radius": {
+              "type": "array",
+              "description": "Allowed border radius values in pixels",
+              "items": {
+                "type": "number"
+              },
+              "default": [0, 2, 4, 6, 8, 12, 16, 9999]
+            },
+            "typography": {
+              "type": "array",
+              "description": "Allowed typography scale definitions",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Token name, e.g., 'xs', 'sm', 'base', 'lg'"
+                  },
+                  "size": {
+                    "type": "number",
+                    "description": "Font size in pixels"
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "description": "Line height in pixels or unitless ratio"
+                  }
+                },
+                "required": ["name", "size"]
+              },
+              "default": [
+                {"name": "xs", "size": 12, "lineHeight": 16},
+                {"name": "sm", "size": 14, "lineHeight": 20},
+                {"name": "base", "size": 16, "lineHeight": 24},
+                {"name": "lg", "size": 18, "lineHeight": 28},
+                {"name": "xl", "size": 20, "lineHeight": 28},
+                {"name": "2xl", "size": 24, "lineHeight": 32},
+                {"name": "3xl", "size": 30, "lineHeight": 36},
+                {"name": "4xl", "size": 36, "lineHeight": 40}
+              ]
+            },
+            "shadows": {
+              "type": "array",
+              "description": "Allowed shadow token names",
+              "items": {
+                "type": "string"
+              },
+              "default": ["none", "sm", "md", "lg", "xl", "2xl"]
+            }
+          }
+        }
+      }
+    },
+    "crawl": {
+      "type": "object",
+      "description": "Configuration for Playwright runtime analysis (/redesign)",
+      "properties": {
+        "storybookUrl": {
+          "type": "string",
+          "description": "URL to running Storybook instance",
+          "format": "uri"
+        },
+        "storybookStartCommand": {
+          "type": "string",
+          "description": "Command to start Storybook if not already running"
+        },
+        "routes": {
+          "type": "array",
+          "description": "Application routes to crawl",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "sitemapUrl": {
+          "type": "string",
+          "description": "URL to sitemap for route discovery",
+          "format": "uri"
+        },
+        "viewports": {
+          "type": "array",
+          "description": "Viewport configurations for responsive testing",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Viewport name, e.g., 'mobile', 'tablet', 'desktop'"
+              },
+              "width": {
+                "type": "integer",
+                "description": "Viewport width in pixels"
+              },
+              "height": {
+                "type": "integer",
+                "description": "Viewport height in pixels"
+              }
+            },
+            "required": ["name", "width", "height"]
+          },
+          "default": [
+            {"name": "mobile", "width": 375, "height": 812},
+            {"name": "tablet", "width": 768, "height": 1024},
+            {"name": "desktop", "width": 1440, "height": 900}
+          ]
+        },
+        "elementTargeting": {
+          "type": "object",
+          "description": "Element targeting rules for crawling",
+          "properties": {
+            "roles": {
+              "type": "array",
+              "description": "ARIA roles to target",
+              "items": {
+                "type": "string"
+              },
+              "default": ["button", "link", "textbox", "checkbox", "radio", "combobox", "listbox", "menu", "menuitem", "tab", "tabpanel", "dialog", "alert", "heading", "img", "navigation", "main", "banner", "contentinfo"]
+            },
+            "selectors": {
+              "type": "array",
+              "description": "Custom CSS selectors to target",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
+            "testIdPatterns": {
+              "type": "array",
+              "description": "Patterns to match data-testid attributes",
+              "items": {
+                "type": "string"
+              },
+              "default": ["data-testid", "data-test-id", "data-cy"]
+            }
+          }
+        },
+        "maxPagesPerRun": {
+          "type": "integer",
+          "description": "Maximum number of pages to crawl per run",
+          "default": 50,
+          "minimum": 1
+        },
+        "maxElementsPerRole": {
+          "type": "integer",
+          "description": "Maximum elements to capture per role per page",
+          "default": 50,
+          "minimum": 1
+        },
+        "disableAnimations": {
+          "type": "boolean",
+          "description": "Disable CSS animations during crawl",
+          "default": true
+        },
+        "waitForStableLayout": {
+          "type": "boolean",
+          "description": "Wait for layout to stabilize before capture",
+          "default": true
+        },
+        "stableLayoutTimeout": {
+          "type": "integer",
+          "description": "Timeout in ms to wait for stable layout",
+          "default": 3000
+        }
+      }
+    },
+    "gating": {
+      "type": "object",
+      "description": "Severity thresholds and gating configuration",
+      "properties": {
+        "severityThresholds": {
+          "type": "object",
+          "description": "Severity level for each rule category",
+          "properties": {
+            "tokenDrift": {
+              "type": "string",
+              "enum": ["FAIL", "WARN", "INFO"],
+              "default": "FAIL",
+              "description": "Severity for token drift violations (hardcoded colors, off-scale spacing)"
+            },
+            "duplication": {
+              "type": "string",
+              "enum": ["FAIL", "WARN", "INFO"],
+              "default": "WARN",
+              "description": "Severity for style/component duplication"
+            },
+            "inconsistency": {
+              "type": "string",
+              "enum": ["FAIL", "WARN", "INFO"],
+              "default": "WARN",
+              "description": "Severity for role-based inconsistencies"
+            },
+            "smells": {
+              "type": "string",
+              "enum": ["FAIL", "WARN", "INFO"],
+              "default": "WARN",
+              "description": "Severity for CSS smells (!important, specificity)"
+            },
+            "accessibility": {
+              "type": "string",
+              "enum": ["FAIL", "WARN", "INFO"],
+              "default": "WARN",
+              "description": "Severity for accessibility issues"
+            }
+          }
+        },
+        "similarityThresholds": {
+          "type": "object",
+          "description": "Thresholds for similarity detection",
+          "properties": {
+            "duplicate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.95,
+              "description": "Similarity score threshold for exact duplicates"
+            },
+            "nearDuplicate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.80,
+              "description": "Similarity score threshold for near-duplicates"
+            },
+            "componentReuse": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.75,
+              "description": "Similarity threshold for suggesting component reuse"
+            }
+          }
+        },
+        "baselineMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Separate new findings from existing (baseline) issues"
+        },
+        "failOnlyOnNew": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only fail on new issues, not baseline issues"
+        },
+        "minConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7,
+          "description": "Minimum confidence score to report a finding"
+        },
+        "requireMultiEvidence": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require 2+ evidence types for non-trivial findings"
+        }
+      }
+    },
+    "ignoreRules": {
+      "type": "array",
+      "description": "Rules to ignore with required rationale",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "description": "Rule ID to ignore, e.g., 'COLOR.NON_TOKEN'"
+          },
+          "paths": {
+            "type": "array",
+            "description": "File paths or globs where this ignore applies",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "Required: Explanation for why this rule is ignored"
+          },
+          "expiry": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional: Date when this ignore expires (YYYY-MM-DD)"
+          }
+        },
+        "required": ["rule", "reason"]
+      },
+      "default": []
+    },
+    "output": {
+      "type": "object",
+      "description": "Output format configuration",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "cli", "html", "sarif"],
+          "default": "json",
+          "description": "Primary output format"
+        },
+        "includeScreenshots": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include screenshots in HTML reports"
+        },
+        "screenshotDir": {
+          "type": "string",
+          "default": ".ui-quality/screenshots",
+          "description": "Directory for storing screenshots"
+        },
+        "reportDir": {
+          "type": "string",
+          "default": ".ui-quality/reports",
+          "description": "Directory for storing reports"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
