@@ -279,12 +279,12 @@ class IndexingPipeline:
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 1.2.1 | Create `GitChangeDetector` class | HIGH | NEW |
-| 1.2.2 | Implement `get_changed_files(since_commit)` | HIGH | NEW |
-| 1.2.3 | Add file hash comparison fallback (non-git repos) | MEDIUM | NEW |
-| 1.2.4 | Create batch update processor | HIGH | PARTIAL |
-| 1.2.5 | Handle file deletions (remove from index) | HIGH | NEW |
-| 1.2.6 | Handle file renames (preserve history) | MEDIUM | NEW |
+| 1.2.1 | Create `GitChangeDetector` class | HIGH | DONE |
+| 1.2.2 | Implement `get_changed_files(since_commit)` | HIGH | DONE |
+| 1.2.3 | Add file hash comparison fallback (non-git repos) | MEDIUM | DONE |
+| 1.2.4 | Create batch update processor | HIGH | DONE |
+| 1.2.5 | Handle file deletions (remove from index) | HIGH | DONE |
+| 1.2.6 | Handle file renames (preserve history) | MEDIUM | DONE |
 | 1.2.7 | Add `--files-from-stdin` for hook integration | HIGH | DONE |
 
 **Git Integration**:
@@ -304,18 +304,30 @@ class GitChangeDetector:
 ```
 
 **Testing Requirements**:
-- [ ] Test with various git operations (commit, merge, rebase, checkout)
-- [ ] Test non-git repository fallback
-- [ ] Test file rename tracking
+- [x] Test with various git operations (commit, merge, rebase, checkout)
+- [x] Test non-git repository fallback
+- [x] Test file rename tracking
 
 **Documentation**:
-- [ ] Document git integration behavior
-- [ ] Troubleshooting for git-related issues
+- [x] Document git integration behavior
+- [x] Troubleshooting for git-related issues
 
 **Success Criteria**:
 - Incremental update <1s for single file
 - Correct handling of all git operations
 - Non-git repos still work via hash comparison
+
+**Implementation Notes (v2.9.1)**:
+- Created `claude_indexer/git/` package with:
+  - `change_detector.py`: GitChangeDetector class for git-aware change detection
+  - `ChangeSet` dataclass for tracking added/modified/deleted/renamed files
+- Added `update_file_paths()` to QdrantStore for efficient rename handling
+- Added `index_incremental()` to CoreIndexer for git-aware indexing workflow
+- CLI enhancements: `--since`, `--staged`, `--pr-diff` options
+- Hash-based fallback using FileHashCache for non-git repos
+- State file tracks `_last_indexed_commit` for automatic incremental detection
+- Unit tests: 36 tests in `tests/unit/test_git_change_detector.py`
+- Integration tests: 9 tests in `tests/integration/test_incremental_indexing.py`
 
 ---
 

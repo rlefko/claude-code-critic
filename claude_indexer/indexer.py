@@ -15,6 +15,7 @@ from .analysis.parser import ParserRegistry
 from .categorization import FileCategorizationSystem, ProcessingTier
 from .config import IndexerConfig
 from .embeddings.base import Embedder
+from .git import ChangeSet, GitChangeDetector
 from .indexer_logging import get_logger
 from .storage.base import VectorStore
 from .parallel_processor import ParallelFileProcessor
@@ -1278,6 +1279,197 @@ class CoreIndexer:
 
         result.processing_time = time.time() - start_time
         return result
+
+    def index_incremental(
+        self,
+        collection_name: str,
+        change_set: ChangeSet | None = None,
+        since_commit: str | None = None,
+        verbose: bool = False,
+    ) -> IndexingResult:
+        """Git-aware incremental indexing.
+
+        Detects file changes using git (or hash comparison fallback) and
+        processes only the changed files. Handles renames, deletions, and
+        new/modified files efficiently.
+
+        Args:
+            collection_name: Name of the collection to update
+            change_set: Optional pre-computed ChangeSet
+            since_commit: Git commit/ref to detect changes from
+            verbose: Enable verbose logging
+
+        Returns:
+            IndexingResult with processing statistics
+        """
+        start_time = time.time()
+        result = IndexingResult(success=True, operation="incremental")
+
+        try:
+            # Detect changes if not provided
+            if change_set is None:
+                detector = GitChangeDetector(self.project_path)
+                previous_state = self._load_state(collection_name)
+
+                if since_commit:
+                    change_set = detector.detect_changes(since_commit=since_commit)
+                elif detector.is_git_repo():
+                    # Use last indexed commit if available
+                    last_commit = previous_state.get("_last_indexed_commit")
+                    if last_commit:
+                        change_set = detector.detect_changes(since_commit=last_commit)
+                    else:
+                        # No previous commit, fall back to hash detection
+                        change_set = detector.detect_changes(previous_state=previous_state)
+                else:
+                    # Non-git repo: use hash-based detection
+                    change_set = detector.detect_changes(previous_state=previous_state)
+
+            if verbose:
+                self.logger.info(f"📊 Changes detected: {change_set.summary()}")
+
+            if not change_set.has_changes:
+                result.warnings = ["No changes detected"]
+                result.processing_time = time.time() - start_time
+                return result
+
+            # Step 1: Handle renames first (update paths in place)
+            if change_set.renamed_files:
+                renamed_count = self._handle_renamed_files(
+                    collection_name, change_set.renamed_files, verbose
+                )
+                if verbose:
+                    self.logger.info(f"📝 Updated {renamed_count} entities for renames")
+
+            # Step 2: Handle deletions (remove from index)
+            if change_set.deleted_files:
+                self._handle_deleted_files(
+                    collection_name, change_set.deleted_files, verbose
+                )
+                if verbose:
+                    self.logger.info(
+                        f"🗑️ Removed entities for {len(change_set.deleted_files)} deleted files"
+                    )
+
+            # Step 3: Index new and modified files
+            files_to_index = change_set.files_to_index
+            if files_to_index:
+                # Use existing batch indexing
+                batch_result = self.index_files(files_to_index, collection_name, verbose)
+
+                # Transfer batch result stats
+                result.files_processed = batch_result.files_processed
+                result.entities_created = batch_result.entities_created
+                result.relations_created = batch_result.relations_created
+                result.implementation_chunks_created = (
+                    batch_result.implementation_chunks_created
+                )
+                result.processed_files = batch_result.processed_files
+                result.errors = batch_result.errors
+                result.warnings = batch_result.warnings
+
+                if not batch_result.success:
+                    result.success = False
+
+            # Step 4: Update state with new commit
+            if change_set.is_git_repo and change_set.base_commit:
+                self._update_last_indexed_commit(collection_name, change_set.base_commit)
+
+            # Add change summary to result
+            if result.warnings is None:
+                result.warnings = []
+            result.warnings.append(f"Incremental: {change_set.summary()}")
+
+        except Exception as e:
+            result.success = False
+            if result.errors is None:
+                result.errors = []
+            result.errors.append(f"Incremental indexing failed: {e}")
+
+        result.processing_time = time.time() - start_time
+        return result
+
+    def _handle_renamed_files(
+        self,
+        collection_name: str,
+        renamed_files: list[tuple[str, str]],
+        verbose: bool = False,
+    ) -> int:
+        """Handle renamed files by updating file paths in place.
+
+        This preserves entity history and observations rather than
+        deleting and recreating entities.
+
+        Args:
+            collection_name: Name of the collection
+            renamed_files: List of (old_path, new_path) tuples
+            verbose: Enable verbose logging
+
+        Returns:
+            Number of entities updated
+        """
+        if not renamed_files:
+            return 0
+
+        total_updated = 0
+
+        try:
+            # Convert relative paths to absolute for Qdrant
+            path_updates = []
+            for old_rel, new_rel in renamed_files:
+                old_abs = str(self.project_path / old_rel)
+                new_abs = str(self.project_path / new_rel)
+                path_updates.append((old_abs, new_abs))
+
+                if verbose:
+                    self.logger.info(f"📝 Rename: {old_rel} -> {new_rel}")
+
+            # Use the storage layer's update method
+            result = self.vector_store.update_file_paths(collection_name, path_updates)
+
+            if result.success:
+                total_updated = result.items_processed
+                if verbose:
+                    self.logger.info(
+                        f"✅ Updated {total_updated} entities for {len(renamed_files)} renames"
+                    )
+            else:
+                self.logger.warning(f"⚠️ Some renames failed: {result.errors}")
+
+            # Update file hash cache for renamed files
+            for old_rel, new_rel in renamed_files:
+                new_path = self.project_path / new_rel
+                if new_path.exists():
+                    # Update cache with new path
+                    if hasattr(self, "_file_hash_cache") and self._file_hash_cache:
+                        self._file_hash_cache.remove(self.project_path / old_rel)
+                        self._file_hash_cache.update(new_path)
+
+        except Exception as e:
+            self.logger.error(f"Error handling renamed files: {e}")
+
+        return total_updated
+
+    def _update_last_indexed_commit(
+        self, collection_name: str, commit_sha: str
+    ) -> None:
+        """Update the last indexed commit in the state file.
+
+        Args:
+            collection_name: Name of the collection
+            commit_sha: The commit SHA that was indexed
+        """
+        try:
+            state = self._load_state(collection_name)
+            state["_last_indexed_commit"] = commit_sha
+            state["_last_indexed_time"] = time.time()
+
+            state_file = self._get_state_file(collection_name)
+            self._atomic_json_write(state_file, state, "commit state")
+
+            self.logger.debug(f"Updated last indexed commit to {commit_sha}")
+        except Exception as e:
+            self.logger.warning(f"Failed to update last indexed commit: {e}")
 
     def search_similar(
         self,

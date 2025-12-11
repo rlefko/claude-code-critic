@@ -120,6 +120,21 @@ else:
         is_flag=True,
         help="Read file paths from stdin (one per line) for batch indexing",
     )
+    @click.option(
+        "--since",
+        type=str,
+        help="Index changes since specified git commit/ref (e.g., HEAD~5, abc123)",
+    )
+    @click.option(
+        "--staged",
+        is_flag=True,
+        help="Index only staged files (for pre-commit hooks)",
+    )
+    @click.option(
+        "--pr-diff",
+        type=str,
+        help="Index changes for PR against base branch (e.g., main, develop)",
+    )
     def index(
         project,
         collection,
@@ -131,6 +146,9 @@ else:
         clear_all,
         depth,
         files_from_stdin,
+        since,
+        staged,
+        pr_diff,
     ):
         """Index an entire project or specific files from stdin."""
 
@@ -277,6 +295,64 @@ else:
                         click.echo(f"   Relations: {result.relations_created}")
                 else:
                     click.echo("❌ Batch indexing failed", err=True)
+                    for error in result.errors or []:
+                        click.echo(f"   {error}", err=True)
+                    sys.exit(1)
+
+                return
+
+            # Handle git-aware incremental indexing options
+            if since or staged or pr_diff:
+                from .git import GitChangeDetector
+
+                detector = GitChangeDetector(project_path)
+
+                if not detector.is_git_repo():
+                    click.echo("Error: --since, --staged, and --pr-diff require a git repository", err=True)
+                    sys.exit(1)
+
+                # Get the appropriate change set
+                if staged:
+                    if not quiet:
+                        click.echo("📋 Detecting staged files...")
+                    change_set = detector.get_staged_files()
+                elif pr_diff:
+                    if not quiet:
+                        click.echo(f"🔀 Detecting changes against {pr_diff}...")
+                    change_set = detector.get_branch_diff(pr_diff)
+                else:  # since
+                    if not quiet:
+                        click.echo(f"📜 Detecting changes since {since}...")
+                    change_set = detector.detect_changes(since_commit=since)
+
+                if not change_set.has_changes:
+                    if not quiet:
+                        click.echo("✨ No changes detected")
+                    return
+
+                if not quiet:
+                    click.echo(f"📊 {change_set.summary()}")
+
+                # Use incremental indexing
+                result = indexer.index_incremental(
+                    collection_name=collection,
+                    change_set=change_set,
+                    verbose=verbose,
+                )
+
+                # Report results
+                if result.success:
+                    if not quiet:
+                        click.echo(f"✅ Incremental indexing completed in {result.processing_time:.1f}s")
+                        click.echo(f"   Files processed: {result.files_processed}")
+                        click.echo(f"   Entities: {result.entities_created}")
+                        click.echo(f"   Relations: {result.relations_created}")
+                        if change_set.renamed_files:
+                            click.echo(f"   Renames handled: {len(change_set.renamed_files)}")
+                        if change_set.deleted_files:
+                            click.echo(f"   Deletions handled: {len(change_set.deleted_files)}")
+                else:
+                    click.echo("❌ Incremental indexing failed", err=True)
                     for error in result.errors or []:
                         click.echo(f"   {error}", err=True)
                     sys.exit(1)

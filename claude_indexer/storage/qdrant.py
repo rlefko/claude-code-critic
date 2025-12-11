@@ -811,6 +811,111 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 errors=[f"Failed to delete points: {e}"],
             )
 
+    def update_file_paths(
+        self,
+        collection_name: str,
+        path_updates: list[tuple[str, str]],
+    ) -> StorageResult:
+        """Update file_path in metadata for renamed files.
+
+        Efficiently updates file paths in place rather than delete+recreate,
+        preserving entity history and observations.
+
+        Args:
+            collection_name: Name of the collection
+            path_updates: List of (old_path, new_path) tuples
+
+        Returns:
+            StorageResult with update statistics
+        """
+        start_time = time.time()
+        total_updated = 0
+        errors: list[str] = []
+
+        try:
+            from qdrant_client import models
+
+            for old_path, new_path in path_updates:
+                try:
+                    # Find all entities with the old file path
+                    points = self._scroll_collection(
+                        collection_name=collection_name,
+                        scroll_filter=models.Filter(
+                            should=[
+                                # Find entities with metadata.file_path matching
+                                models.FieldCondition(
+                                    key="metadata.file_path",
+                                    match=models.MatchValue(value=old_path),
+                                ),
+                                # Find File entities where entity_name = old_path
+                                models.FieldCondition(
+                                    key="entity_name",
+                                    match=models.MatchValue(value=old_path),
+                                ),
+                            ]
+                        ),
+                        limit=1000,
+                        with_vectors=False,
+                        handle_pagination=True,
+                    )
+
+                    if not points:
+                        logger.debug(f"No entities found for path: {old_path}")
+                        continue
+
+                    # Collect point IDs and prepare payload updates
+                    point_ids = [point.id for point in points]
+
+                    # Update metadata.file_path for all matching points
+                    self.client.set_payload(
+                        collection_name=collection_name,
+                        payload={"metadata": {"file_path": new_path}},
+                        points=point_ids,
+                    )
+
+                    # For File entities, also update entity_name
+                    file_entity_ids = [
+                        point.id
+                        for point in points
+                        if point.payload.get("entity_name") == old_path
+                        or point.payload.get("metadata", {}).get("entity_type") == "file"
+                    ]
+
+                    if file_entity_ids:
+                        self.client.set_payload(
+                            collection_name=collection_name,
+                            payload={"entity_name": new_path},
+                            points=file_entity_ids,
+                        )
+
+                    total_updated += len(points)
+                    logger.debug(
+                        f"Updated {len(points)} entities: {old_path} -> {new_path}"
+                    )
+
+                except Exception as e:
+                    error_msg = f"Failed to update path {old_path} -> {new_path}: {e}"
+                    logger.warning(error_msg)
+                    errors.append(error_msg)
+
+            return StorageResult(
+                success=len(errors) == 0,
+                operation="update_file_paths",
+                items_processed=total_updated,
+                processing_time=time.time() - start_time,
+                errors=errors if errors else None,
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Exception in update_file_paths: {e}")
+            return StorageResult(
+                success=False,
+                operation="update_file_paths",
+                items_failed=len(path_updates),
+                processing_time=time.time() - start_time,
+                errors=[f"Failed to update file paths: {e}"],
+            )
+
     def search_similar_with_mode(
         self,
         collection_name: str,
