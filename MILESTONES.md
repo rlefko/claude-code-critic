@@ -166,12 +166,18 @@ build/
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 0.3.1 | Create unified logging module (`claude_indexer/logging.py`) | HIGH | NEW |
-| 0.3.2 | Implement log rotation (3-file, size-based) | MEDIUM | PARTIAL |
-| 0.3.3 | Add structured logging (JSON format option) | MEDIUM | NEW |
-| 0.3.4 | Create debug mode with verbose output | HIGH | PARTIAL |
-| 0.3.5 | Add performance timing decorators | MEDIUM | NEW |
-| 0.3.6 | Implement log aggregation for multi-component debugging | LOW | NEW |
+| 0.3.1 | Create unified logging module (`claude_indexer/indexer_logging.py`) | HIGH | DONE |
+| 0.3.2 | Implement log rotation (3-file, size-based) | MEDIUM | DONE |
+| 0.3.3 | Add structured logging (JSON format option) | MEDIUM | DONE |
+| 0.3.4 | Create debug mode with verbose output | HIGH | DONE |
+| 0.3.5 | Add performance timing decorators | MEDIUM | DONE |
+| 0.3.6 | Implement log aggregation for multi-component debugging | LOW | DONE |
+
+**Implementation Details**:
+- Enhanced `indexer_logging.py` with JSONFormatter, debug_context(), category loggers
+- Extended `LoggingConfig` in `unified_config.py` with format, rotation_count, max_bytes fields
+- Created `performance.py` with @timed decorator, PerformanceTimer, PerformanceAggregator
+- Unit tests: `tests/unit/test_logging.py` (33 tests)
 
 **Log Locations**:
 ```
@@ -186,9 +192,9 @@ build/
 ```
 
 **Testing Requirements**:
-- [ ] Verify log rotation works correctly
-- [ ] Test debug mode activation
-- [ ] Ensure no sensitive data in logs
+- [x] Verify log rotation works correctly
+- [x] Test debug mode activation
+- [x] Ensure no sensitive data in logs
 
 **Success Criteria**:
 - All components log to consistent format

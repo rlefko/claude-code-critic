@@ -240,12 +240,36 @@ class GuardConfig(BaseModel):
 
 
 class LoggingConfig(BaseModel):
-    """Logging configuration."""
+    """Enhanced logging configuration for Milestone 0.3."""
 
-    level: str = Field(default="INFO", description="Log level")
+    level: str = Field(default="INFO", description="Log level (DEBUG, INFO, WARNING, ERROR)")
     verbose: bool = Field(default=True, description="Enable verbose output")
     debug: bool = Field(default=False, description="Enable debug mode")
     log_file: Optional[str] = Field(default=None, description="Path to log file")
+    # New fields for Milestone 0.3
+    format: str = Field(
+        default="text",
+        description="Log format: 'text' or 'json'",
+    )
+    rotation_count: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Number of backup log files (default 3)",
+    )
+    max_bytes: int = Field(
+        default=10485760,
+        ge=1048576,
+        description="Max log file size in bytes (default 10MB)",
+    )
+    enable_performance_logging: bool = Field(
+        default=False,
+        description="Enable performance timing logs",
+    )
+    enable_multi_component: bool = Field(
+        default=False,
+        description="Enable category-specific log files",
+    )
 
 
 class ProjectInfo(BaseModel):
