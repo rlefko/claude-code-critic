@@ -229,6 +229,107 @@ class CoreIndexer:
             "avg_embeddings_per_entity": 0.0,
         }
 
+        # Pipeline support (lazy-initialized)
+        self._pipeline: Any = None
+
+    def _get_pipeline(self) -> Any:
+        """Get or create the IndexingPipeline for bulk operations.
+
+        Returns:
+            IndexingPipeline instance with resume capability
+        """
+        if self._pipeline is None:
+            from .indexing import IndexingPipeline, PipelineConfig
+
+            self._pipeline = IndexingPipeline(
+                config=PipelineConfig(
+                    initial_batch_size=self.config.initial_batch_size,
+                    max_batch_size=self.config.batch_size,
+                    ramp_up_enabled=self.config.batch_size_ramp_up,
+                    parallel_threshold=100,  # MIN_PARALLEL_BATCH
+                    memory_threshold_mb=2000,
+                    checkpoint_interval=50,
+                    enable_resume=True,
+                    max_parallel_workers=self.config.max_parallel_workers,
+                ),
+                indexer_config=self.config,
+                embedder=self.embedder,
+                vector_store=self.vector_store,
+                project_path=self.project_path,
+                logger=self.logger,
+            )
+        return self._pipeline
+
+    def index_project_with_pipeline(
+        self,
+        collection_name: str,
+        include_tests: bool = False,
+        verbose: bool = False,
+        resume: bool = False,
+    ) -> IndexingResult:
+        """Index project using the new IndexingPipeline with resume capability.
+
+        This method provides an alternative to index_project() with:
+        - Resume capability for interrupted indexing
+        - Unified progress tracking
+        - Checkpoint-based recovery
+
+        Args:
+            collection_name: Target Qdrant collection
+            include_tests: Whether to include test files
+            verbose: Enable verbose logging
+            resume: Attempt to resume from checkpoint
+
+        Returns:
+            IndexingResult with metrics
+        """
+        pipeline = self._get_pipeline()
+
+        # Ensure collection exists
+        try:
+            if not self.vector_store.collection_exists(collection_name):
+                if verbose:
+                    self.logger.info(f"Creating collection '{collection_name}'...")
+                vector_size = 512  # Voyage-3-lite default
+                self.vector_store.backend.ensure_collection(collection_name, vector_size)
+        except Exception as e:
+            if verbose:
+                self.logger.debug(f"Collection check/creation: {e}")
+
+        # Run or resume pipeline
+        if resume:
+            pipeline_result = pipeline.resume(collection_name)
+        else:
+            pipeline_result = pipeline.run(
+                collection_name=collection_name,
+                incremental=True,  # Use file cache for unchanged detection
+            )
+
+        # Convert PipelineResult to IndexingResult for API compatibility
+        return self._convert_pipeline_result(pipeline_result)
+
+    def _convert_pipeline_result(self, pipeline_result: Any) -> IndexingResult:
+        """Convert PipelineResult to IndexingResult for backward compatibility.
+
+        Args:
+            pipeline_result: Result from IndexingPipeline
+
+        Returns:
+            IndexingResult with equivalent data
+        """
+        return IndexingResult(
+            success=pipeline_result.success,
+            operation="incremental" if pipeline_result.files_skipped > 0 else "full",
+            files_processed=pipeline_result.files_processed,
+            files_failed=pipeline_result.files_failed,
+            entities_created=pipeline_result.entities_created,
+            relations_created=pipeline_result.relations_created,
+            implementation_chunks_created=pipeline_result.implementation_chunks,
+            processing_time=pipeline_result.total_time_seconds,
+            errors=pipeline_result.errors,
+            warnings=pipeline_result.warnings,
+        )
+
     def _create_batch_callback(self, collection_name: str) -> Any:
         """Create a callback function for batch processing during streaming."""
 

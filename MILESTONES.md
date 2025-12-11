@@ -27,7 +27,7 @@
 ### Vision
 Create a "magical" developer experience where Claude Code acts as an expert pair-programmer with persistent memory and automatic quality enforcement. The system catches issues before they enter the codebase while remaining invisible during normal development.
 
-### Current State (60-70% Complete)
+### Current State (65-75% Complete)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | CLI Infrastructure | ✅ Complete | `claude-indexer` with 20+ commands |
@@ -37,8 +37,9 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | UI Consistency | ✅ Complete | 15+ rules, 3-tier architecture |
 | Memory Guard v4.3 | ✅ Complete | 21+ pattern checks |
 | Multi-language Parser | ✅ Complete | 7 languages supported |
+| **Bulk Indexing Pipeline** | ✅ Complete | IndexingPipeline with resume capability (v2.9) |
 | One-Command Init | ❌ Missing | Core gap |
-| Full Indexing Pipeline | 🔄 Partial | Incremental needs work |
+| Incremental Indexing | 🔄 Partial | Git-aware updates need work |
 | All 27 Rules | 🔄 Partial | ~15 implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
 | Claude Self-Repair Loop | 🔄 Partial | Needs tighter integration |
@@ -215,13 +216,13 @@ build/
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 1.1.1 | Create `IndexingPipeline` class in `claude_indexer/indexing/pipeline.py` | HIGH | NEW |
-| 1.1.2 | Implement parallel file processing (thread pool) | HIGH | PARTIAL |
+| 1.1.1 | Create `IndexingPipeline` class in `claude_indexer/indexing/pipeline.py` | HIGH | DONE |
+| 1.1.2 | Implement parallel file processing (thread pool) | HIGH | DONE |
 | 1.1.3 | Add intelligent chunking (function/class boundaries) | HIGH | DONE |
-| 1.1.4 | Implement embedding batching (reduce API calls) | HIGH | PARTIAL |
-| 1.1.5 | Create progress reporter with ETA | MEDIUM | NEW |
-| 1.1.6 | Add resume capability for interrupted indexing | MEDIUM | NEW |
-| 1.1.7 | Implement file hash caching (skip unchanged) | HIGH | PARTIAL |
+| 1.1.4 | Implement embedding batching (reduce API calls) | HIGH | DONE |
+| 1.1.5 | Create progress reporter with ETA | MEDIUM | DONE |
+| 1.1.6 | Add resume capability for interrupted indexing | MEDIUM | DONE |
+| 1.1.7 | Implement file hash caching (skip unchanged) | HIGH | DONE |
 
 **Architecture**:
 ```python
@@ -242,7 +243,7 @@ class IndexingPipeline:
 ```
 
 **Testing Requirements**:
-- [ ] Unit tests for each component
+- [x] Unit tests for each component (83 tests in tests/unit/indexing/)
 - [ ] Integration test: index small repo (<100 files)
 - [ ] Performance test: index medium repo (<1000 files) in <2min
 - [ ] Test resume after interruption
@@ -255,6 +256,18 @@ class IndexingPipeline:
 - Index 1000 files in <2 minutes
 - <1% duplicate chunks in database
 - Clear progress feedback
+
+**Implementation Notes (v2.9)**:
+- Created `claude_indexer/indexing/` package with modular components:
+  - `types.py`: PipelineConfig, PipelineResult, ProgressState, CheckpointState, BatchMetrics
+  - `pipeline.py`: Main IndexingPipeline orchestrator
+  - `progress.py`: PipelineProgress with ETA and terminal visualization
+  - `checkpoint.py`: IndexingCheckpoint for resume capability
+  - `batch_optimizer.py`: BatchOptimizer with memory-aware adaptive sizing
+- Integrated with CoreIndexer via `index_project_with_pipeline()` method
+- Added `_get_pipeline()` lazy initialization for backward compatibility
+- Checkpoint files stored in `.index_cache/indexing_checkpoint_{collection}.json`
+- Atomic writes using temp file + rename pattern
 
 ---
 
