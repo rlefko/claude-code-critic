@@ -27,7 +27,7 @@
 ### Vision
 Create a "magical" developer experience where Claude Code acts as an expert pair-programmer with persistent memory and automatic quality enforcement. The system catches issues before they enter the codebase while remaining invisible during normal development.
 
-### Current State (75-85% Complete)
+### Current State (80-90% Complete)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | CLI Infrastructure | ✅ Complete | `claude-indexer` with 20+ commands |
@@ -41,8 +41,9 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **Incremental Indexing** | ✅ Complete | Git-aware updates with hash fallback (v2.9.1) |
 | **Rule Engine Framework** | ✅ Complete | BaseRule, RuleEngine, discovery, config (v2.9.2) |
 | **Security Rules (11)** | ✅ Complete | All 11 OWASP rules implemented (v2.9.3) |
+| **Tech Debt Rules (9)** | ✅ Complete | All 9 rules implemented (v2.9.4) |
 | One-Command Init | ❌ Missing | Core gap |
-| All 27 Rules | 🔄 Partial | Framework done, 18 rules implemented |
+| All 27 Rules | 🔄 Partial | Framework done, 25 rules implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
 | Claude Self-Repair Loop | 🔄 Partial | Needs tighter integration |
 
@@ -519,29 +520,42 @@ class BaseRule(ABC):
 |----|------|----------|-----------|--------|
 | 2.3.1 | TODO/FIXME/HACK Detection | MEDIUM | `todo_markers` | DONE |
 | 2.3.2 | Debug Statement Detection | MEDIUM | `debug_statements` | DONE |
-| 2.3.3 | Commented Code Detection | LOW | `commented_code` | PARTIAL |
-| 2.3.4 | Dead Code Detection | MEDIUM | `dead_code` | NEW |
-| 2.3.5 | Overly Complex Functions | MEDIUM | `complexity` | NEW |
-| 2.3.6 | Large Files Detection | LOW | `large_files` | NEW |
-| 2.3.7 | Magic Numbers Detection | LOW | `magic_numbers` | NEW |
-| 2.3.8 | Inconsistent Naming | MEDIUM | `naming_conventions` | NEW |
-| 2.3.9 | Deprecated API Usage | MEDIUM | `deprecated_apis` | NEW |
+| 2.3.3 | Commented Code Detection | LOW | `commented_code` | DONE |
+| 2.3.4 | Dead Code Detection | MEDIUM | `dead_code` | DONE |
+| 2.3.5 | Overly Complex Functions | MEDIUM | `complexity` | DONE |
+| 2.3.6 | Large Files Detection | LOW | `large_files` | DONE |
+| 2.3.7 | Magic Numbers Detection | LOW | `magic_numbers` | DONE |
+| 2.3.8 | Inconsistent Naming | MEDIUM | `naming_conventions` | DONE |
+| 2.3.9 | Deprecated API Usage | MEDIUM | `deprecated_apis` | DONE |
 
 **Implementation Location**: `claude_indexer/rules/tech_debt/`
 
 **Testing Requirements**:
-- [ ] Unit tests for each rule
-- [ ] Test threshold configurations
-- [ ] Test across multiple languages
+- [x] Unit tests for each rule (38 tests in `tests/unit/rules/test_tech_debt_rules.py`)
+- [x] Test threshold configurations
+- [x] Test across multiple languages (Python, JavaScript, TypeScript)
 
 **Documentation**:
 - [ ] Tech debt rule reference
 - [ ] Configuration examples
 
 **Success Criteria**:
-- Configurable thresholds (complexity limit, file size, etc.)
-- Works across all supported languages
-- Actionable suggestions
+- [x] Configurable thresholds (complexity limit, file size, etc.)
+- [x] Works across all supported languages
+- [x] Actionable suggestions
+
+**Implementation Notes (v2.9.4)**:
+- Created 7 new rules in `claude_indexer/rules/tech_debt/`:
+  - `large_files.py`: LargeFilesRule - Detects files exceeding configurable line count threshold
+  - `commented_code.py`: CommentedCodeRule - Detects consecutive commented-out code blocks
+  - `magic_numbers.py`: MagicNumbersRule - Detects unexplained numeric literals
+  - `complexity.py`: ComplexityRule - Calculates McCabe cyclomatic complexity per function
+  - `deprecated_apis.py`: DeprecatedAPIsRule - Detects deprecated stdlib usage
+  - `dead_code.py`: DeadCodeRule - Detects unreachable code after return/raise/break
+  - `naming_conventions.py`: NamingConventionsRule - Enforces language-specific naming conventions
+- Auto-fix support for: CommentedCodeRule, DeadCodeRule, NamingConventionsRule
+- Multi-language support: Python, JavaScript, TypeScript
+- Comprehensive test suite: 38 tests covering all rules
 
 ---
 
