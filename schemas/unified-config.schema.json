@@ -1,0 +1,422 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-memory.dev/schemas/unified-config.schema.json",
+  "title": "Claude Indexer Unified Configuration",
+  "description": "Unified configuration schema for claude-indexer with hierarchical loading support",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for IDE support"
+    },
+    "version": {
+      "type": "string",
+      "description": "Configuration schema version",
+      "default": "3.0"
+    },
+    "project": {
+      "type": "object",
+      "description": "Project identification and metadata",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable project name",
+          "minLength": 1
+        },
+        "collection": {
+          "type": "string",
+          "description": "Qdrant collection name for this project",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "description": {
+          "type": "string",
+          "description": "Project description",
+          "default": ""
+        },
+        "projectType": {
+          "type": "string",
+          "description": "Detected or specified project type",
+          "enum": ["python", "javascript", "typescript", "mixed", "generic"],
+          "default": "generic"
+        }
+      },
+      "required": ["name", "collection"]
+    },
+    "api": {
+      "type": "object",
+      "description": "API keys and endpoints for external services",
+      "properties": {
+        "openai": {
+          "type": "object",
+          "description": "OpenAI API configuration",
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "description": "OpenAI API key (sk-...)",
+              "default": ""
+            },
+            "model": {
+              "type": "string",
+              "description": "OpenAI embedding model",
+              "default": "text-embedding-3-small"
+            }
+          }
+        },
+        "voyage": {
+          "type": "object",
+          "description": "Voyage AI API configuration",
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "description": "Voyage AI API key",
+              "default": ""
+            },
+            "model": {
+              "type": "string",
+              "description": "Voyage embedding model",
+              "enum": ["voyage-3", "voyage-3-lite", "voyage-3.5-lite", "voyage-code-3"],
+              "default": "voyage-3.5-lite"
+            }
+          }
+        },
+        "qdrant": {
+          "type": "object",
+          "description": "Qdrant vector database configuration",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Qdrant server URL",
+              "format": "uri",
+              "default": "http://localhost:6333"
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "Qdrant API key (for cloud deployments)",
+              "default": ""
+            }
+          }
+        }
+      }
+    },
+    "embedding": {
+      "type": "object",
+      "description": "Embedding generation configuration",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Embedding provider to use",
+          "enum": ["openai", "voyage"],
+          "default": "voyage"
+        },
+        "model": {
+          "type": "string",
+          "description": "Override model (defaults to provider's default)"
+        },
+        "dimension": {
+          "type": "integer",
+          "description": "Embedding vector dimension",
+          "default": 512,
+          "minimum": 128,
+          "maximum": 4096
+        }
+      }
+    },
+    "indexing": {
+      "type": "object",
+      "description": "File indexing behavior configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable automatic indexing",
+          "default": true
+        },
+        "incremental": {
+          "type": "boolean",
+          "description": "Use incremental indexing (only changed files)",
+          "default": true
+        },
+        "filePatterns": {
+          "type": "object",
+          "description": "File inclusion and exclusion patterns",
+          "properties": {
+            "include": {
+              "type": "array",
+              "description": "Glob patterns for files to include",
+              "items": {
+                "type": "string"
+              },
+              "default": ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx", "*.json", "*.yaml", "*.yml", "*.html", "*.css", "*.md"]
+            },
+            "exclude": {
+              "type": "array",
+              "description": "Glob patterns for files to exclude",
+              "items": {
+                "type": "string"
+              },
+              "default": ["*.pyc", "__pycache__/", ".git/", ".venv/", "node_modules/", "dist/", "build/", "*.min.js", ".env", "*.log"]
+            }
+          }
+        },
+        "maxFileSize": {
+          "type": "integer",
+          "description": "Maximum file size in bytes to index",
+          "default": 1048576,
+          "minimum": 1024
+        },
+        "includeTests": {
+          "type": "boolean",
+          "description": "Include test files in the index",
+          "default": false
+        },
+        "parserConfig": {
+          "type": "object",
+          "description": "Parser-specific configuration",
+          "additionalProperties": {
+            "$ref": "#/definitions/parserConfig"
+          }
+        }
+      }
+    },
+    "watcher": {
+      "type": "object",
+      "description": "File watcher configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable file watching for automatic re-indexing",
+          "default": true
+        },
+        "debounceSeconds": {
+          "type": "number",
+          "description": "Debounce delay in seconds before processing changes",
+          "default": 2.0,
+          "minimum": 0.1,
+          "maximum": 60.0
+        },
+        "useGitignore": {
+          "type": "boolean",
+          "description": "Respect .gitignore patterns when watching",
+          "default": true
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning settings",
+      "properties": {
+        "batchSize": {
+          "type": "integer",
+          "description": "Batch size for embedding API calls",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "initialBatchSize": {
+          "type": "integer",
+          "description": "Initial batch size (ramps up to batchSize)",
+          "default": 25,
+          "minimum": 1,
+          "maximum": 50
+        },
+        "batchSizeRampUp": {
+          "type": "boolean",
+          "description": "Gradually increase batch size",
+          "default": true
+        },
+        "maxConcurrentFiles": {
+          "type": "integer",
+          "description": "Maximum concurrent file processing",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 100
+        },
+        "useParallelProcessing": {
+          "type": "boolean",
+          "description": "Enable multiprocessing for indexing",
+          "default": true
+        },
+        "maxParallelWorkers": {
+          "type": "integer",
+          "description": "Max parallel workers (0 = auto, CPU count - 1)",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 16
+        },
+        "cleanupIntervalMinutes": {
+          "type": "integer",
+          "description": "Interval for cleanup tasks (0 = disabled)",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 10080
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Claude Code hook configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable hook system",
+          "default": true
+        },
+        "postToolUse": {
+          "type": "array",
+          "description": "Hooks to run after tool use (Write, Edit)",
+          "items": {
+            "$ref": "#/definitions/hookConfig"
+          },
+          "default": []
+        },
+        "stop": {
+          "type": "array",
+          "description": "Hooks to run at end of assistant turn",
+          "items": {
+            "$ref": "#/definitions/hookConfig"
+          },
+          "default": []
+        },
+        "sessionStart": {
+          "type": "array",
+          "description": "Hooks to run at session start",
+          "items": {
+            "$ref": "#/definitions/hookConfig"
+          },
+          "default": []
+        }
+      }
+    },
+    "guard": {
+      "type": "object",
+      "description": "Quality guard configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable quality guard checks",
+          "default": true
+        },
+        "rules": {
+          "type": "object",
+          "description": "Rule-specific configuration",
+          "additionalProperties": {
+            "$ref": "#/definitions/ruleConfig"
+          }
+        },
+        "severityThresholds": {
+          "type": "object",
+          "description": "Minimum severity to block/warn",
+          "properties": {
+            "block": {
+              "type": "string",
+              "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+              "default": "HIGH",
+              "description": "Minimum severity to block (exit code 2)"
+            },
+            "warn": {
+              "type": "string",
+              "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+              "default": "MEDIUM",
+              "description": "Minimum severity to warn"
+            }
+          }
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Log level",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+          "default": "INFO"
+        },
+        "verbose": {
+          "type": "boolean",
+          "description": "Enable verbose output",
+          "default": true
+        },
+        "debug": {
+          "type": "boolean",
+          "description": "Enable debug mode",
+          "default": false
+        },
+        "logFile": {
+          "type": "string",
+          "description": "Path to log file (optional)"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "hookConfig": {
+      "type": "object",
+      "description": "Individual hook configuration",
+      "properties": {
+        "matcher": {
+          "type": "string",
+          "description": "Tool pattern to match (e.g., 'Write|Edit', '*')",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to execute",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable this hook",
+          "default": true
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout in milliseconds",
+          "default": 30000,
+          "minimum": 1000
+        }
+      },
+      "required": ["matcher", "command"]
+    },
+    "ruleConfig": {
+      "type": "object",
+      "description": "Individual rule configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable this rule",
+          "default": true
+        },
+        "severity": {
+          "type": "string",
+          "description": "Rule severity",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+          "default": "MEDIUM"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Rule-specific threshold (meaning varies by rule)"
+        },
+        "autoFix": {
+          "type": "boolean",
+          "description": "Enable auto-fix for this rule (if supported)",
+          "default": false
+        }
+      }
+    },
+    "parserConfig": {
+      "type": "object",
+      "description": "Parser-specific configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable this parser",
+          "default": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

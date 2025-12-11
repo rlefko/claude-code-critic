@@ -540,6 +540,371 @@ else:
             click.echo(f"❌ Failed to load configuration: {e}", err=True)
             sys.exit(1)
 
+    # ========================================
+    # Configuration Management Commands (v3.0)
+    # ========================================
+
+    @cli.group("config")
+    def config_group():
+        """Configuration management commands."""
+        pass
+
+    @config_group.command("show")
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        type=click.Path(exists=True),
+        help="Project directory path",
+    )
+    @click.option(
+        "--sources",
+        is_flag=True,
+        help="Show which config files were loaded",
+    )
+    @click.option(
+        "--json",
+        "as_json",
+        is_flag=True,
+        help="Output as JSON",
+    )
+    @common_options
+    def config_show(project_path: str, sources: bool, as_json: bool, verbose, quiet, config) -> None:
+        """Show effective configuration with source tracking.
+
+        Examples:
+            claude-indexer config show
+            claude-indexer config show --sources
+            claude-indexer config show --json
+        """
+        from .config.hierarchical_loader import HierarchicalConfigLoader
+
+        path = Path(project_path) if project_path else Path.cwd()
+        loader = HierarchicalConfigLoader(path)
+
+        try:
+            unified_config = loader.load()
+            loaded_sources = loader.get_loaded_sources()
+
+            if as_json:
+                import json
+                output = unified_config.to_dict()
+                if sources:
+                    output["_sources"] = loaded_sources
+                click.echo(json.dumps(output, indent=2, default=str))
+                return
+
+            click.echo("📋 Unified Configuration (v3.0)")
+            click.echo(f"📁 Project Path: {path}")
+            click.echo()
+
+            # Project info
+            if unified_config.project:
+                click.echo("Project:")
+                click.echo(f"  Name:       {unified_config.project.name}")
+                click.echo(f"  Collection: {unified_config.project.collection}")
+                click.echo()
+
+            # Embedding config
+            click.echo("Embedding:")
+            click.echo(f"  Provider:   {unified_config.embedding.provider}")
+            click.echo(f"  Model:      {unified_config.get_effective_model()}")
+            click.echo()
+
+            # API config (mask keys)
+            click.echo("API:")
+            click.echo(f"  Qdrant URL: {unified_config.api.qdrant.url}")
+            openai_key = unified_config.api.openai.api_key
+            voyage_key = unified_config.api.voyage.api_key
+            click.echo(f"  OpenAI:     {'****' + openai_key[-4:] if openai_key else 'Not set'}")
+            click.echo(f"  Voyage:     {'****' + voyage_key[-4:] if voyage_key else 'Not set'}")
+            click.echo()
+
+            # Indexing config
+            click.echo("Indexing:")
+            click.echo(f"  Enabled:    {unified_config.indexing.enabled}")
+            click.echo(f"  Include:    {', '.join(unified_config.indexing.file_patterns.include[:5])}...")
+            click.echo(f"  Max Size:   {unified_config.indexing.max_file_size:,} bytes")
+            click.echo()
+
+            # Performance config
+            click.echo("Performance:")
+            click.echo(f"  Batch Size: {unified_config.performance.batch_size}")
+            click.echo(f"  Parallel:   {unified_config.performance.use_parallel_processing}")
+            click.echo()
+
+            # Sources
+            if sources:
+                click.echo("📂 Configuration Sources (in load order):")
+                for i, source in enumerate(loaded_sources, 1):
+                    click.echo(f"  {i}. {source}")
+
+        except Exception as e:
+            click.echo(f"❌ Failed to load configuration: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
+    @config_group.command("validate")
+    @click.argument(
+        "config_path",
+        type=click.Path(exists=True),
+        required=False,
+    )
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        type=click.Path(exists=True),
+        help="Project directory path (used if config_path not provided)",
+    )
+    @common_options
+    def config_validate(config_path: str, project_path: str, verbose, quiet, config) -> None:
+        """Validate configuration file.
+
+        If CONFIG_PATH is provided, validates that specific file.
+        Otherwise, validates the project's effective configuration.
+
+        Examples:
+            claude-indexer config validate
+            claude-indexer config validate .claude/settings.json
+            claude-indexer config validate --project /path/to/project
+        """
+        from .config.validation import validate_config_file, validate_config_dict
+        from .config.hierarchical_loader import ConfigPaths, HierarchicalConfigLoader
+
+        if config_path:
+            # Validate specific file
+            path = Path(config_path)
+            if not quiet:
+                click.echo(f"🔍 Validating: {path}")
+
+            result = validate_config_file(path)
+        else:
+            # Validate project configuration
+            path = Path(project_path) if project_path else Path.cwd()
+
+            # Find config file
+            config_file = ConfigPaths.find_project_config(path)
+            if config_file:
+                if not quiet:
+                    click.echo(f"🔍 Validating: {config_file}")
+                result = validate_config_file(config_file)
+            else:
+                # Validate effective config
+                if not quiet:
+                    click.echo(f"🔍 Validating effective configuration for: {path}")
+                loader = HierarchicalConfigLoader(path)
+                unified_config = loader.load()
+                result = validate_config_dict(unified_config.to_dict())
+
+        # Show results
+        if result.valid:
+            click.echo("✅ Configuration is valid")
+        else:
+            click.echo("❌ Configuration has errors")
+
+        if result.errors:
+            click.echo(f"\n{len(result.errors)} Error(s):")
+            for error in result.errors:
+                click.echo(f"  [{error.path}] {error.message}")
+                if error.suggestion and verbose:
+                    click.echo(f"    Suggestion: {error.suggestion}")
+
+        if result.warnings:
+            click.echo(f"\n{len(result.warnings)} Warning(s):")
+            for warning in result.warnings:
+                click.echo(f"  [{warning.path}] {warning.message}")
+                if warning.suggestion and verbose:
+                    click.echo(f"    Suggestion: {warning.suggestion}")
+
+        if result.info and verbose:
+            click.echo(f"\n{len(result.info)} Info:")
+            for info in result.info:
+                click.echo(f"  [{info.path}] {info.message}")
+
+        if not result.valid:
+            sys.exit(1)
+
+    @config_group.command("migrate")
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--dry-run",
+        is_flag=True,
+        help="Show what would be done without making changes",
+    )
+    @click.option(
+        "--no-backup",
+        is_flag=True,
+        help="Skip creating backup of existing config",
+    )
+    @click.option(
+        "--force",
+        is_flag=True,
+        help="Overwrite existing new-format config",
+    )
+    @common_options
+    def config_migrate(project_path: str, dry_run: bool, no_backup: bool, force: bool, verbose, quiet, config) -> None:
+        """Migrate existing configuration to v3.0 format.
+
+        Migrates settings.txt and/or .claude-indexer/config.json to the
+        new unified .claude/settings.json format.
+
+        Examples:
+            claude-indexer config migrate --dry-run
+            claude-indexer config migrate
+            claude-indexer config migrate --force
+        """
+        from .config.migration import ConfigMigration
+
+        path = Path(project_path).resolve()
+        migration = ConfigMigration(path)
+
+        # First show analysis
+        if not quiet:
+            click.echo(f"\n=== Configuration Migration Analysis ===")
+            click.echo(f"Project: {path}")
+
+        analysis = migration.analyze()
+
+        if not quiet:
+            click.echo(f"Migration needed: {'Yes' if analysis.migration_needed else 'No'}")
+
+            if analysis.existing_configs:
+                click.echo("\nExisting configurations:")
+                for cfg in analysis.existing_configs:
+                    click.echo(f"  - {cfg['file']}")
+                    click.echo(f"    Type: {cfg['type']}, Status: {cfg['status']}")
+                    if 'version' in cfg:
+                        click.echo(f"    Version: {cfg['version']}")
+
+            if analysis.warnings:
+                click.echo("\nWarnings:")
+                for warning in analysis.warnings:
+                    click.echo(f"  ⚠️  {warning}")
+
+            if analysis.actions:
+                click.echo("\nPlanned actions:")
+                for action in analysis.actions:
+                    click.echo(f"  - {action}")
+
+        if not analysis.migration_needed and not force:
+            if not quiet:
+                click.echo("\n✅ No migration needed - configuration is already current")
+            return
+
+        # Perform migration
+        if not quiet:
+            click.echo("\n=== Performing Migration ===")
+
+        result = migration.migrate(dry_run=dry_run, backup=not no_backup, force=force)
+
+        if result.success:
+            click.echo(f"\n✅ {result.message}")
+        else:
+            click.echo(f"\n❌ {result.message}", err=True)
+            sys.exit(1)
+
+        if result.changes:
+            click.echo("\nChanges made:")
+            for change in result.changes:
+                click.echo(f"  - {change}")
+
+        if result.backup_path:
+            click.echo(f"\nBackup created: {result.backup_path}")
+
+        if result.sources_used and verbose:
+            click.echo("\nConfiguration sources used:")
+            for source in result.sources_used:
+                click.echo(f"  - {source}")
+
+        if result.validation_result and verbose:
+            click.echo("\nValidation:")
+            click.echo(result.validation_result)
+
+    @config_group.command("backups")
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @common_options
+    def config_backups(project_path: str, verbose, quiet, config) -> None:
+        """List available configuration backups.
+
+        Examples:
+            claude-indexer config backups
+        """
+        from .config.migration import ConfigMigration
+
+        path = Path(project_path).resolve()
+        migration = ConfigMigration(path)
+
+        backups = migration.list_backups()
+
+        if not backups:
+            click.echo("No backups found")
+            return
+
+        click.echo(f"📦 Configuration Backups ({len(backups)}):")
+        for backup in backups:
+            click.echo(f"\n  Timestamp: {backup['timestamp']}")
+            click.echo(f"  Created:   {backup['formatted']}")
+            click.echo(f"  Path:      {backup['path']}")
+            if verbose:
+                click.echo(f"  Files:     {', '.join(backup['files'])}")
+
+    @config_group.command("restore")
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--timestamp",
+        help="Specific backup timestamp to restore (format: YYYYMMDD_HHMMSS)",
+    )
+    @common_options
+    def config_restore(project_path: str, timestamp: str, verbose, quiet, config) -> None:
+        """Restore configuration from backup.
+
+        If --timestamp is not provided, restores the most recent backup.
+
+        Examples:
+            claude-indexer config restore
+            claude-indexer config restore --timestamp 20240115_143022
+        """
+        from .config.migration import ConfigMigration
+
+        path = Path(project_path).resolve()
+        migration = ConfigMigration(path)
+
+        result = migration.restore_backup(timestamp)
+
+        if result.success:
+            click.echo(f"✅ {result.message}")
+            if result.changes:
+                click.echo("\nRestored files:")
+                for change in result.changes:
+                    click.echo(f"  - {change}")
+        else:
+            click.echo(f"❌ {result.message}", err=True)
+            sys.exit(1)
+
     @cli.command()
     @project_options
     @common_options
