@@ -27,7 +27,7 @@
 ### Vision
 Create a "magical" developer experience where Claude Code acts as an expert pair-programmer with persistent memory and automatic quality enforcement. The system catches issues before they enter the codebase while remaining invisible during normal development.
 
-### Current State (80-90% Complete)
+### Current State (85-95% Complete)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | CLI Infrastructure | ✅ Complete | `claude-indexer` with 20+ commands |
@@ -41,9 +41,10 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **Incremental Indexing** | ✅ Complete | Git-aware updates with hash fallback (v2.9.1) |
 | **Rule Engine Framework** | ✅ Complete | BaseRule, RuleEngine, discovery, config (v2.9.2) |
 | **Security Rules (11)** | ✅ Complete | All 11 OWASP rules implemented (v2.9.3) |
-| **Tech Debt Rules (9)** | ✅ Complete | All 9 rules implemented (v2.9.4) |
+| **Tech Debt Rules (11)** | ✅ Complete | All 11 rules implemented (v2.9.5) |
+| **Core PRD Rules (6)** | ✅ Complete | Token drift, duplication, unsafe (v2.9.5) |
 | One-Command Init | ❌ Missing | Core gap |
-| All 27 Rules | 🔄 Partial | Framework done, 25 rules implemented |
+| All 27 Rules | ✅ Complete | 27+ rules implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
 | Claude Self-Repair Loop | 🔄 Partial | Needs tighter integration |
 
@@ -567,11 +568,11 @@ class BaseRule(ABC):
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 2.4.1a | Design drift detection algorithm | HIGH | NEW |
-| 2.4.1b | Implement code similarity tracking | HIGH | NEW |
-| 2.4.1c | Create historical comparison (before/after) | HIGH | NEW |
-| 2.4.1d | Add drift threshold configuration | MEDIUM | NEW |
-| 2.4.1e | Generate reconciliation suggestions | MEDIUM | NEW |
+| 2.4.1a | Design drift detection algorithm | HIGH | DONE |
+| 2.4.1b | Implement code similarity tracking | HIGH | DONE |
+| 2.4.1c | Create historical comparison (before/after) | HIGH | DONE |
+| 2.4.1d | Add drift threshold configuration | MEDIUM | DONE |
+| 2.4.1e | Generate reconciliation suggestions | MEDIUM | DONE |
 
 **Token Drift Algorithm**:
 ```python
@@ -590,11 +591,11 @@ class TokenDriftRule(BaseRule):
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 2.4.2a | Enhance existing duplicate detector | HIGH | PARTIAL |
-| 2.4.2b | Add semantic similarity (not just hash) | HIGH | PARTIAL |
-| 2.4.2c | Implement cross-file detection | HIGH | NEW |
-| 2.4.2d | Add "similar but different" detection | MEDIUM | NEW |
-| 2.4.2e | Generate refactoring suggestions | MEDIUM | NEW |
+| 2.4.2a | Enhance existing duplicate detector | HIGH | DONE |
+| 2.4.2b | Add semantic similarity (not just hash) | HIGH | DONE |
+| 2.4.2c | Implement cross-file detection | HIGH | DONE |
+| 2.4.2d | Add "similar but different" detection | MEDIUM | DONE |
+| 2.4.2e | Generate refactoring suggestions | MEDIUM | DONE |
 
 **Duplication Detection Levels**:
 1. **Exact**: Hash match (fastest)
@@ -606,13 +607,14 @@ class TokenDriftRule(BaseRule):
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 2.4.3a | Define "unsafe structure" patterns | HIGH | NEW |
-| 2.4.3b | Implement missing null check detection | HIGH | NEW |
-| 2.4.3c | Add infinite loop risk detection | MEDIUM | NEW |
-| 2.4.3d | Implement memory leak patterns | MEDIUM | NEW |
-| 2.4.3e | Add concurrency issue detection | MEDIUM | NEW |
+| 2.4.3a | Define "unsafe structure" patterns | HIGH | DONE |
+| 2.4.3b | Implement missing null check detection | HIGH | DONE |
+| 2.4.3c | Add infinite loop risk detection | MEDIUM | DONE |
+| 2.4.3d | Implement memory leak patterns | MEDIUM | DONE |
+| 2.4.3e | Add concurrency issue detection | MEDIUM | DONE |
 
 **Testing Requirements**:
+- [x] Unit tests for all new rules (68 tests passing)
 - [ ] Integration tests with real codebases
 - [ ] Benchmark false positive rates
 - [ ] Test auto-fix suggestions
@@ -626,6 +628,27 @@ class TokenDriftRule(BaseRule):
 - Token drift caught before commit
 - Duplication detected with >90% accuracy
 - Clear refactoring suggestions
+
+**Implementation Notes (v2.9.5)**:
+- Created `claude_indexer/rules/tech_debt/token_drift.py`:
+  - TokenDriftRule - Detects when similar code entities have diverged
+  - Uses memory search (>0.85 similarity) to find candidates
+  - Compares structure, logic patterns, error handling, documentation
+  - Configurable thresholds for similarity and drift detection
+- Created `claude_indexer/rules/tech_debt/duplication.py`:
+  - ComponentDuplicationRule - Multi-signal duplicate detection
+  - Exact matching (SHA256 hash)
+  - Structural matching (SimHash of AST features)
+  - Semantic matching (embedding similarity via memory search)
+  - Classification: EXACT, STRUCTURAL, SEMANTIC, SIMILAR
+  - Generates refactoring suggestions based on duplicate type
+- Created 4 resilience rules in `claude_indexer/rules/resilience/`:
+  - `unsafe_null.py`: UnsafeNullRule - Detects null/None access without guards
+  - `unsafe_loops.py`: UnsafeLoopRule - Detects infinite loop risks
+  - `unsafe_resources.py`: UnsafeResourceRule - Detects resource leaks
+  - `unsafe_concurrency.py`: UnsafeConcurrencyRule - Detects race conditions
+- Multi-language support: Python, JavaScript, TypeScript
+- Comprehensive test suite: 68 tests in 3 test files
 
 ---
 
