@@ -56,6 +56,9 @@ claude-indexer index -p PATH -c COLLECTION [OPTIONS]
 | `--clear-all` | Clear ALL memories (including manual) | Off |
 | `--depth [basic\|full]` | Analysis depth | full |
 | `--files-from-stdin` | Read file paths from stdin (batch mode) | Off |
+| `--since COMMIT` | Index changes since git commit/ref (e.g., HEAD~5) | Off |
+| `--staged` | Index only staged files (for pre-commit hooks) | Off |
+| `--pr-diff BRANCH` | Index changes for PR against base branch | Off |
 | `--config PATH` | Configuration file path | Auto-detect |
 
 ### Examples
@@ -77,7 +80,32 @@ claude-indexer index -p . -c my-project --include-tests
 echo "src/auth.py
 src/api/users.py
 src/utils.py" | claude-indexer index -p . -c my-project --files-from-stdin
+
+# Git-aware incremental indexing (v2.9.1+)
+claude-indexer index -p . -c my-project --since HEAD~5
+
+# Index only staged files (pre-commit)
+claude-indexer index -p . -c my-project --staged
+
+# Index PR changes against main branch
+claude-indexer index -p . -c my-project --pr-diff main
 ```
+
+### Git-Aware Incremental Indexing (v2.9.1+)
+
+The `--since`, `--staged`, and `--pr-diff` options enable git-aware change detection:
+
+| Option | Use Case | Description |
+|--------|----------|-------------|
+| `--since COMMIT` | Regular development | Index changes since a specific commit |
+| `--staged` | Pre-commit hooks | Index only staged files |
+| `--pr-diff BRANCH` | CI/PR workflows | Index changes in current branch vs base |
+
+**Features:**
+- Automatic rename detection (updates paths in place, preserves history)
+- Deletion handling (removes entities for deleted files)
+- Falls back to hash-based detection for non-git repos
+- Tracks `_last_indexed_commit` in state file for automatic incremental mode
 
 ### Batch Indexing (v2.8+)
 
