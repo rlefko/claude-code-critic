@@ -18,6 +18,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 | [docs/MEMORY_GUARD.md](docs/MEMORY_GUARD.md) | Code quality enforcement (27 checks) |
 | [docs/UI_CONSISTENCY_GUIDE.md](docs/UI_CONSISTENCY_GUIDE.md) | UI consistency checking guide |
 | [docs/UI_CI_SETUP.md](docs/UI_CI_SETUP.md) | CI integration for UI quality gates |
+| [docs/UI_METRICS.md](docs/UI_METRICS.md) | Metrics dashboard and success tracking |
 
 ---
 
@@ -153,6 +154,11 @@ claude-indexer redesign --focus "button components"
 # View/update baseline
 claude-indexer quality-gates baseline show
 claude-indexer quality-gates baseline update
+
+# Metrics dashboard (Phase 9)
+claude-indexer quality-gates metrics show
+claude-indexer quality-gates metrics history --days 30
+claude-indexer quality-gates metrics export metrics.json
 ```
 
 **Three-Tier System:**
@@ -167,6 +173,7 @@ claude-indexer quality-gates baseline update
 | `quality-gates run ui` | Full CI audit with SARIF export |
 | `redesign` | On-demand design critique |
 | `quality-gates baseline` | Manage baseline issues |
+| `quality-gates metrics` | View/export metrics dashboard |
 
 See [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) for complete documentation.
 
@@ -513,6 +520,7 @@ python utils/find_missing_files.py                # File sync debugging
 - [Memory Guard](docs/MEMORY_GUARD.md) - 27 code quality checks
 - [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) - Design token compliance
 - [UI CI Setup](docs/UI_CI_SETUP.md) - CI integration for UI quality gates
+- [UI Metrics](docs/UI_METRICS.md) - Metrics dashboard and success tracking
 - [Architecture](ARCHITECTURE.md) - System design diagrams
 - [Changelog](CHANGELOG.md) - Version history
 

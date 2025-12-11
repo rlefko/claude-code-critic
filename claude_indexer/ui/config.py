@@ -389,6 +389,162 @@ class DesignSystemConfig:
         )
 
 
+# =============================================================================
+# Risk Mitigation Configuration (Phase 9)
+# =============================================================================
+
+
+@dataclass
+class DeterministicDataConfig:
+    """Configuration for deterministic demo data mode.
+
+    When enabled, produces reproducible results for testing
+    by using fixed seeds and mock timestamps.
+    """
+
+    enabled: bool = False
+    seed: int = 42  # Random seed for reproducibility
+    mock_timestamps: bool = True  # Use fixed timestamps
+    mock_user_data: bool = True  # Use placeholder user data
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "enabled": self.enabled,
+            "seed": self.seed,
+            "mockTimestamps": self.mock_timestamps,
+            "mockUserData": self.mock_user_data,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DeterministicDataConfig":
+        """Create from dictionary."""
+        return cls(
+            enabled=data.get("enabled", False),
+            seed=data.get("seed", 42),
+            mock_timestamps=data.get("mockTimestamps", True),
+            mock_user_data=data.get("mockUserData", True),
+        )
+
+
+@dataclass
+class PIIRedactionConfig:
+    """Configuration for PII redaction in screenshots.
+
+    Protects sensitive information when capturing UI screenshots
+    during runtime analysis.
+    """
+
+    enabled: bool = True
+    redact_emails: bool = True
+    redact_names: bool = True
+    redact_phone_numbers: bool = True
+    redact_addresses: bool = True
+    custom_patterns: list[str] = field(default_factory=list)  # Regex patterns
+    redaction_placeholder: str = "[REDACTED]"
+    blur_images: bool = True  # Blur user avatars/profile images
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "enabled": self.enabled,
+            "redactEmails": self.redact_emails,
+            "redactNames": self.redact_names,
+            "redactPhoneNumbers": self.redact_phone_numbers,
+            "redactAddresses": self.redact_addresses,
+            "customPatterns": self.custom_patterns,
+            "redactionPlaceholder": self.redaction_placeholder,
+            "blurImages": self.blur_images,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "PIIRedactionConfig":
+        """Create from dictionary."""
+        return cls(
+            enabled=data.get("enabled", True),
+            redact_emails=data.get("redactEmails", True),
+            redact_names=data.get("redactNames", True),
+            redact_phone_numbers=data.get("redactPhoneNumbers", True),
+            redact_addresses=data.get("redactAddresses", True),
+            custom_patterns=data.get("customPatterns", []),
+            redaction_placeholder=data.get("redactionPlaceholder", "[REDACTED]"),
+            blur_images=data.get("blurImages", True),
+        )
+
+
+@dataclass
+class StorybookPreferenceConfig:
+    """Configuration for Storybook preference over live routes.
+
+    Controls whether runtime analysis prefers Storybook for
+    more predictable, isolated component testing.
+    """
+
+    prefer_storybook: bool = True  # Use Storybook if available
+    storybook_only: bool = False  # Never crawl live routes
+    story_patterns: list[str] = field(
+        default_factory=lambda: ["*"]
+    )  # Story glob patterns
+    skip_stories: list[str] = field(default_factory=list)  # Stories to skip
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "preferStorybook": self.prefer_storybook,
+            "storybookOnly": self.storybook_only,
+            "storyPatterns": self.story_patterns,
+            "skipStories": self.skip_stories,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "StorybookPreferenceConfig":
+        """Create from dictionary."""
+        return cls(
+            prefer_storybook=data.get("preferStorybook", True),
+            storybook_only=data.get("storybookOnly", False),
+            story_patterns=data.get("storyPatterns", ["*"]),
+            skip_stories=data.get("skipStories", []),
+        )
+
+
+@dataclass
+class RiskMitigationConfig:
+    """Risk mitigation settings for UI analysis.
+
+    Combines deterministic data mode, PII protection, and
+    Storybook preferences for safer, more reliable analysis.
+    """
+
+    deterministic_data: DeterministicDataConfig = field(
+        default_factory=DeterministicDataConfig
+    )
+    pii_redaction: PIIRedactionConfig = field(default_factory=PIIRedactionConfig)
+    storybook_preference: StorybookPreferenceConfig = field(
+        default_factory=StorybookPreferenceConfig
+    )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "deterministicData": self.deterministic_data.to_dict(),
+            "piiRedaction": self.pii_redaction.to_dict(),
+            "storybookPreference": self.storybook_preference.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RiskMitigationConfig":
+        """Create from dictionary."""
+        return cls(
+            deterministic_data=DeterministicDataConfig.from_dict(
+                data.get("deterministicData", {})
+            ),
+            pii_redaction=PIIRedactionConfig.from_dict(data.get("piiRedaction", {})),
+            storybook_preference=StorybookPreferenceConfig.from_dict(
+                data.get("storybookPreference", {})
+            ),
+        )
+
+
 @dataclass
 class UIQualityConfig:
     """Complete UI quality configuration.
@@ -402,6 +558,7 @@ class UIQualityConfig:
     gating: GatingConfig = field(default_factory=GatingConfig)
     ignore_rules: list[IgnoreRule] = field(default_factory=list)
     output: OutputConfig = field(default_factory=OutputConfig)
+    risk_mitigation: RiskMitigationConfig = field(default_factory=RiskMitigationConfig)
 
     # Computed properties
     _token_set: TokenSet | None = field(default=None, repr=False)
@@ -415,6 +572,7 @@ class UIQualityConfig:
             "gating": self.gating.to_dict(),
             "ignoreRules": [r.to_dict() for r in self.ignore_rules],
             "output": self.output.to_dict(),
+            "riskMitigation": self.risk_mitigation.to_dict(),
         }
 
     @classmethod
@@ -428,6 +586,9 @@ class UIQualityConfig:
                 IgnoreRule.from_dict(r) for r in data.get("ignoreRules", [])
             ],
             output=OutputConfig.from_dict(data.get("output", {})),
+            risk_mitigation=RiskMitigationConfig.from_dict(
+                data.get("riskMitigation", {})
+            ),
         )
 
     def load_tokens(self, project_path: Path | None = None) -> TokenSet:

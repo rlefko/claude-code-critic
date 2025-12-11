@@ -1980,6 +1980,364 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 traceback.print_exc()
             sys.exit(1)
 
+    @quality_gates.group("metrics")
+    def metrics():
+        """Metrics tracking and reporting commands."""
+        pass
+
+    @metrics.command("show")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--format",
+        "output_format",
+        type=click.Choice(["cli", "json", "markdown"]),
+        default="cli",
+        help="Output format",
+    )
+    @common_options
+    def show_metrics(project, output_format, verbose, quiet, config):
+        """Display current metrics and target status.
+
+        Shows UI quality metrics including token drift reduction,
+        deduplication progress, suppression rates, and performance.
+
+        Examples:
+            claude-indexer quality-gates metrics show
+            claude-indexer quality-gates metrics show --format json
+        """
+        try:
+            import json as json_module
+            from .ui.config import load_ui_config
+            from .ui.metrics import MetricsAggregator, MetricsCollector
+
+            project_path = Path(project).resolve()
+            ui_config = load_ui_config(project_path)
+            collector = MetricsCollector(project_path, ui_config)
+            report = collector.load()
+            aggregator = MetricsAggregator(report)
+            summary = aggregator.generate_summary()
+
+            if output_format == "json":
+                click.echo(json_module.dumps(summary, indent=2))
+
+            elif output_format == "markdown":
+                click.echo("# UI Quality Metrics Dashboard\n")
+                click.echo("## Token Drift Reduction")
+                colors = summary["token_drift"]["colors"]
+                click.echo(f"- Unique hardcoded colors: {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction)")
+                click.echo(f"- Target: {colors['target']}% reduction | {'ON TRACK' if colors['on_track'] else 'NEEDS WORK'}")
+                click.echo("\n## Deduplication Progress")
+                dedup = summary["deduplication"]
+                click.echo(f"- Current clusters: {dedup['current_clusters']}")
+                click.echo(f"- Resolved this month: {dedup['resolved_this_month']} | Target: {dedup['target']}")
+                click.echo("\n## Quality Indicators")
+                click.echo(f"- Suppression rate: {summary['suppression_rate']['current']}%")
+                click.echo(f"- Plan adoption: {summary['plan_adoption']['current']}%")
+                click.echo("\n## Performance (p95)")
+                for tier_name, tier_key in [("Tier 0", "tier_0"), ("Tier 1", "tier_1"), ("Tier 2", "tier_2")]:
+                    perf = summary["performance"][tier_key]
+                    p95 = perf.get("p95_ms", 0)
+                    target = perf.get("target_p95_ms", 0)
+                    on_track = perf.get("on_track", True)
+                    click.echo(f"- {tier_name}: {p95:.0f}ms | Target: <{target}ms | {'ON TRACK' if on_track else 'NEEDS WORK'}")
+
+            else:  # cli format
+                click.echo("\nUI Quality Metrics Dashboard")
+                click.echo("=" * 40)
+                click.echo()
+
+                # Token Drift
+                click.echo("Token Drift Reduction")
+                colors = summary["token_drift"]["colors"]
+                status = "✅" if colors["on_track"] else "⚠️"
+                click.echo(f"  Unique hardcoded colors:  {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction) {status}")
+                click.echo(f"  [TARGET: {colors['target']}%]")
+                click.echo()
+
+                # Deduplication
+                click.echo("Deduplication Progress")
+                dedup = summary["deduplication"]
+                status = "✅" if dedup["on_track"] else "⚠️"
+                click.echo(f"  Duplicate clusters:       {dedup['current_clusters']} remaining")
+                click.echo(f"  Resolved this month:      {dedup['resolved_this_month']} [TARGET: {dedup['target']}] {status}")
+                click.echo()
+
+                # Quality Indicators
+                click.echo("Quality Indicators")
+                supp = summary["suppression_rate"]
+                status = "✅" if supp["on_track"] else "⚠️"
+                click.echo(f"  Suppression rate:         {supp['current']}% [TARGET: <{supp['target_max']}%] {status}")
+                adopt = summary["plan_adoption"]
+                status = "✅" if adopt["on_track"] else "⚠️"
+                click.echo(f"  /redesign plan adoption:  {adopt['current']}% [TARGET: >{adopt['target_min']}%] {status}")
+                click.echo()
+
+                # Performance
+                click.echo("Performance (p95)")
+                tier_names = [
+                    ("Tier 0 (pre-commit)", "tier_0"),
+                    ("Tier 1 (CI audit)", "tier_1"),
+                    ("Tier 2 (/redesign)", "tier_2"),
+                ]
+                for name, key in tier_names:
+                    perf = summary["performance"][key]
+                    p95 = perf.get("p95_ms", 0)
+                    target = perf.get("target_p95_ms", 0)
+                    on_track = perf.get("on_track", True)
+                    status = "✅" if on_track else "⚠️"
+                    if p95 >= 60000:
+                        p95_str = f"{p95 / 60000:.1f}min"
+                    else:
+                        p95_str = f"{p95:.0f}ms"
+                    if target >= 60000:
+                        target_str = f"<{target / 60000:.0f}min"
+                    else:
+                        target_str = f"<{target}ms"
+                    click.echo(f"  {name:20}  {p95_str:>8} [TARGET: {target_str}] {status}")
+                click.echo()
+
+                # Overall status
+                all_on_track = all([
+                    colors["on_track"],
+                    dedup["on_track"],
+                    supp["on_track"],
+                    adopt["on_track"],
+                ] + [summary["performance"][t]["on_track"] for t in ["tier_0", "tier_1", "tier_2"]])
+
+                if all_on_track:
+                    click.echo("✅ All targets ON TRACK")
+                else:
+                    click.echo("⚠️  Some targets need attention")
+
+        except ImportError as e:
+            click.echo(f"❌ UI metrics module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
+    @metrics.command("history")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--days",
+        "-d",
+        type=int,
+        default=30,
+        help="Number of days to show",
+    )
+    @click.option(
+        "--metric",
+        "-m",
+        type=click.Choice([
+            "colors", "spacings", "clusters", "suppression",
+            "tier0_time", "tier1_time", "tier2_time", "findings"
+        ]),
+        default="colors",
+        help="Metric to show trend for",
+    )
+    @click.option(
+        "--format",
+        "output_format",
+        type=click.Choice(["cli", "json", "csv"]),
+        default="cli",
+        help="Output format",
+    )
+    @common_options
+    def history_metrics(project, days, metric, output_format, verbose, quiet, config):
+        """Show metrics history and trends.
+
+        Examples:
+            claude-indexer quality-gates metrics history --days 90
+            claude-indexer quality-gates metrics history --metric colors --format csv
+        """
+        try:
+            import json as json_module
+            from .ui.config import load_ui_config
+            from .ui.metrics import MetricsAggregator, MetricsCollector
+
+            project_path = Path(project).resolve()
+            ui_config = load_ui_config(project_path)
+            collector = MetricsCollector(project_path, ui_config)
+            report = collector.load()
+            aggregator = MetricsAggregator(report)
+
+            trend_data = aggregator.get_trend_data(metric, days)
+
+            if output_format == "json":
+                click.echo(json_module.dumps(trend_data, indent=2))
+
+            elif output_format == "csv":
+                click.echo("timestamp,value")
+                for point in trend_data:
+                    click.echo(f"{point['timestamp']},{point['value']}")
+
+            else:  # cli format
+                if not trend_data:
+                    click.echo(f"No data for metric '{metric}' in the last {days} days")
+                    return
+
+                click.echo(f"\nTrend for '{metric}' (last {days} days)")
+                click.echo("-" * 40)
+                for point in trend_data[-20:]:  # Show last 20 points
+                    ts = point["timestamp"][:10]  # Date only
+                    value = point["value"]
+                    click.echo(f"  {ts}  {value}")
+
+                if len(trend_data) > 20:
+                    click.echo(f"  ... ({len(trend_data) - 20} more entries)")
+
+        except ImportError as e:
+            click.echo(f"❌ UI metrics module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
+    @metrics.command("export")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--output",
+        "-o",
+        type=click.Path(),
+        required=True,
+        help="Output file path",
+    )
+    @click.option(
+        "--format",
+        "output_format",
+        type=click.Choice(["json", "csv", "prometheus"]),
+        default="json",
+        help="Export format",
+    )
+    @click.option(
+        "--days",
+        "-d",
+        type=int,
+        default=30,
+        help="Number of days to export (for CSV)",
+    )
+    @common_options
+    def export_metrics(project, output, output_format, days, verbose, quiet, config):
+        """Export metrics for CI dashboards.
+
+        Examples:
+            claude-indexer quality-gates metrics export -o metrics.json
+            claude-indexer quality-gates metrics export -o metrics.txt --format prometheus
+        """
+        try:
+            import json as json_module
+            from .ui.config import load_ui_config
+            from .ui.metrics import MetricsAggregator, MetricsCollector
+
+            project_path = Path(project).resolve()
+            ui_config = load_ui_config(project_path)
+            collector = MetricsCollector(project_path, ui_config)
+            report = collector.load()
+            aggregator = MetricsAggregator(report)
+
+            output_path = Path(output)
+
+            if output_format == "json":
+                summary = aggregator.generate_summary()
+                summary["report"] = report.to_dict()
+                output_path.write_text(json_module.dumps(summary, indent=2))
+
+            elif output_format == "csv":
+                header = aggregator.export_csv_header()
+                rows = aggregator.export_csv_rows(days)
+                content = header + "\n" + "\n".join(rows)
+                output_path.write_text(content)
+
+            elif output_format == "prometheus":
+                content = aggregator.export_prometheus()
+                output_path.write_text(content)
+
+            if not quiet:
+                click.echo(f"✅ Exported metrics to {output_path}")
+
+        except ImportError as e:
+            click.echo(f"❌ UI metrics module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
+    @metrics.command("reset")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--confirm",
+        is_flag=True,
+        help="Confirm reset without prompting",
+    )
+    @common_options
+    def reset_metrics(project, confirm, verbose, quiet, config):
+        """Reset metrics history (start fresh baseline).
+
+        This clears all historical metrics data. Use with caution.
+
+        Examples:
+            claude-indexer quality-gates metrics reset --confirm
+        """
+        try:
+            from .ui.config import load_ui_config
+            from .ui.metrics import MetricsCollector
+
+            project_path = Path(project).resolve()
+            ui_config = load_ui_config(project_path)
+            collector = MetricsCollector(project_path, ui_config)
+
+            if not confirm:
+                if not click.confirm("Are you sure you want to reset all metrics history?"):
+                    click.echo("Aborted")
+                    return
+
+            collector.reset()
+            if not quiet:
+                click.echo("✅ Metrics history reset")
+
+        except ImportError as e:
+            click.echo(f"❌ UI metrics module not available: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
     # End of Click-available conditional block
 
 if __name__ == "__main__":

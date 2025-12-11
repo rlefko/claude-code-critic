@@ -40,6 +40,7 @@ class CIAuditConfig:
     update_baseline: bool = False  # Only on merge to main
     fail_on_new_issues: bool = True
     include_baseline_in_output: bool = True
+    record_metrics: bool = True  # Auto-record metrics after audit
 
 
 @dataclass
@@ -273,7 +274,7 @@ class CIAuditRunner:
 
         analysis_time_ms = (time.time() - start_time) * 1000
 
-        return CIAuditResult(
+        result = CIAuditResult(
             new_findings=new_findings,
             baseline_findings=baseline_findings,
             cross_file_clusters=cross_file_result,
@@ -283,6 +284,20 @@ class CIAuditRunner:
             cache_hit_rate=self.cache_manager.hit_rate,
             tier=1,
         )
+
+        # Auto-record metrics if enabled
+        if self.audit_config.record_metrics:
+            try:
+                from ..metrics import MetricsCollector
+
+                collector = MetricsCollector(self.project_path, self.config)
+                collector.record_audit_run(result, tier=1)
+                collector.save()
+            except Exception:
+                # Don't fail audit if metrics recording fails
+                pass
+
+        return result
 
     def run_incremental(self, changed_files: list[Path] | None = None) -> CIAuditResult:
         """Run audit only on changed files with cross-file context.
@@ -331,13 +346,27 @@ class CIAuditRunner:
 
         analysis_time_ms = (time.time() - start_time) * 1000
 
-        return CIAuditResult(
+        result = CIAuditResult(
             new_findings=new_findings,
             baseline_findings=baseline_findings,
             analysis_time_ms=analysis_time_ms,
             files_analyzed=len(ui_changed_files),
             cache_hit_rate=self.cache_manager.hit_rate,
         )
+
+        # Auto-record metrics if enabled
+        if self.audit_config.record_metrics:
+            try:
+                from ..metrics import MetricsCollector
+
+                collector = MetricsCollector(self.project_path, self.config)
+                collector.record_audit_run(result, tier=0)  # Incremental = Tier 0
+                collector.save()
+            except Exception:
+                # Don't fail audit if metrics recording fails
+                pass
+
+        return result
 
     def _collect_ui_files(self) -> list[Path]:
         """Collect all UI files in the project.
