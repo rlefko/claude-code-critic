@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "failOnSeverity": "HIGH",
+  "continueOnError": true,
+  "performance": {
+    "fastRuleTimeoutMs": 50.0,
+    "totalTimeoutMs": 5000.0
+  },
+  "categories": {
+    "security": {"enabled": true, "defaultSeverity": "HIGH"},
+    "tech_debt": {"enabled": true, "defaultSeverity": "MEDIUM"},
+    "resilience": {"enabled": true, "defaultSeverity": "MEDIUM"},
+    "documentation": {"enabled": true, "defaultSeverity": "LOW"},
+    "git": {"enabled": true, "defaultSeverity": "CRITICAL"}
+  },
+  "rules": {
+    "TECH_DEBT.MAGIC_NUMBERS": {"enabled": false},
+    "DOCUMENTATION.MISSING_DOCSTRING": {
+      "enabled": true,
+      "parameters": {"minComplexity": 5}
+    }
+  }
+}

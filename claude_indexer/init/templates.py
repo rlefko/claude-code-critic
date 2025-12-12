@@ -5,7 +5,7 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..indexer_logging import get_logger
 from .types import ProjectType
@@ -14,10 +14,27 @@ logger = get_logger()
 
 
 class TemplateManager:
-    """Load and process templates with variable substitution."""
+    """Load and process templates with variable substitution.
+
+    Supports project-type-specific templates with fallback to root templates.
+    Resolution order:
+    1. templates/{project_type}/{template_name}
+    2. templates/{template_name} (root fallback)
+    """
 
     # Templates directory relative to this file
     TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
+
+    # Map project types to template directories
+    TYPE_DIR_MAP: Dict[ProjectType, str] = {
+        ProjectType.PYTHON: "python",
+        ProjectType.JAVASCRIPT: "javascript",
+        ProjectType.TYPESCRIPT: "typescript",
+        ProjectType.REACT: "react",
+        ProjectType.NEXTJS: "react",  # Share with React
+        ProjectType.VUE: "react",  # Share with React
+        ProjectType.GENERIC: "generic",
+    }
 
     def __init__(
         self,
@@ -62,8 +79,44 @@ class TemplateManager:
         # Fallback to system python
         return sys.executable or "python3"
 
+    def _resolve_template_path(self, template_name: str) -> Path:
+        """Resolve template path with project-type fallback.
+
+        Resolution order:
+        1. templates/{project_type}/{template_name}
+        2. templates/{template_name} (root fallback)
+
+        Args:
+            template_name: Name of template file (e.g., '.claudeignore.template')
+
+        Returns:
+            Path to template file (may not exist).
+        """
+        type_dir = self.TYPE_DIR_MAP.get(self.project_type, "generic")
+
+        # Try project-type-specific path first
+        specific_path = self.TEMPLATES_DIR / type_dir / template_name
+        if specific_path.exists():
+            logger.debug(
+                f"Using project-type template: {specific_path} "
+                f"(type={self.project_type.value})"
+            )
+            return specific_path
+
+        # Fall back to root templates
+        root_path = self.TEMPLATES_DIR / template_name
+        logger.debug(
+            f"Using root template: {root_path} "
+            f"(no {type_dir}/{template_name} found)"
+        )
+        return root_path
+
     def load_template(self, template_name: str) -> Optional[str]:
-        """Load template file content.
+        """Load template file content with project-type awareness.
+
+        Resolution order:
+        1. templates/{project_type}/{template_name}
+        2. templates/{template_name} (root fallback)
 
         Args:
             template_name: Name of template file (e.g., '.claudeignore.template')
@@ -71,9 +124,9 @@ class TemplateManager:
         Returns:
             Template content or None if not found.
         """
-        template_path = self.TEMPLATES_DIR / template_name
+        template_path = self._resolve_template_path(template_name)
         if not template_path.exists():
-            logger.warning(f"Template not found: {template_path}")
+            logger.warning(f"Template not found: {template_name} (tried {template_path})")
             return None
 
         try:
@@ -123,6 +176,8 @@ class TemplateManager:
     ) -> bool:
         """Copy a template to the destination with optional variable substitution.
 
+        Uses project-type-aware template resolution.
+
         Args:
             template_name: Name of template file.
             destination: Destination path for the output file.
@@ -145,9 +200,10 @@ class TemplateManager:
                 logger.error(f"Failed to write to {destination}: {e}")
                 return False
         else:
-            # Direct copy without processing
-            source = self.TEMPLATES_DIR / template_name
+            # Direct copy without processing (uses project-type resolution)
+            source = self._resolve_template_path(template_name)
             if not source.exists():
+                logger.warning(f"Template not found for copy: {template_name}")
                 return False
             try:
                 destination.parent.mkdir(parents=True, exist_ok=True)
@@ -162,13 +218,37 @@ class TemplateManager:
         self.variables[key] = str(value)
 
     @classmethod
-    def get_available_templates(cls) -> list[str]:
-        """Get list of available template files."""
-        if not cls.TEMPLATES_DIR.exists():
-            return []
+    def get_available_templates(
+        cls, project_type: Optional[ProjectType] = None
+    ) -> Dict[str, List[str]]:
+        """Get available templates organized by location.
 
-        return [
+        Args:
+            project_type: Optional project type to filter by.
+
+        Returns:
+            Dictionary with 'root' key for root templates and
+            project-type keys for type-specific templates.
+        """
+        result: Dict[str, List[str]] = {"root": []}
+
+        if not cls.TEMPLATES_DIR.exists():
+            return result
+
+        # Root templates
+        result["root"] = [
             f.name
             for f in cls.TEMPLATES_DIR.iterdir()
             if f.is_file() and f.suffix == ".template"
         ]
+
+        # Project-type templates (subdirectories)
+        for subdir in cls.TEMPLATES_DIR.iterdir():
+            if subdir.is_dir() and not subdir.name.startswith("."):
+                result[subdir.name] = [
+                    f.name
+                    for f in subdir.iterdir()
+                    if f.is_file() and f.suffix == ".template"
+                ]
+
+        return result

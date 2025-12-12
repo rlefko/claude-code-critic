@@ -1,0 +1,37 @@
+{
+  "enabled": true,
+  "failOnSeverity": "HIGH",
+  "continueOnError": true,
+  "performance": {
+    "fastRuleTimeoutMs": 50.0,
+    "totalTimeoutMs": 5000.0
+  },
+  "categories": {
+    "security": {"enabled": true, "defaultSeverity": "HIGH"},
+    "tech_debt": {"enabled": true, "defaultSeverity": "MEDIUM"},
+    "resilience": {"enabled": true, "defaultSeverity": "MEDIUM"},
+    "documentation": {"enabled": true, "defaultSeverity": "LOW"},
+    "git": {"enabled": true, "defaultSeverity": "CRITICAL"}
+  },
+  "rules": {
+    "SECURITY.SQL_INJECTION": {"enabled": true, "severity": "HIGH"},
+    "SECURITY.HARDCODED_SECRET": {"enabled": true, "severity": "CRITICAL"},
+    "SECURITY.INSECURE_DESERIALIZATION": {"enabled": true, "severity": "HIGH"},
+    "SECURITY.COMMAND_INJECTION": {"enabled": true, "severity": "HIGH"},
+    "SECURITY.PATH_TRAVERSAL": {"enabled": true, "severity": "HIGH"},
+    "TECH_DEBT.TODO_MARKERS": {"enabled": true, "severity": "LOW"},
+    "TECH_DEBT.DEBUG_STATEMENTS": {"enabled": true, "severity": "LOW"},
+    "TECH_DEBT.COMMENTED_CODE": {"enabled": true, "severity": "LOW"},
+    "TECH_DEBT.COMPLEXITY": {"enabled": true, "parameters": {"maxComplexity": 10}},
+    "TECH_DEBT.MAGIC_NUMBERS": {"enabled": false},
+    "RESILIENCE.SWALLOWED_EXCEPTIONS": {"enabled": true, "severity": "MEDIUM"},
+    "RESILIENCE.MISSING_TIMEOUT": {"enabled": true, "severity": "MEDIUM"},
+    "DOCUMENTATION.MISSING_DOCSTRING": {
+      "enabled": true,
+      "severity": "LOW",
+      "parameters": {"minComplexity": 5, "minLines": 10}
+    },
+    "GIT.FORCE_PUSH": {"enabled": true, "severity": "CRITICAL"},
+    "GIT.HARD_RESET": {"enabled": true, "severity": "CRITICAL"}
+  }
+}

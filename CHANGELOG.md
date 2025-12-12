@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.12] - 2024-12-11
+
+### Added
+- **Project Templates (Milestone 4.3)** - Project-type-specific templates for `claude-indexer init`
+  - **Python templates**: `__pycache__/`, `.venv/`, `.pytest_cache/`, deserialization rules
+  - **JavaScript templates**: `node_modules/`, npm logs, XSS and eval detection
+  - **TypeScript templates**: `*.tsbuildinfo`, type safety rules (`@ts-ignore`, `any` type)
+  - **React/Frontend templates**: `.next/`, `.nuxt/`, `.vercel/`, accessibility rules (shared by Next.js, Vue)
+  - **Generic templates**: Minimal fallback patterns for unknown project types
+
+### Enhanced
+- **TemplateManager** - Project-type-aware template resolution with fallback chain
+  - Resolution order: `templates/{project_type}/{template}` → `templates/{template}`
+  - `TYPE_DIR_MAP` maps project types to template directories
+  - Next.js and Vue share React templates (common frontend patterns)
+- **FileGenerator** - Updated to use project-type templates for `.claudeignore` and `guard.config.json`
+  - Shows template type in success messages (e.g., "Created ... (python template)")
+  - Graceful fallback to root templates or programmatic generation
+
+### Testing
+- 30 new unit tests for project-type template resolution and file generation
+- Tests verify language-specific patterns in generated files
+- All 63 init module tests passing
+
+---
+
 ## [2.8.0] - 2024-12-08
 
 ### Added

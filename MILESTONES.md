@@ -27,7 +27,7 @@
 ### Vision
 Create a "magical" developer experience where Claude Code acts as an expert pair-programmer with persistent memory and automatic quality enforcement. The system catches issues before they enter the codebase while remaining invisible during normal development.
 
-### Current State (85-95% Complete)
+### Current State (90-95% Complete)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | CLI Infrastructure | ✅ Complete | `claude-indexer` with 20+ commands |
@@ -48,6 +48,7 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **Claude Self-Repair Loop** | ✅ Complete | Retry tracking, escalation, fix suggestions (v2.9.9) |
 | **One-Command Init** | ✅ Complete | Full `claude-indexer init` with all components (v2.9.10) |
 | **Dependency Verification** | ✅ Complete | `claude-indexer doctor` with 8 checks, suggestions (v2.9.11) |
+| **Project Templates** | ✅ Complete | 5 project-type templates with fallback (v2.9.12) |
 | All 27 Rules | ✅ Complete | 27+ rules implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
 
@@ -1076,43 +1077,63 @@ Output:
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 4.3.1 | Create Python project template | HIGH | NEW |
-| 4.3.2 | Create JavaScript/Node.js template | HIGH | NEW |
-| 4.3.3 | Create TypeScript template | HIGH | NEW |
-| 4.3.4 | Create React/Next.js template | MEDIUM | NEW |
-| 4.3.5 | Create generic template (fallback) | MEDIUM | NEW |
-| 4.3.6 | Add template customization options | LOW | NEW |
+| 4.3.1 | Create Python project template | HIGH | DONE |
+| 4.3.2 | Create JavaScript/Node.js template | HIGH | DONE |
+| 4.3.3 | Create TypeScript template | HIGH | DONE |
+| 4.3.4 | Create React/Next.js template | MEDIUM | DONE |
+| 4.3.5 | Create generic template (fallback) | MEDIUM | DONE |
+| 4.3.6 | Add template customization options | LOW | DONE |
 
 **Template Contents**:
 ```
 templates/
 ├── python/
-│   ├── .claudeignore
-│   ├── guard.config.json
-│   └── settings.json
+│   ├── .claudeignore.template
+│   └── guard.config.json.template
 ├── javascript/
-│   ├── .claudeignore
-│   ├── guard.config.json
-│   └── settings.json
+│   ├── .claudeignore.template
+│   └── guard.config.json.template
 ├── typescript/
-│   └── ...
+│   ├── .claudeignore.template
+│   └── guard.config.json.template
+├── react/                             # Shared by React, Next.js, Vue
+│   ├── .claudeignore.template
+│   └── guard.config.json.template
 └── generic/
-    └── ...
+    ├── .claudeignore.template
+    └── guard.config.json.template
 ```
 
 **Testing Requirements**:
-- [ ] Test each template generates valid config
-- [ ] Test template selection logic
-- [ ] Test customization options
+- [x] Test each template generates valid config
+- [x] Test template selection logic
+- [x] Test customization options
 
 **Documentation**:
-- [ ] Template contents documentation
-- [ ] Customization guide
+- [x] Template contents documentation
+- [x] Customization guide
 
 **Success Criteria**:
-- Appropriate defaults for each project type
-- Easy to customize
-- All templates validated
+- [x] Appropriate defaults for each project type
+- [x] Easy to customize
+- [x] All templates validated
+
+**Implementation Notes (v2.9.12)**:
+- Enhanced `TemplateManager` in `claude_indexer/init/templates.py`:
+  - Added `TYPE_DIR_MAP` for project-type to template directory mapping
+  - Added `_resolve_template_path()` method for project-type-aware resolution
+  - Resolution order: `templates/{project_type}/{template}` → `templates/{template}`
+  - Next.js and Vue share React templates (frontend patterns)
+- Updated `FileGenerator` in `claude_indexer/init/generators.py`:
+  - `generate_claudeignore()` now uses project-type templates
+  - `generate_guard_config()` now uses project-type templates with fallback
+- Created 5 template subdirectories with language-specific patterns:
+  - Python: `__pycache__`, `.venv`, `.pytest_cache`, deserialization rules
+  - JavaScript: `node_modules`, npm logs, XSS rules
+  - TypeScript: `tsbuildinfo`, type safety rules (`@ts-ignore`, `any`)
+  - React: `.next`, `.nuxt`, `.vercel`, accessibility rules
+  - Generic: Minimal patterns for unknown project types
+- Unit tests: 30 tests in `tests/unit/init/test_generators.py` (all passing)
 
 ---
 

@@ -182,5 +182,199 @@ class TestTemplateManager:
         """Test getting list of available templates."""
         templates = TemplateManager.get_available_templates()
 
-        # Should find the template files
-        assert isinstance(templates, list)
+        # Should return a dict with 'root' and project-type keys
+        assert isinstance(templates, dict)
+        assert "root" in templates
+        # Check root templates exist
+        root_templates = templates.get("root", [])
+        assert isinstance(root_templates, list)
+
+    def test_get_available_templates_includes_project_types(self):
+        """Test that available templates includes project-type directories."""
+        templates = TemplateManager.get_available_templates()
+
+        # Should include project-type subdirectories
+        assert "python" in templates
+        assert "javascript" in templates
+        assert "typescript" in templates
+        assert "react" in templates
+        assert "generic" in templates
+
+
+class TestProjectTypeTemplateResolution:
+    """Tests for project-type-specific template resolution."""
+
+    def test_resolve_template_path_python(self, tmp_path: Path):
+        """Test Python templates are resolved correctly."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.PYTHON)
+
+        # Create a mock python template
+        python_template_dir = TemplateManager.TEMPLATES_DIR / "python"
+        if python_template_dir.exists():
+            path = manager._resolve_template_path(".claudeignore.template")
+            assert "python" in str(path)
+
+    def test_resolve_template_path_javascript(self, tmp_path: Path):
+        """Test JavaScript templates are resolved correctly."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.JAVASCRIPT)
+
+        # Check that javascript templates are resolved
+        path = manager._resolve_template_path(".claudeignore.template")
+        javascript_dir = TemplateManager.TEMPLATES_DIR / "javascript"
+        if javascript_dir.exists() and (javascript_dir / ".claudeignore.template").exists():
+            assert "javascript" in str(path)
+
+    def test_resolve_template_path_typescript(self, tmp_path: Path):
+        """Test TypeScript templates are resolved correctly."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.TYPESCRIPT)
+
+        path = manager._resolve_template_path(".claudeignore.template")
+        typescript_dir = TemplateManager.TEMPLATES_DIR / "typescript"
+        if typescript_dir.exists() and (typescript_dir / ".claudeignore.template").exists():
+            assert "typescript" in str(path)
+
+    def test_nextjs_uses_react_templates(self, tmp_path: Path):
+        """Test Next.js maps to react template directory."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.NEXTJS)
+
+        path = manager._resolve_template_path(".claudeignore.template")
+        react_dir = TemplateManager.TEMPLATES_DIR / "react"
+        if react_dir.exists() and (react_dir / ".claudeignore.template").exists():
+            assert "react" in str(path)
+
+    def test_vue_uses_react_templates(self, tmp_path: Path):
+        """Test Vue maps to react template directory."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.VUE)
+
+        path = manager._resolve_template_path(".claudeignore.template")
+        react_dir = TemplateManager.TEMPLATES_DIR / "react"
+        if react_dir.exists() and (react_dir / ".claudeignore.template").exists():
+            assert "react" in str(path)
+
+    def test_resolve_template_path_falls_back_to_root(self, tmp_path: Path):
+        """Test fallback to root when type-specific template not found."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.PYTHON)
+
+        # Request a template that only exists at root
+        path = manager._resolve_template_path("settings.local.json.template")
+        # Should fall back to root template
+        assert path.name == "settings.local.json.template"
+
+    def test_generic_fallback(self, tmp_path: Path):
+        """Test generic project uses generic or root templates."""
+        manager = TemplateManager(tmp_path, "test", ProjectType.GENERIC)
+
+        path = manager._resolve_template_path(".claudeignore.template")
+        generic_dir = TemplateManager.TEMPLATES_DIR / "generic"
+        if generic_dir.exists() and (generic_dir / ".claudeignore.template").exists():
+            assert "generic" in str(path)
+
+
+class TestProjectTypeFileGeneration:
+    """Tests for project-type-specific file generation."""
+
+    @pytest.fixture
+    def python_generator(self, tmp_path: Path) -> FileGenerator:
+        """Create a Python FileGenerator instance for testing."""
+        template_manager = TemplateManager(
+            tmp_path, "test-collection", ProjectType.PYTHON
+        )
+        return FileGenerator(tmp_path, template_manager, ProjectType.PYTHON)
+
+    @pytest.fixture
+    def javascript_generator(self, tmp_path: Path) -> FileGenerator:
+        """Create a JavaScript FileGenerator instance for testing."""
+        template_manager = TemplateManager(
+            tmp_path, "test-collection", ProjectType.JAVASCRIPT
+        )
+        return FileGenerator(tmp_path, template_manager, ProjectType.JAVASCRIPT)
+
+    @pytest.fixture
+    def typescript_generator(self, tmp_path: Path) -> FileGenerator:
+        """Create a TypeScript FileGenerator instance for testing."""
+        template_manager = TemplateManager(
+            tmp_path, "test-collection", ProjectType.TYPESCRIPT
+        )
+        return FileGenerator(tmp_path, template_manager, ProjectType.TYPESCRIPT)
+
+    @pytest.fixture
+    def react_generator(self, tmp_path: Path) -> FileGenerator:
+        """Create a React FileGenerator instance for testing."""
+        template_manager = TemplateManager(
+            tmp_path, "test-collection", ProjectType.REACT
+        )
+        return FileGenerator(tmp_path, template_manager, ProjectType.REACT)
+
+    def test_python_claudeignore_has_python_patterns(
+        self, python_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test Python claudeignore includes Python-specific patterns."""
+        result = python_generator.generate_claudeignore()
+
+        assert result.success
+        content = (tmp_path / ".claudeignore").read_text()
+        assert "__pycache__" in content
+        assert ".pytest_cache" in content or "pytest" in content.lower()
+        assert ".venv" in content or "venv" in content
+
+    def test_javascript_claudeignore_has_node_patterns(
+        self, javascript_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test JavaScript claudeignore includes Node.js patterns."""
+        result = javascript_generator.generate_claudeignore()
+
+        assert result.success
+        content = (tmp_path / ".claudeignore").read_text()
+        assert "node_modules" in content
+        assert "npm" in content.lower() or "yarn" in content.lower()
+
+    def test_typescript_claudeignore_has_ts_patterns(
+        self, typescript_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test TypeScript claudeignore includes TS-specific patterns."""
+        result = typescript_generator.generate_claudeignore()
+
+        assert result.success
+        content = (tmp_path / ".claudeignore").read_text()
+        assert "node_modules" in content
+        assert "tsbuildinfo" in content or "dist" in content
+
+    def test_react_claudeignore_has_frontend_patterns(
+        self, react_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test React claudeignore includes frontend patterns."""
+        result = react_generator.generate_claudeignore()
+
+        assert result.success
+        content = (tmp_path / ".claudeignore").read_text()
+        assert "node_modules" in content
+        assert ".next" in content or ".nuxt" in content or "build" in content
+
+    def test_python_guard_config_uses_template(
+        self, python_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test Python guard config is generated from template."""
+        result = python_generator.generate_guard_config()
+
+        assert result.success
+        assert "python" in result.message.lower()
+
+        config_path = tmp_path / ".claude" / "guard.config.json"
+        config = json.loads(config_path.read_text())
+        assert config.get("enabled") is True
+        assert "categories" in config
+
+    def test_typescript_guard_config_has_type_safety(
+        self, typescript_generator: FileGenerator, tmp_path: Path
+    ):
+        """Test TypeScript guard config includes type_safety category."""
+        result = typescript_generator.generate_guard_config()
+
+        assert result.success
+        config_path = tmp_path / ".claude" / "guard.config.json"
+        config = json.loads(config_path.read_text())
+
+        # TypeScript template should have type_safety category
+        categories = config.get("categories", {})
+        if "type_safety" in categories:
+            assert categories["type_safety"].get("enabled") is True

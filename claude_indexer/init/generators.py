@@ -38,7 +38,13 @@ class FileGenerator:
         self.project_type = project_type
 
     def generate_claudeignore(self, force: bool = False) -> InitStepResult:
-        """Generate .claudeignore from template."""
+        """Generate .claudeignore from project-type template.
+
+        Resolution order:
+        1. Try project-type-specific template (e.g., templates/python/.claudeignore.template)
+        2. Try root template (templates/.claudeignore.template)
+        3. Fall back to minimal programmatic generation
+        """
         target_path = self.project_path / ".claudeignore"
 
         if target_path.exists() and not force:
@@ -49,18 +55,18 @@ class FileGenerator:
                 message=".claudeignore already exists",
             )
 
-        # Copy from template
+        # Copy from template (uses project-type resolution)
         success = self.template_manager.copy_template(
             ".claudeignore.template",
             target_path,
-            process_variables=False,  # No variables in claudeignore
+            process_variables=True,  # Process variables like {{PROJECT_NAME}}
         )
 
         if success:
             return InitStepResult(
                 step_name="claudeignore",
                 success=True,
-                message=f"Created {target_path}",
+                message=f"Created {target_path} ({self.project_type.value} template)",
             )
         else:
             # Fallback: create minimal claudeignore
@@ -191,7 +197,13 @@ debug/
         }
 
     def generate_guard_config(self, force: bool = False) -> InitStepResult:
-        """Generate .claude/guard.config.json with default rules."""
+        """Generate .claude/guard.config.json from project-type template.
+
+        Resolution order:
+        1. Try project-type-specific template (e.g., templates/python/guard.config.json.template)
+        2. Try root template (templates/guard.config.json.template)
+        3. Fall back to programmatic generation
+        """
         target_dir = self.project_path / ".claude"
         target_path = target_dir / "guard.config.json"
 
@@ -203,6 +215,23 @@ debug/
                 message=".claude/guard.config.json already exists",
             )
 
+        # Try to load from template first (uses project-type resolution)
+        content = self.template_manager.load_and_process("guard.config.json.template")
+
+        if content:
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                with open(target_path, "w") as f:
+                    f.write(content)
+                return InitStepResult(
+                    step_name="guard_config",
+                    success=True,
+                    message=f"Created {target_path} ({self.project_type.value} template)",
+                )
+            except IOError as e:
+                logger.warning(f"Failed to write template: {e}, falling back to default")
+
+        # Fallback: generate programmatically
         try:
             config = self._generate_default_guard_config()
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -212,6 +241,7 @@ debug/
                 step_name="guard_config",
                 success=True,
                 message=f"Created {target_path}",
+                warning="No template found, used default configuration",
             )
         except IOError as e:
             return InitStepResult(
