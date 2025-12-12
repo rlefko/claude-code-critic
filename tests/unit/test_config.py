@@ -273,9 +273,9 @@ class TestConfigLoader:
         assert config.openai_api_key == ""
         assert config.qdrant_url == "http://localhost:6333"
 
-    def test_load_config_with_legacy_file(self, tmp_path):
+    def test_load_config_with_legacy_file(self, isolated_config):
         """Test loading config with legacy settings file."""
-        settings_file = tmp_path / "settings.txt"
+        settings_file = isolated_config / "settings.txt"
         settings_content = """openai_api_key=sk-legacy123
 qdrant_url=https://legacy.qdrant.com
 batch_size=75

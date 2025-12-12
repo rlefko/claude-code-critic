@@ -220,14 +220,12 @@ class TestIndexCommands:
     @patch("claude_indexer.cli_full.create_store_from_config")
     @patch("claude_indexer.cli_full.load_config")
     def test_index_project_qdrant_connection_error(
-        self, mock_load_config, mock_create_store
+        self, mock_load_config, mock_create_store, mock_config
     ):
         """Test proper error handling when Qdrant is unavailable."""
-        # Load real configuration from settings.txt
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        mock_load_config.return_value = real_config
+        # Use mock config with valid API key to test Qdrant error
+        mock_config.openai_api_key = "sk-test-key-for-qdrant-test"
+        mock_load_config.return_value = mock_config
 
         # Simulate Qdrant connection failure
         mock_create_store.side_effect = ConnectionError("Cannot connect to Qdrant")
