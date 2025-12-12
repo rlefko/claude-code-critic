@@ -676,6 +676,135 @@ else:
         server_name = result.collection_name.replace("-", "_")
         click.echo(f"  2. Use: mcp__{server_name}_memory__search_similar('query')")
 
+    # ========================================
+    # Doctor Command (v2.9.11)
+    # ========================================
+
+    @cli.command()
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        default=None,
+        type=click.Path(exists=True),
+        help="Project directory to check (optional)",
+    )
+    @click.option(
+        "-c",
+        "--collection",
+        help="Collection name to check (optional)",
+    )
+    @click.option(
+        "--json",
+        "json_output",
+        is_flag=True,
+        help="Output results as JSON",
+    )
+    @click.option(
+        "-v",
+        "--verbose",
+        is_flag=True,
+        help="Show detailed information",
+    )
+    def doctor(
+        project_path: str,
+        collection: str,
+        json_output: bool,
+        verbose: bool,
+    ) -> None:
+        """Check system health and dependencies.
+
+        Verifies:
+        - Python version (3.10+)
+        - Qdrant connectivity
+        - Claude Code CLI availability
+        - API keys configuration
+        - Project initialization status
+
+        Examples:
+            claude-indexer doctor
+            claude-indexer doctor -p /path/to/project -c my-collection
+            claude-indexer doctor --json
+        """
+        from .doctor.manager import DoctorManager
+        from .doctor.types import DoctorOptions
+
+        options = DoctorOptions(
+            project_path=Path(project_path).resolve() if project_path else None,
+            collection_name=collection,
+            verbose=verbose,
+            json_output=json_output,
+        )
+
+        manager = DoctorManager(options)
+        result = manager.run()
+
+        if json_output:
+            _display_doctor_json(result)
+        else:
+            _display_doctor_result(result, verbose)
+
+        # Exit codes: 0=pass, 1=warnings only, 2=failures
+        if result.failures > 0:
+            sys.exit(2)
+        elif result.warnings > 0:
+            sys.exit(1)
+        sys.exit(0)
+
+    def _display_doctor_result(result, verbose: bool) -> None:
+        """Display doctor results with colors and formatting."""
+        from .doctor.types import CheckCategory, CheckStatus
+
+        click.echo()
+        click.echo(click.style("System Health Check", bold=True))
+        click.echo("=" * 40)
+
+        # Group checks by category
+        for category in CheckCategory:
+            category_checks = [c for c in result.checks if c.category == category]
+            if not category_checks:
+                continue
+
+            click.echo()
+            click.echo(click.style(f"{category.value}:", bold=True))
+
+            for check in category_checks:
+                icon_map = {
+                    CheckStatus.PASS: click.style("✓", fg="green"),
+                    CheckStatus.WARN: click.style("⚠", fg="yellow"),
+                    CheckStatus.FAIL: click.style("✗", fg="red"),
+                    CheckStatus.SKIP: click.style("○", fg="cyan"),
+                }
+                icon = icon_map.get(check.status, "?")
+                click.echo(f"  {icon} {check.message}")
+
+                if check.suggestion and check.status in (CheckStatus.WARN, CheckStatus.FAIL):
+                    click.echo(click.style(f"      → {check.suggestion}", fg="cyan"))
+
+                if verbose and check.details:
+                    for key, value in check.details.items():
+                        click.echo(click.style(f"        {key}: {value}", fg="white", dim=True))
+
+        # Summary
+        click.echo()
+        summary_parts = []
+        if result.passed > 0:
+            summary_parts.append(click.style(f"{result.passed} passed", fg="green"))
+        if result.warnings > 0:
+            summary_parts.append(click.style(f"{result.warnings} warnings", fg="yellow"))
+        if result.failures > 0:
+            summary_parts.append(click.style(f"{result.failures} errors", fg="red"))
+        if result.skipped > 0:
+            summary_parts.append(click.style(f"{result.skipped} skipped", fg="cyan"))
+
+        click.echo(f"Summary: {', '.join(summary_parts)}")
+
+    def _display_doctor_json(result) -> None:
+        """Display doctor results as JSON."""
+        import json as json_module
+
+        click.echo(json_module.dumps(result.to_dict(), indent=2))
+
     @cli.command()
     @click.option(
         "-p",
