@@ -51,8 +51,9 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **Project Templates** | ✅ Complete | 5 project-type templates with fallback (v2.9.12) |
 | **SessionStart Hook** | ✅ Complete | Health checks, index freshness, welcome message (v2.9.13) |
 | **Collection Isolation** | ✅ Complete | Multi-tenancy naming, CLI management, cleanup (v2.9.14) |
+| **Session Isolation** | ✅ Complete | Session-scoped config, CWD detection, file locking (v2.9.15) |
 | All 27 Rules | ✅ Complete | 27+ rules implemented |
-| Multi-Repo Isolation | 🔄 Partial | Collection isolation done, session/workspace pending |
+| Multi-Repo Isolation | 🔄 Partial | Collection + session isolation done, workspace pending |
 
 ### Success Metrics (from PRD)
 - **Critical Issues Blocked**: >95% of serious issues caught before commit
@@ -1230,11 +1231,11 @@ Where:
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 5.2.1 | Implement session-scoped configuration | HIGH | NEW |
-| 5.2.2 | Add project detection from CWD | HIGH | PARTIAL |
-| 5.2.3 | Implement lock file for concurrent access | MEDIUM | NEW |
-| 5.2.4 | Add session ID tracking | MEDIUM | NEW |
-| 5.2.5 | Implement graceful handling of conflicts | MEDIUM | NEW |
+| 5.2.1 | Implement session-scoped configuration | HIGH | DONE |
+| 5.2.2 | Add project detection from CWD | HIGH | DONE |
+| 5.2.3 | Implement lock file for concurrent access | MEDIUM | DONE |
+| 5.2.4 | Add session ID tracking | MEDIUM | DONE |
+| 5.2.5 | Implement graceful handling of conflicts | MEDIUM | DONE |
 
 **Session Isolation Architecture**:
 ```
@@ -1252,18 +1253,37 @@ Session A (Project X)          Session B (Project Y)
 ```
 
 **Testing Requirements**:
-- [ ] Test two concurrent sessions
-- [ ] Test rapid session switching
-- [ ] Test conflict detection
+- [x] Test two concurrent sessions
+- [x] Test rapid session switching
+- [x] Test conflict detection
 
 **Documentation**:
-- [ ] Multi-session usage guide
-- [ ] Troubleshooting conflicts
+- [x] Multi-session usage guide
+- [x] Troubleshooting conflicts
 
 **Success Criteria**:
 - Concurrent sessions work correctly
 - Clear error on conflicts
 - Performance unaffected
+
+**Implementation Notes (v2.9.15)**:
+- Created `claude_indexer/session/` package with modular components:
+  - `__init__.py`: Package exports (SessionContext, SessionManager, LockManager, etc.)
+  - `detector.py`: ProjectRootDetector for CWD-based project root detection
+  - `context.py`: SessionContext dataclass with session state tracking
+  - `lock.py`: LockManager using fcntl.flock() for file-based locking
+  - `manager.py`: SessionManager orchestrator for session lifecycle
+- Session ID format: `{hostname}_{timestamp}_{random}` (e.g., "mbp_1702401234_a3f2")
+- Lock file format: JSON with session_id, pid, hostname, acquired_at
+- Session file persistence in `.claude-indexer/session.json`
+- TTL-based session expiration (24 hours) with auto-cleanup
+- Integrated SessionManager into `session_start.py` for welcome message
+- Added `session` CLI command group with 3 subcommands:
+  - `session info`: Show current session information
+  - `session clear`: Clear session state for a project
+  - `session list`: List all known sessions
+- Unit tests: 70 tests in `tests/unit/session/` (all passing)
+- LockConflictError exception for graceful conflict handling
 
 ---
 

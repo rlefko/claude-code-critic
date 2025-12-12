@@ -21,6 +21,7 @@ from typing import Any, Optional
 from ..config.config_loader import ConfigLoader
 from ..doctor.checkers import check_collection_exists, check_qdrant_connection
 from ..doctor.types import CheckResult, CheckStatus
+from ..session.manager import SessionManager
 
 
 @dataclass
@@ -51,6 +52,10 @@ class IndexFreshnessResult:
 @dataclass
 class SessionStartResult:
     """Result of session start checks."""
+
+    # Session context (Milestone 5.2)
+    session_id: Optional[str] = None
+    project_path: Optional[str] = None
 
     # Health checks
     qdrant_status: CheckStatus = CheckStatus.SKIP
@@ -86,6 +91,10 @@ class SessionStartResult:
         status = "warn" if self.has_warnings() else "ok"
         return {
             "status": status,
+            "session": {
+                "session_id": self.session_id,
+                "project_path": self.project_path,
+            },
             "qdrant": {
                 "status": self.qdrant_status.value,
                 "message": self.qdrant_message,
@@ -114,6 +123,11 @@ class SessionStartResult:
     def format_welcome_message(self, collection_name: str) -> str:
         """Format human-readable welcome message with status indicators."""
         lines = ["", "=== Claude Code Memory - Session Start ===", ""]
+
+        # Session info (Milestone 5.2)
+        if self.session_id:
+            lines.append(f"Session: {self.session_id}")
+            lines.append("")
 
         # System Health section
         lines.append("System Health:")
@@ -255,6 +269,20 @@ class SessionStartExecutor:
         result = SessionStartResult()
 
         try:
+            # Initialize session (Milestone 5.2)
+            try:
+                session_manager = SessionManager(
+                    project_path=self.project_path,
+                    collection_name=self.collection_name,
+                    config_loader=self.config_loader,
+                )
+                session_context = session_manager.initialize()
+                result.session_id = session_context.session_id
+                result.project_path = str(session_context.project_path)
+            except Exception:
+                # Session initialization is optional - continue without it
+                pass
+
             # Load configuration
             self._load_config()
 
