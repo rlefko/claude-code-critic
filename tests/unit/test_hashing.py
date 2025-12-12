@@ -383,7 +383,7 @@ class TestIncrementalIndexing:
         indexer._update_state(files, "test", full_rebuild=True)
 
         # Get all files (full mode - not incremental)
-        all_files = indexer._find_all_files(include_tests=False)
+        all_files = indexer._find_all_files(_include_tests=False)
 
         # All files should be found in full mode
         assert len(all_files) == 3

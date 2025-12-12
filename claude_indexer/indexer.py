@@ -1800,13 +1800,22 @@ class CoreIndexer:
             if current_hash != previous_hash:
                 changed_files.append(file_path)
 
-        # Find deleted files (still need full scan for deletions)
+        # Find deleted files and new files (still need full scan)
         all_files = self._find_all_files(include_tests)
         all_current_state = self._get_current_state(all_files)
         current_keys = set(all_current_state.keys())
-        previous_keys = set(previous_state.keys())
+        previous_keys = set(
+            k for k in previous_state.keys() if not k.startswith("_")
+        )  # Exclude metadata keys
         deleted_keys = previous_keys - current_keys
         deleted_files.extend(deleted_keys)
+
+        # Also find NEW files (not in previous state)
+        new_keys = current_keys - previous_keys
+        for new_key in new_keys:
+            new_file_path = self.project_path / new_key
+            if new_file_path not in changed_files:  # Avoid duplicates
+                changed_files.append(new_file_path)
 
         return changed_files, deleted_files
 
