@@ -134,10 +134,12 @@ jobs:
 
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-unit
           path: coverage-unit.xml
           retention-days: 7
+          if-no-files-found: ignore
 
   # ============================================
   # Integration Tests (~5 min)
@@ -200,10 +202,12 @@ jobs:
 
       - name: Upload integration test coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-integration
           path: coverage-integration.xml
           retention-days: 7
+          if-no-files-found: ignore
 
   # ============================================
   # E2E Tests (runs after unit tests pass)
@@ -284,12 +288,14 @@ jobs:
 
       - name: Download unit test coverage
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: coverage-unit
           path: coverage-reports/
 
       - name: Download integration test coverage
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: coverage-integration
           path: coverage-reports/
