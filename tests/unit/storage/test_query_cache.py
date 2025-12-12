@@ -86,10 +86,20 @@ class TestQueryResultCache:
         result_with_filter = {"filter": "active"}
 
         cache.set("collection", vector, 10, None, "semantic", result_no_filter)
-        cache.set("collection", vector, 10, {"status": "active"}, "semantic", result_with_filter)
+        cache.set(
+            "collection",
+            vector,
+            10,
+            {"status": "active"},
+            "semantic",
+            result_with_filter,
+        )
 
         assert cache.get("collection", vector, 10, None, "semantic") == result_no_filter
-        assert cache.get("collection", vector, 10, {"status": "active"}, "semantic") == result_with_filter
+        assert (
+            cache.get("collection", vector, 10, {"status": "active"}, "semantic")
+            == result_with_filter
+        )
 
     def test_different_search_modes(self, cache):
         """Test cache keys differ by search mode."""
@@ -223,7 +233,14 @@ class TestQueryResultCache:
         def writer():
             try:
                 for i in range(100):
-                    cache.set(f"thread_coll_{i}", [float(i)] * 10, 10, None, "semantic", f"result_{i}")
+                    cache.set(
+                        f"thread_coll_{i}",
+                        [float(i)] * 10,
+                        10,
+                        None,
+                        "semantic",
+                        f"result_{i}",
+                    )
             except Exception as e:
                 errors.append(e)
 

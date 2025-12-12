@@ -140,8 +140,10 @@ class VoyageEmbedder(TiktokenMixin, RetryableEmbedder):
             self._check_rate_limits(estimated_tokens)
 
             response = self.client.embed(
-                texts=[text], model=self.model, input_type="document",
-                output_dimension=self.model_config["dimensions"]
+                texts=[text],
+                model=self.model,
+                input_type="document",
+                output_dimension=self.model_config["dimensions"],
             )
 
             # Record request for rate limiting
@@ -173,7 +175,9 @@ class VoyageEmbedder(TiktokenMixin, RetryableEmbedder):
                 error=str(e),
             )
 
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Generate embeddings for multiple texts.
 
         Args:
@@ -195,16 +199,18 @@ class VoyageEmbedder(TiktokenMixin, RetryableEmbedder):
         # Optimize batch size based on content type
         # Relations are very short (~20-50 tokens), so we can batch many more
         if item_type == "relation":
-            text_count_limit = 500  # Aggressive batching for relations (80% reduction in API calls)
+            text_count_limit = (
+                500  # Aggressive batching for relations (80% reduction in API calls)
+            )
         else:
             text_count_limit = 100  # Standard batching for entities/implementations
 
         # Import progress bar if available
         try:
             from ..progress_bar import ModernProgressBar
+
             progress_bar = ModernProgressBar(
-                total_items=len(texts),
-                description="Generating embeddings"
+                total_items=len(texts), description="Generating embeddings"
             )
         except ImportError:
             progress_bar = None
@@ -265,8 +271,10 @@ class VoyageEmbedder(TiktokenMixin, RetryableEmbedder):
             self._check_rate_limits(estimated_tokens)
 
             response = self.client.embed(
-                texts=truncated_texts, model=self.model, input_type="document",
-                output_dimension=self.model_config["dimensions"]
+                texts=truncated_texts,
+                model=self.model,
+                input_type="document",
+                output_dimension=self.model_config["dimensions"],
             )
 
             # Record request for rate limiting

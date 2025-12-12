@@ -272,7 +272,9 @@ class ConfigMigration:
         # Validate new config
         validation = validate_config_file(new_config_path)
         if not validation.valid:
-            logger.warning(f"Migration completed but validation found issues:\n{validation}")
+            logger.warning(
+                f"Migration completed but validation found issues:\n{validation}"
+            )
 
         return MigrationResult(
             success=True,
@@ -455,7 +457,10 @@ def analyze_migration(project_path: str) -> dict[str, Any]:
 
 
 def perform_migration(
-    project_path: str, dry_run: bool = False, no_backup: bool = False, force: bool = False
+    project_path: str,
+    dry_run: bool = False,
+    no_backup: bool = False,
+    force: bool = False,
 ) -> dict[str, Any]:
     """Perform configuration migration.
 

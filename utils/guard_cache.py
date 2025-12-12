@@ -190,7 +190,9 @@ class GuardCache:
             max_embeddings: Max embedding entries to cache
             max_analyses: Max analysis entries to cache
         """
-        self.embedding_cache = LRUCache(max_size=max_embeddings, default_ttl=embedding_ttl)
+        self.embedding_cache = LRUCache(
+            max_size=max_embeddings, default_ttl=embedding_ttl
+        )
         self.analysis_cache = LRUCache(max_size=max_analyses, default_ttl=analysis_ttl)
         self._persistence_path: Optional[Path] = None
 
@@ -369,7 +371,9 @@ class GuardCache:
                 remaining_ttl = entry_data["ttl"] - age
 
                 if remaining_ttl > 0:
-                    self.embedding_cache.set(key, entry_data["value"], ttl=remaining_ttl)
+                    self.embedding_cache.set(
+                        key, entry_data["value"], ttl=remaining_ttl
+                    )
 
             # Load analyses
             for key, entry_data in data.get("analyses", {}).items():

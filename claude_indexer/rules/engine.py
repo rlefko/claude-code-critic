@@ -371,13 +371,21 @@ class RuleEngine:
             rules_skipped = original_count - len(rules)
 
         # Determine execution mode
-        use_parallel = parallel if parallel is not None else self.config.performance.parallel_execution
+        use_parallel = (
+            parallel
+            if parallel is not None
+            else self.config.performance.parallel_execution
+        )
 
         # Execute rules (parallel or sequential)
         if use_parallel and len(rules) > 1:
-            findings, errors, rules_executed = self._execute_rules_parallel(rules, context)
+            findings, errors, rules_executed = self._execute_rules_parallel(
+                rules, context
+            )
         else:
-            findings, errors, rules_executed = self._execute_rules_sequential(rules, context)
+            findings, errors, rules_executed = self._execute_rules_sequential(
+                rules, context
+            )
 
         return RuleEngineResult(
             findings=findings,
@@ -478,7 +486,9 @@ class RuleEngine:
                         exception_type="TimeoutError",
                     )
                     errors.append(error)
-                    logger.warning(f"Rule {rule.rule_id} timed out in parallel execution")
+                    logger.warning(
+                        f"Rule {rule.rule_id} timed out in parallel execution"
+                    )
 
                 except Exception as e:
                     error = RuleError(
@@ -502,9 +512,7 @@ class RuleEngine:
         """
         return self.run(context, trigger=Trigger.ON_WRITE)
 
-    def run_category(
-        self, context: RuleContext, category: str
-    ) -> RuleEngineResult:
+    def run_category(self, context: RuleContext, category: str) -> RuleEngineResult:
         """Run all rules in a specific category.
 
         Args:

@@ -32,8 +32,8 @@ class TreeSitterParser(CodeParser):
         try:
             from .observation_extractor import ObservationExtractor
 
-            self._observation_extractor: ObservationExtractor | None = ObservationExtractor(
-                self.config.get("project_path", Path.cwd())
+            self._observation_extractor: ObservationExtractor | None = (
+                ObservationExtractor(self.config.get("project_path", Path.cwd()))
             )
         except Exception:
             self._observation_extractor = None

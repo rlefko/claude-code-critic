@@ -159,7 +159,9 @@ class OpenAIEmbedder(TiktokenMixin, RetryableEmbedder):
                 error=str(e),
             )
 
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Generate embeddings for multiple texts with enhanced token-based batching.
 
         Args:

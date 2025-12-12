@@ -185,6 +185,7 @@ class TestIndexQueue:
 
         # Set modification time to past
         import os
+
         old_time = time.time() - (25 * 3600)  # 25 hours ago
         os.utime(old_file, (old_time, old_time))
 

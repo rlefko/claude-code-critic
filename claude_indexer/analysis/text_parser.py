@@ -298,9 +298,11 @@ class INIParser(CodeParser):
                         observations=[
                             f"INI key: {key}",
                             f"Section: {section_name}",
-                            f"Value: {value[:100]}..."
-                            if len(value) > 100
-                            else f"Value: {value}",
+                            (
+                                f"Value: {value[:100]}..."
+                                if len(value) > 100
+                                else f"Value: {value}"
+                            ),
                             f"File: {file_path.name}",
                         ],
                         file_path=file_path,

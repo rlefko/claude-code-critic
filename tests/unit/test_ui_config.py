@@ -315,8 +315,13 @@ class TestUIQualityConfig:
         assert config.is_rule_ignored("COLOR.NON_TOKEN", "/src/Button.tsx") is True
 
         # Rule is only ignored for certain paths
-        assert config.is_rule_ignored("STYLE.DUPLICATE_SET") is True  # No path = applies
-        assert config.is_rule_ignored("STYLE.DUPLICATE_SET", "tests/Button.test.tsx") is True
+        assert (
+            config.is_rule_ignored("STYLE.DUPLICATE_SET") is True
+        )  # No path = applies
+        assert (
+            config.is_rule_ignored("STYLE.DUPLICATE_SET", "tests/Button.test.tsx")
+            is True
+        )
         assert config.is_rule_ignored("STYLE.DUPLICATE_SET", "src/Button.tsx") is False
 
         # Unknown rule is not ignored

@@ -1,8 +1,9 @@
 """Tests for file generators functionality."""
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.init.generators import FileGenerator
 from claude_indexer.init.templates import TemplateManager
@@ -20,7 +21,9 @@ class TestFileGenerator:
         )
         return FileGenerator(tmp_path, template_manager, ProjectType.PYTHON)
 
-    def test_generate_claudeignore_creates_file(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_claudeignore_creates_file(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claudeignore file creation."""
         result = generator.generate_claudeignore()
 
@@ -29,7 +32,9 @@ class TestFileGenerator:
         content = (tmp_path / ".claudeignore").read_text()
         assert ".env" in content  # Common ignore pattern
 
-    def test_generate_claudeignore_skips_existing(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_claudeignore_skips_existing(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claudeignore is skipped if exists."""
         # Pre-create file
         (tmp_path / ".claudeignore").write_text("# Custom content")
@@ -40,7 +45,9 @@ class TestFileGenerator:
         assert result.skipped
         assert (tmp_path / ".claudeignore").read_text() == "# Custom content"
 
-    def test_generate_claudeignore_force_overwrites(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_claudeignore_force_overwrites(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claudeignore is overwritten with force."""
         # Pre-create file
         (tmp_path / ".claudeignore").write_text("# Custom content")
@@ -51,7 +58,9 @@ class TestFileGenerator:
         assert not result.skipped
         assert (tmp_path / ".claudeignore").read_text() != "# Custom content"
 
-    def test_generate_claude_settings_creates_file(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_claude_settings_creates_file(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claude/settings.local.json creation."""
         result = generator.generate_claude_settings()
 
@@ -62,7 +71,9 @@ class TestFileGenerator:
         settings = json.loads(settings_path.read_text())
         assert "hooks" in settings or "env" in settings
 
-    def test_generate_claude_settings_skips_existing(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_claude_settings_skips_existing(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test settings file is skipped if exists."""
         # Pre-create file
         (tmp_path / ".claude").mkdir()
@@ -73,7 +84,9 @@ class TestFileGenerator:
         assert result.success
         assert result.skipped
 
-    def test_generate_guard_config_creates_file(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_guard_config_creates_file(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claude/guard.config.json creation."""
         result = generator.generate_guard_config()
 
@@ -85,7 +98,9 @@ class TestFileGenerator:
         assert config.get("enabled") is True
         assert "categories" in config
 
-    def test_generate_guard_config_has_default_categories(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_guard_config_has_default_categories(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test guard config has all default categories."""
         generator.generate_guard_config()
 
@@ -98,7 +113,9 @@ class TestFileGenerator:
         assert "resilience" in categories
         assert "documentation" in categories
 
-    def test_generate_project_config_creates_file(self, generator: FileGenerator, tmp_path: Path):
+    def test_generate_project_config_creates_file(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .claude-indexer/config.json creation."""
         result = generator.generate_project_config("test-collection")
 
@@ -106,7 +123,9 @@ class TestFileGenerator:
         config_path = tmp_path / ".claude-indexer" / "config.json"
         assert config_path.exists()
 
-    def test_update_gitignore_adds_entries(self, generator: FileGenerator, tmp_path: Path):
+    def test_update_gitignore_adds_entries(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .gitignore gets Claude entries."""
         # Create empty gitignore
         (tmp_path / ".gitignore").write_text("node_modules/\n")
@@ -118,7 +137,9 @@ class TestFileGenerator:
         assert "# Claude Code Memory" in content
         assert ".claude-indexer/" in content
 
-    def test_update_gitignore_skips_existing_entries(self, generator: FileGenerator, tmp_path: Path):
+    def test_update_gitignore_skips_existing_entries(
+        self, generator: FileGenerator, tmp_path: Path
+    ):
         """Test .gitignore skips if entries exist."""
         # Pre-create with Claude entries
         original = "# Claude Code Memory\n.claude-indexer/\n.mcp.json\n"
@@ -221,7 +242,10 @@ class TestProjectTypeTemplateResolution:
         # Check that javascript templates are resolved
         path = manager._resolve_template_path(".claudeignore.template")
         javascript_dir = TemplateManager.TEMPLATES_DIR / "javascript"
-        if javascript_dir.exists() and (javascript_dir / ".claudeignore.template").exists():
+        if (
+            javascript_dir.exists()
+            and (javascript_dir / ".claudeignore.template").exists()
+        ):
             assert "javascript" in str(path)
 
     def test_resolve_template_path_typescript(self, tmp_path: Path):
@@ -230,7 +254,10 @@ class TestProjectTypeTemplateResolution:
 
         path = manager._resolve_template_path(".claudeignore.template")
         typescript_dir = TemplateManager.TEMPLATES_DIR / "typescript"
-        if typescript_dir.exists() and (typescript_dir / ".claudeignore.template").exists():
+        if (
+            typescript_dir.exists()
+            and (typescript_dir / ".claudeignore.template").exists()
+        ):
             assert "typescript" in str(path)
 
     def test_nextjs_uses_react_templates(self, tmp_path: Path):

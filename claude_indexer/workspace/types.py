@@ -127,9 +127,7 @@ class WorkspaceConfig:
 
         return f"{self.collection_prefix}_{sanitized}_{hash_suffix}"
 
-    def get_effective_collection(
-        self, member: Optional[WorkspaceMember] = None
-    ) -> str:
+    def get_effective_collection(self, member: Optional[WorkspaceMember] = None) -> str:
         """Get collection name for a member or workspace.
 
         For SINGLE strategy, returns the workspace collection.

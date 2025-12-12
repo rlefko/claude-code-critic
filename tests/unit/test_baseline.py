@@ -419,8 +419,12 @@ class TestBaselineManager:
         entries = [
             BaselineEntry("h1", "COLOR.NON_TOKEN", "/a.tsx", 1),
             BaselineEntry(
-                "h2", "COLOR.NON_TOKEN", "/b.tsx", 2,
-                suppressed=True, suppression_reason="Legacy"
+                "h2",
+                "COLOR.NON_TOKEN",
+                "/b.tsx",
+                2,
+                suppressed=True,
+                suppression_reason="Legacy",
             ),
         ]
         baseline = BaselineReport(entries=entries)
@@ -437,7 +441,9 @@ class TestBaselineManager:
             BaselineEntry(f"h{i}", "COLOR.NON_TOKEN", f"/file{i}.tsx", i)
             for i in range(25)  # High count
         ]
-        entries.append(BaselineEntry("hx", "COMPONENT.DUPLICATE_CLUSTER", "/comp.tsx", 1))
+        entries.append(
+            BaselineEntry("hx", "COMPONENT.DUPLICATE_CLUSTER", "/comp.tsx", 1)
+        )
 
         baseline = BaselineReport(entries=entries)
         cleanup_map = manager.generate_cleanup_map(baseline)
@@ -445,7 +451,9 @@ class TestBaselineManager:
         # Items should be sorted by priority
         assert len(cleanup_map.items) >= 2
         # COLOR.NON_TOKEN should be high priority (low effort + high count)
-        color_item = next(i for i in cleanup_map.items if i.rule_id == "COLOR.NON_TOKEN")
+        color_item = next(
+            i for i in cleanup_map.items if i.rule_id == "COLOR.NON_TOKEN"
+        )
         assert color_item.priority <= 2
 
     def test_reset_baseline(self, manager, sample_finding, temp_project):

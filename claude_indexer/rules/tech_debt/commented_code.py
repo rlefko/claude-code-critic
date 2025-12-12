@@ -129,7 +129,9 @@ class CommentedCodeRule(BaseRule):
         min_lines = self.DEFAULT_MIN_CONSECUTIVE_LINES
         if context.config:
             min_lines = context.config.get_rule_parameter(
-                self.rule_id, "min_consecutive_lines", self.DEFAULT_MIN_CONSECUTIVE_LINES
+                self.rule_id,
+                "min_consecutive_lines",
+                self.DEFAULT_MIN_CONSECUTIVE_LINES,
             )
 
         # Skip unsupported languages
@@ -207,9 +209,7 @@ class CommentedCodeRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: "Finding", context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: "Finding", context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to remove commented code block.
 
         Args:

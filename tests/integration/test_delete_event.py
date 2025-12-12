@@ -52,9 +52,9 @@ class TestDeleteEventHandling:
         foo_entities_before = [
             hit for hit in hits if "foo.py" in hit.payload.get("file_path", "")
         ]
-        assert len(foo_entities_before) > 0, (
-            "Should find entities from foo.py initially"
-        )
+        assert (
+            len(foo_entities_before) > 0
+        ), "Should find entities from foo.py initially"
 
         # Delete foo.py
         (temp_repo / "foo.py").unlink()
@@ -65,9 +65,9 @@ class TestDeleteEventHandling:
 
         # Verify cleanup occurred
         final_count = qdrant_store.count(collection_name)
-        assert final_count < initial_count, (
-            "Vector count should decrease after file deletion"
-        )
+        assert (
+            final_count < initial_count
+        ), "Vector count should decrease after file deletion"
 
         # Wait for eventual consistency and verify entities from deleted file are gone
         from tests.conftest import wait_for_eventual_consistency
@@ -104,9 +104,9 @@ class TestDeleteEventHandling:
         consistency_achieved = wait_for_eventual_consistency(
             search_foo_entities, expected_count=0, timeout=15.0, verbose=True
         )
-        assert consistency_achieved, (
-            "Eventual consistency timeout: foo.py entities should be deleted"
-        )
+        assert (
+            consistency_achieved
+        ), "Eventual consistency timeout: foo.py entities should be deleted"
 
     def test_multiple_file_deletion(self, temp_repo, dummy_embedder, qdrant_store):
         """Test cleanup when multiple files are deleted."""
@@ -131,12 +131,14 @@ class TestDeleteEventHandling:
         extra_files = []
         for i in range(3):
             extra_file = temp_repo / f"extra_{i}.py"
-            extra_file.write_text(f'''"""Extra module {i}."""
+            extra_file.write_text(
+                f'''"""Extra module {i}."""
 
 def extra_function_{i}():
     """Extra function {i}."""
     return {i}
-''')
+'''
+            )
             extra_files.append(extra_file)
 
         # Initial indexing
@@ -157,9 +159,9 @@ def extra_function_{i}():
                 timeout=10.0,
                 verbose=True,
             )
-            assert entity_found, (
-                f"extra_function_{i} should be found initially after indexing"
-            )
+            assert (
+                entity_found
+            ), f"extra_function_{i} should be found initially after indexing"
 
         # Delete all extra files
         for extra_file in extra_files:
@@ -170,9 +172,9 @@ def extra_function_{i}():
         assert result2.success
 
         final_count = qdrant_store.count(collection_name)
-        assert final_count < initial_count, (
-            "Count should decrease after multiple deletions"
-        )
+        assert (
+            final_count < initial_count
+        ), "Count should decrease after multiple deletions"
 
         # Wait for eventual consistency and verify all extra functions are gone
         from tests.conftest import wait_for_eventual_consistency
@@ -191,9 +193,9 @@ def extra_function_{i}():
             consistency_achieved = wait_for_eventual_consistency(
                 search_extra_function, expected_count=0, timeout=10.0, verbose=True
             )
-            assert consistency_achieved, (
-                f"Eventual consistency timeout: extra_function_{i} should be deleted"
-            )
+            assert (
+                consistency_achieved
+            ), f"Eventual consistency timeout: extra_function_{i} should be deleted"
 
     def test_directory_deletion_cleanup(self, temp_repo, dummy_embedder, qdrant_store):
         """Test cleanup when an entire directory is deleted."""
@@ -220,7 +222,8 @@ def extra_function_{i}():
 
         for i in range(2):
             sub_file = subdir / f"sub_module_{i}.py"
-            sub_file.write_text(f'''"""Sub module {i}."""
+            sub_file.write_text(
+                f'''"""Sub module {i}."""
 
 class SubClass_{i}:
     """Sub class {i}."""
@@ -228,7 +231,8 @@ class SubClass_{i}:
     def sub_method_{i}(self):
         """Sub method {i}."""
         return "sub_{i}"
-''')
+'''
+            )
 
         # Initial indexing
         result1 = indexer.index_project(collection_name)
@@ -255,9 +259,9 @@ class SubClass_{i}:
         assert result2.success
 
         final_count = qdrant_store.count(collection_name)
-        assert final_count < initial_count, (
-            "Count should decrease after directory deletion"
-        )
+        assert (
+            final_count < initial_count
+        ), "Count should decrease after directory deletion"
 
         # Verify subdirectory entities are gone
         search_embedding = dummy_embedder.embed_single("SubClass_0")
@@ -266,9 +270,9 @@ class SubClass_{i}:
         subdir_entities_after = [
             hit for hit in hits if "to_delete" in hit.payload.get("file_path", "")
         ]
-        assert len(subdir_entities_after) == 0, (
-            "Should not find entities from deleted subdirectory"
-        )
+        assert (
+            len(subdir_entities_after) == 0
+        ), "Should not find entities from deleted subdirectory"
 
     def test_partial_deletion_with_remaining_files(
         self, temp_repo, dummy_embedder, qdrant_store
@@ -327,9 +331,9 @@ class SubClass_{i}:
             if hit.payload.get("file_path", "").endswith("foo.py")
             and hit.payload.get("entity_name") in ["add", "Calculator"]
         ]
-        assert len(foo_entities_after) > 0, (
-            "foo.py entities should still be found after bar.py deletion"
-        )
+        assert (
+            len(foo_entities_after) > 0
+        ), "foo.py entities should still be found after bar.py deletion"
 
         # Wait for eventual consistency and verify bar.py entities are gone
         from tests.conftest import wait_for_eventual_consistency
@@ -342,9 +346,9 @@ class SubClass_{i}:
         consistency_achieved = wait_for_eventual_consistency(
             search_bar_entities, expected_count=0, timeout=10.0, verbose=True
         )
-        assert consistency_achieved, (
-            "Eventual consistency timeout: bar.py entities should be deleted"
-        )
+        assert (
+            consistency_achieved
+        ), "Eventual consistency timeout: bar.py entities should be deleted"
 
     def test_deletion_state_persistence(self, temp_repo, dummy_embedder, qdrant_store):
         """Test that deletion state is properly persisted between indexing runs."""
@@ -367,12 +371,14 @@ class SubClass_{i}:
 
         # Create a temporary file
         temp_file = temp_repo / "temporary.py"
-        temp_file.write_text('''"""Temporary file."""
+        temp_file.write_text(
+            '''"""Temporary file."""
 
 def temp_func():
     """Temporary function."""
     return "temp"
-''')
+'''
+        )
 
         # Initial indexing
         result1 = indexer.index_project(collection_name)
@@ -409,9 +415,9 @@ def temp_func():
         temp_found_after = any(
             "temp_func" in hit.payload.get("name", "") for hit in hits
         )
-        assert not temp_found_after, (
-            "Temp function should remain deleted after multiple indexing runs"
-        )
+        assert (
+            not temp_found_after
+        ), "Temp function should remain deleted after multiple indexing runs"
 
     def test_deletion_with_indexing_errors(
         self, temp_repo, dummy_embedder, qdrant_store, tmp_path
@@ -447,12 +453,14 @@ def temp_func():
 
         # Create a file that will cause embedding errors
         error_file = temp_repo / "error_file.py"
-        error_file.write_text('''"""File with error trigger."""
+        error_file.write_text(
+            '''"""File with error trigger."""
 
 def error_trigger_function():
     """This will cause embedding to fail."""
     return "error_trigger"
-''')
+'''
+        )
 
         # Initial indexing (will have errors but should succeed partially)
         result1 = indexer.index_project(collection_name)
@@ -470,9 +478,9 @@ def error_trigger_function():
         final_count = qdrant_store.count(collection_name)
 
         # Should not crash and should handle cleanup properly
-        assert final_count >= 0, (
-            "Should handle cleanup even with previous indexing errors"
-        )
+        assert (
+            final_count >= 0
+        ), "Should handle cleanup even with previous indexing errors"
 
 
 @pytest.mark.integration
@@ -574,26 +582,32 @@ class TestDeleteEventEdgeCases:
 
         # Create files with relationships
         main_file = temp_repo / "main_module.py"
-        main_file.write_text("""
+        main_file.write_text(
+            """
 import utils
 from helpers import helper_function
 
 class MainClass:
     def main_method(self):
         return helper_function()
-""")
+"""
+        )
 
         utils_file = temp_repo / "utils.py"
-        utils_file.write_text("""
+        utils_file.write_text(
+            """
 def utility_function():
     return "utility"
-""")
+"""
+        )
 
         helpers_file = temp_repo / "helpers.py"
-        helpers_file.write_text("""
+        helpers_file.write_text(
+            """
 def helper_function():
     return "helper"
-""")
+"""
+        )
 
         # Initial indexing - creates entities and relations
         result1 = indexer.index_project(collection_name)
@@ -619,9 +633,9 @@ def helper_function():
 
         # Verify vector count decreased (entities + orphaned relations removed)
         final_count = qdrant_store.count(collection_name)
-        assert final_count < initial_count, (
-            f"Expected count to decrease from {initial_count} to {final_count}"
-        )
+        assert (
+            final_count < initial_count
+        ), f"Expected count to decrease from {initial_count} to {final_count}"
 
         # Verify no orphaned relations remain
         final_relations = qdrant_store._get_all_relations(collection_name)
@@ -718,14 +732,14 @@ def helper_function():
                     f"DEBUG: Found orphaned relation: {from_entity} -> {to_entity} (from_missing={from_missing}, to_missing={to_missing})"
                 )
 
-        assert len(orphaned_relations) == 0, (
-            f"Found orphaned relations: {orphaned_relations}"
-        )
+        assert (
+            len(orphaned_relations) == 0
+        ), f"Found orphaned relations: {orphaned_relations}"
 
         # Verify that some relations were actually deleted
-        assert len(final_relations) < initial_relation_count, (
-            f"Expected relation count to decrease from {initial_relation_count} to {len(final_relations)}"
-        )
+        assert (
+            len(final_relations) < initial_relation_count
+        ), f"Expected relation count to decrease from {initial_relation_count} to {len(final_relations)}"
 
         # Wait for eventual consistency and verify entities from deleted file are gone
         from tests.conftest import wait_for_eventual_consistency
@@ -743,9 +757,9 @@ def helper_function():
         consistency_achieved = wait_for_eventual_consistency(
             search_helpers_entities, expected_count=0, timeout=10.0, verbose=True
         )
-        assert consistency_achieved, (
-            "Eventual consistency timeout: helpers.py entities should be deleted"
-        )
+        assert (
+            consistency_achieved
+        ), "Eventual consistency timeout: helpers.py entities should be deleted"
 
         # Verify remaining entities from main_module.py and utils.py still exist
         main_search = dummy_embedder.embed_single("MainClass")
@@ -788,6 +802,6 @@ def helper_function():
                 )
                 return  # Skip the assertion since we verified entities exist via collection check
 
-        assert len(main_entities) > 0, (
-            f"Should still find entities from main_module.py. Search hits: {len(main_hits)}, main_entities: {len(main_entities)}"
-        )
+        assert (
+            len(main_entities) > 0
+        ), f"Should still find entities from main_module.py. Search hits: {len(main_hits)}, main_entities: {len(main_entities)}"

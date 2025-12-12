@@ -16,7 +16,6 @@ from claude_indexer.ui.plan.prioritizer import (
 )
 from claude_indexer.ui.plan.task import Task
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -596,15 +595,11 @@ class TestFullPrioritization:
         result = prioritizer.full_prioritization(sample_tasks)
 
         # Find first task of each scope
-        first_token_idx = next(
-            i for i, t in enumerate(result) if t.scope == "tokens"
-        )
+        first_token_idx = next(i for i, t in enumerate(result) if t.scope == "tokens")
         first_component_idx = next(
             i for i, t in enumerate(result) if t.scope == "components"
         )
-        first_page_idx = next(
-            i for i, t in enumerate(result) if t.scope == "pages"
-        )
+        first_page_idx = next(i for i, t in enumerate(result) if t.scope == "pages")
 
         # Tokens should generally come first, then components, then pages
         # (within same priority level)

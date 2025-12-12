@@ -19,7 +19,13 @@ from claude_indexer.ui.critique.engine import (
     CritiqueStatistics,
     CritiqueSummary,
 )
-from claude_indexer.ui.models import Evidence, EvidenceType, Severity, SymbolKind, SymbolRef
+from claude_indexer.ui.models import (
+    Evidence,
+    EvidenceType,
+    Severity,
+    SymbolKind,
+    SymbolRef,
+)
 from claude_indexer.ui.plan.task import ImplementationPlan, Task, TaskGroup
 from claude_indexer.ui.reporters.html import HTMLReportConfig, HTMLReporter
 

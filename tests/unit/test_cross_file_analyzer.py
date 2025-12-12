@@ -433,17 +433,13 @@ class TestCrossFileAnalyzer:
                 declaration_set={"color": "#333"},
                 exact_hash="hash1",
                 near_hash="near1",
-                source_refs=[
-                    SymbolRef("file1.tsx", 10, 15, SymbolKind.CSS)
-                ],
+                source_refs=[SymbolRef("file1.tsx", 10, 15, SymbolKind.CSS)],
             ),
             StyleFingerprint(
                 declaration_set={"color": "#333"},
                 exact_hash="hash1",
                 near_hash="near1",
-                source_refs=[
-                    SymbolRef("file2.tsx", 20, 25, SymbolKind.CSS)
-                ],
+                source_refs=[SymbolRef("file2.tsx", 20, 25, SymbolKind.CSS)],
             ),
         ]
 

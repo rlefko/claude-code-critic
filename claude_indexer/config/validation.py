@@ -126,7 +126,9 @@ class ConfigValidator:
             schema_path: Path to JSON Schema file. If not provided, uses embedded schema.
         """
         self.schema_path = schema_path or (
-            Path(__file__).parent.parent.parent / "schemas" / "unified-config.schema.json"
+            Path(__file__).parent.parent.parent
+            / "schemas"
+            / "unified-config.schema.json"
         )
         self._schema: Optional[dict] = None
         self._validator: Optional[Any] = None
@@ -342,7 +344,13 @@ class ConfigValidator:
             )
 
         # Warn about potentially dangerous patterns
-        dangerous_patterns = [".env", "*.env", ".env*", "**/secrets/*", "**/credentials/*"]
+        dangerous_patterns = [
+            ".env",
+            "*.env",
+            ".env*",
+            "**/secrets/*",
+            "**/credentials/*",
+        ]
         for pattern in include:
             if pattern in dangerous_patterns or any(
                 d in pattern for d in [".env", "secret", "credential", "password"]

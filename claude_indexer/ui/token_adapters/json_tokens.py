@@ -77,7 +77,9 @@ class JSONTokenAdapter(TokenAdapter):
         token_set.source_files.append(str(file_path))
         return token_set
 
-    def extract_from_content(self, content: str, source_name: str = "inline") -> TokenSet:
+    def extract_from_content(
+        self, content: str, source_name: str = "inline"
+    ) -> TokenSet:
         """Extract tokens from JSON content string.
 
         Args:
@@ -328,7 +330,11 @@ class JSONTokenAdapter(TokenAdapter):
         value_lower = value.lower()
 
         # Check value format
-        if value_lower.startswith("#") or value_lower.startswith("rgb") or value_lower.startswith("hsl"):
+        if (
+            value_lower.startswith("#")
+            or value_lower.startswith("rgb")
+            or value_lower.startswith("hsl")
+        ):
             return "color"
 
         # Check name patterns

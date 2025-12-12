@@ -375,7 +375,9 @@ class FocusRingInconsistentRule(BaseRule):
                 evidence = []
 
                 for style, comps in list(style_groups.items())[:3]:
-                    ref = comps[0].source_ref if hasattr(comps[0], "source_ref") else None
+                    ref = (
+                        comps[0].source_ref if hasattr(comps[0], "source_ref") else None
+                    )
                     evidence.append(
                         self._create_static_evidence(
                             description=f"{len(comps)} elements with focus style: {style}",

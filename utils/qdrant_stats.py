@@ -134,7 +134,9 @@ class QdrantStatsCollector:
                     )
 
                     # Check both locations for entity_type (new: metadata.entity_type, fallback: top-level)
-                    entity_type = point.payload.get("metadata", {}).get("entity_type") or point.payload.get("entity_type", "unknown")
+                    entity_type = point.payload.get("metadata", {}).get(
+                        "entity_type"
+                    ) or point.payload.get("entity_type", "unknown")
 
                     # Only count entity_type for non-relation entries
                     if not has_relation_structure:
@@ -152,9 +154,9 @@ class QdrantStatsCollector:
                     has_file_path = (
                         "file_path" in point.payload and point.payload["file_path"]
                     ) or (
-                        "metadata" in point.payload 
+                        "metadata" in point.payload
                         and isinstance(point.payload["metadata"], dict)
-                        and "file_path" in point.payload["metadata"] 
+                        and "file_path" in point.payload["metadata"]
                         and point.payload["metadata"]["file_path"]
                     )
 
@@ -169,7 +171,9 @@ class QdrantStatsCollector:
                     file_path = None
                     if "file_path" in point.payload and point.payload["file_path"]:
                         file_path = point.payload["file_path"]
-                    elif "metadata" in point.payload and isinstance(point.payload["metadata"], dict):
+                    elif "metadata" in point.payload and isinstance(
+                        point.payload["metadata"], dict
+                    ):
                         metadata = point.payload["metadata"]
                         if "file_path" in metadata and metadata["file_path"]:
                             file_path = metadata["file_path"]
@@ -187,7 +191,9 @@ class QdrantStatsCollector:
                 if "file_path" in point.payload and point.payload["file_path"]:
                     file_path = point.payload["file_path"]
                 # Check metadata.file_path
-                elif "metadata" in point.payload and isinstance(point.payload["metadata"], dict):
+                elif "metadata" in point.payload and isinstance(
+                    point.payload["metadata"], dict
+                ):
                     metadata = point.payload["metadata"]
                     if "file_path" in metadata and metadata["file_path"]:
                         file_path = metadata["file_path"]
@@ -258,7 +264,11 @@ class QdrantStatsCollector:
 
             manual_count = 0
             for point in all_points:
-                if hasattr(point, "payload") and point.payload and self._is_truly_manual_entry(point.payload):
+                if (
+                    hasattr(point, "payload")
+                    and point.payload
+                    and self._is_truly_manual_entry(point.payload)
+                ):
                     manual_count += 1
 
             return manual_count
@@ -296,7 +306,9 @@ class QdrantStatsCollector:
             # Removed 'collection' - manual docs can have collection field
         }
         metadata = payload.get("metadata", {})
-        if any(field in payload for field in automation_fields) or any(field in metadata for field in automation_fields):
+        if any(field in payload for field in automation_fields) or any(
+            field in metadata for field in automation_fields
+        ):
             return False
 
         # v2.4 specific: Don't reject based on chunk_type alone
@@ -306,7 +318,9 @@ class QdrantStatsCollector:
         # True manual entries have minimal fields: entity_name, entity_type, observations
         # v2.4 format: check both top-level and nested metadata
         has_name = "entity_name" in payload
-        has_type = "entity_type" in payload or "entity_type" in payload.get("metadata", {})
+        has_type = "entity_type" in payload or "entity_type" in payload.get(
+            "metadata", {}
+        )
 
         if not (has_name and has_type):
             return False
@@ -660,16 +674,24 @@ class QdrantStatsCollector:
                     if project.get("collection") == collection_name:
                         project_path = Path(project.get("path", ""))
                         if project_path.exists():
-                            state_file = project_path / ".claude-indexer" / f"{collection_name}.json"
+                            state_file = (
+                                project_path
+                                / ".claude-indexer"
+                                / f"{collection_name}.json"
+                            )
                             if state_file.exists():
                                 with open(state_file) as f:
                                     state_data = json.load(f)
-                                return len([k for k in state_data if not k.startswith("_")])
+                                return len(
+                                    [k for k in state_data if not k.startswith("_")]
+                                )
                         break
 
             # Fallback: search for state files - prioritize subdirectories for test collections
             search_paths = [
-                *list(Path.cwd().parent.glob(f"*/.claude-indexer/{collection_name}.json")),  # Parent directory siblings
+                *list(
+                    Path.cwd().parent.glob(f"*/.claude-indexer/{collection_name}.json")
+                ),  # Parent directory siblings
                 *list(Path.cwd().glob(f"*/*/.claude-indexer/{collection_name}.json")),
                 *list(Path.cwd().glob(f"*/.claude-indexer/{collection_name}.json")),
                 Path.cwd() / ".claude-indexer" / f"{collection_name}.json",
@@ -894,9 +916,7 @@ class QdrantStatsCollector:
                 response_rating = (
                     "excellent"
                     if response_time < 10
-                    else "good"
-                    if response_time < 50
-                    else "slow"
+                    else "good" if response_time < 50 else "slow"
                 )
                 print(f"     Response: {response_time:.1f}ms ({response_rating})")
 
@@ -999,7 +1019,7 @@ class QdrantStatsCollector:
                 if entity_breakdown:
                     print("  🏷️  ENTITY TYPES (TOP 10)")
                     print("  " + "-" * 30)
-                    
+
                     # Get top 10 by total count
                     sorted_entities = sorted(
                         entity_breakdown.items(),

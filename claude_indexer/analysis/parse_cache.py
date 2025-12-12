@@ -83,7 +83,9 @@ class ParseResultCache:
                     "mtime": stat.st_mtime,
                     "size": stat.st_size,
                 }
-            self.logger.debug(f"Loaded parse cache index with {len(self._index)} entries")
+            self.logger.debug(
+                f"Loaded parse cache index with {len(self._index)} entries"
+            )
         except Exception as e:
             self.logger.warning(f"Failed to load parse cache index: {e}")
 
@@ -199,7 +201,7 @@ class ParseResultCache:
         # Sort by last access time (oldest first)
         sorted_entries = sorted(
             self._index.items(),
-            key=lambda x: x[1].get("last_access", x[1].get("mtime", 0))
+            key=lambda x: x[1].get("last_access", x[1].get("mtime", 0)),
         )
 
         # Remove oldest 25%

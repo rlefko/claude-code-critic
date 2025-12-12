@@ -138,7 +138,9 @@ def is_truly_manual_entry(payload: dict[str, Any]) -> bool:
         # Removed 'collection' - manual docs can have collection field
     }
     metadata = payload.get("metadata", {})
-    if any(field in payload for field in automation_fields) or any(field in metadata for field in automation_fields):
+    if any(field in payload for field in automation_fields) or any(
+        field in metadata for field in automation_fields
+    ):
         return False
 
     # v2.4 specific: Don't reject based on chunk_type alone
@@ -245,7 +247,9 @@ def backup_manual_entries(collection_name: str, output_file: str = None):
             # Everything else is auto-indexed
             else:
                 # v2.4 format only
-                entity_type = payload.get("metadata", {}).get("entity_type") or payload.get("entity_type", "unknown")
+                entity_type = payload.get("metadata", {}).get(
+                    "entity_type"
+                ) or payload.get("entity_type", "unknown")
                 entity_name = payload.get("entity_name", "unknown")
                 code_entries.append(
                     {
@@ -373,7 +377,9 @@ def restore_manual_entries(
             payload = entry.get("payload", {})
             # Handle v2.4 format
             name = payload.get("entity_name", "unknown")
-            entity_type = payload.get("metadata", {}).get("entity_type") or payload.get("entity_type", "unknown")
+            entity_type = payload.get("metadata", {}).get("entity_type") or payload.get(
+                "entity_type", "unknown"
+            )
             print(f"  {i + 1}. {name} ({entity_type})")
         if len(manual_entries) > 5:
             print(f"  ... and {len(manual_entries) - 5} more entries")
@@ -423,9 +429,11 @@ def restore_manual_entries(
 
                 # Extract from v2.4 format and preserve as v2.4 manual format
                 entity_name = payload.get("entity_name", f"restored_entry_{entry_id}")
-                entity_type = payload.get("metadata", {}).get("entity_type") or payload.get("entity_type", "documentation")
+                entity_type = payload.get("metadata", {}).get(
+                    "entity_type"
+                ) or payload.get("entity_type", "documentation")
                 content = payload.get("content", "")
-                
+
                 # Extract observations from backup (v2.4 nested format)
                 observations = payload.get("metadata", {}).get("observations", [])
 
@@ -452,7 +460,11 @@ def restore_manual_entries(
                     "entity_name": entity_name,
                     "metadata": {
                         "entity_type": entity_type,
-                        "observations": observations if observations else ([content] if content else [])
+                        "observations": (
+                            observations
+                            if observations
+                            else ([content] if content else [])
+                        ),
                     },
                     "content": content,
                     "has_implementation": False,
@@ -494,15 +506,18 @@ def restore_manual_entries(
                 # Check collection vector format and adapt
                 collection_info = store.client.get_collection(target_collection)
                 vectors_config = collection_info.config.params.vectors
-                
+
                 # Handle both named vectors (BM25/hybrid) and default vector formats
-                if isinstance(vectors_config, dict) and 'dense' in vectors_config:
+                if isinstance(vectors_config, dict) and "dense" in vectors_config:
                     # Named vectors format (BM25/hybrid collections) - use embedding as-is (already has 'dense' key)
                     vector_data = embedding_result.embedding
                 else:
                     # Default single vector format (legacy collections) - extract dense vector
-                    if isinstance(embedding_result.embedding, dict) and 'dense' in embedding_result.embedding:
-                        vector_data = embedding_result.embedding['dense']
+                    if (
+                        isinstance(embedding_result.embedding, dict)
+                        and "dense" in embedding_result.embedding
+                    ):
+                        vector_data = embedding_result.embedding["dense"]
                     else:
                         vector_data = embedding_result.embedding
 
@@ -573,6 +588,7 @@ def restore_manual_entries(
     except Exception as e:
         print(f"❌ Error during direct restoration: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

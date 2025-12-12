@@ -90,9 +90,11 @@ class PlanGenerator:
         """
         self.config = config
         self.generator_config = generator_config or PlanGeneratorConfig()
-        self.prioritizer = TaskPrioritizer(PrioritizationConfig(
-            max_tasks_per_scope=self.generator_config.max_tasks_per_scope
-        ))
+        self.prioritizer = TaskPrioritizer(
+            PrioritizationConfig(
+                max_tasks_per_scope=self.generator_config.max_tasks_per_scope
+            )
+        )
         self._task_counter = 0
 
     def _generate_task_id(self, scope: str) -> str:
@@ -123,7 +125,10 @@ class PlanGenerator:
             return None
 
         # Skip INFO severity unless configured to include
-        if critique.severity == Severity.INFO and not self.generator_config.include_info_severity:
+        if (
+            critique.severity == Severity.INFO
+            and not self.generator_config.include_info_severity
+        ):
             return None
 
         # Generate acceptance criteria
@@ -252,8 +257,12 @@ class PlanGenerator:
         subcategory = critique.subcategory
 
         if subcategory == "token_adherence":
-            criteria.append("All color values use CSS custom properties from design tokens")
-            criteria.append("All spacing values are from the spacing scale (4, 8, 12, 16, 24...)")
+            criteria.append(
+                "All color values use CSS custom properties from design tokens"
+            )
+            criteria.append(
+                "All spacing values are from the spacing scale (4, 8, 12, 16, 24...)"
+            )
             if "adherence_rate" in metrics:
                 target = min(0.95, metrics["adherence_rate"] + 0.15)
                 criteria.append(f"Token adherence rate reaches {target:.0%} or higher")
@@ -326,9 +335,18 @@ class PlanGenerator:
             tags.append("important")
 
         # Add specific tags based on subcategory
-        if critique.subcategory in ["contrast", "focus_visibility", "tap_targets", "form_labels"]:
+        if critique.subcategory in [
+            "contrast",
+            "focus_visibility",
+            "tap_targets",
+            "form_labels",
+        ]:
             tags.append("accessibility")
-        if critique.subcategory in ["token_adherence", "heading_scale", "spacing_rhythm"]:
+        if critique.subcategory in [
+            "token_adherence",
+            "heading_scale",
+            "spacing_rhythm",
+        ]:
             tags.append("design-system")
         if critique.subcategory in ["role_variants", "outlier"]:
             tags.append("consistency")
@@ -352,8 +370,19 @@ class PlanGenerator:
         for task in tasks:
             # Extract subcategory from tags
             subcategory = next(
-                (t for t in task.tags if t not in ["blocking", "important", "accessibility", "design-system", "consistency"]),
-                "general"
+                (
+                    t
+                    for t in task.tags
+                    if t
+                    not in [
+                        "blocking",
+                        "important",
+                        "accessibility",
+                        "design-system",
+                        "consistency",
+                    ]
+                ),
+                "general",
             )
             key = f"{task.scope}:{subcategory}"
             if key not in grouped:
@@ -441,11 +470,13 @@ class PlanGenerator:
         groups: list[TaskGroup] = []
         for scope in self.SCOPE_ORDER:
             if scope in grouped and grouped[scope]:
-                groups.append(TaskGroup(
-                    scope=scope,
-                    description=self.SCOPE_DESCRIPTIONS.get(scope, ""),
-                    tasks=grouped[scope],
-                ))
+                groups.append(
+                    TaskGroup(
+                        scope=scope,
+                        description=self.SCOPE_DESCRIPTIONS.get(scope, ""),
+                        tasks=grouped[scope],
+                    )
+                )
 
         return groups
 
@@ -471,7 +502,9 @@ class PlanGenerator:
         if plan.quick_wins:
             summary_parts.append(f"\n{len(plan.quick_wins)} quick wins identified.")
 
-        summary_parts.append(f"\nEstimated total effort: {plan.estimated_total_effort}.")
+        summary_parts.append(
+            f"\nEstimated total effort: {plan.estimated_total_effort}."
+        )
 
         if critique_report:
             if critique_report.fail_count > 0:

@@ -60,9 +60,9 @@ class TestWatcherFlow:
             collection_ready = wait_for_collection_ready(
                 qdrant_store, collection_name, timeout=10.0, verbose=True
             )
-            assert collection_ready, (
-                f"Collection {collection_name} not ready for operations"
-            )
+            assert (
+                collection_ready
+            ), f"Collection {collection_name} not ready for operations"
 
             # Get initial count
             initial_count = qdrant_store.count(collection_name)
@@ -89,15 +89,15 @@ class TestWatcherFlow:
                 timeout=15.0,
                 verbose=True,
             )
-            assert function_found, (
-                "new_watched_function should be searchable after file modification"
-            )
+            assert (
+                function_found
+            ), "new_watched_function should be searchable after file modification"
 
             # Check that re-indexing occurred
             final_count = qdrant_store.count(collection_name)
-            assert final_count >= initial_count, (
-                f"Count should increase: {initial_count} -> {final_count}"
-            )
+            assert (
+                final_count >= initial_count
+            ), f"Count should increase: {initial_count} -> {final_count}"
 
         finally:
             # Stop watcher
@@ -165,9 +165,9 @@ class TestWatcherFlow:
                     timeout=15.0,
                     verbose=True,
                 )
-                assert function_found, (
-                    f"batch_function_{i} should be searchable after file modification"
-                )
+                assert (
+                    function_found
+                ), f"batch_function_{i} should be searchable after file modification"
 
         finally:
             await watcher.stop()
@@ -201,7 +201,8 @@ class TestWatcherFlow:
 
             # Create a new file
             new_file = temp_repo / "new_module.py"
-            new_file.write_text('''"""Newly created module."""
+            new_file.write_text(
+                '''"""Newly created module."""
 
 def fresh_function():
     """A function in a new file."""
@@ -210,7 +211,8 @@ def fresh_function():
 class NewClass:
     """A new class."""
     pass
-''')
+'''
+            )
 
             # Wait for processing
             await asyncio.sleep(0.5)
@@ -254,12 +256,14 @@ class NewClass:
 
         # First, create and index a file
         temp_file = temp_repo / "temporary.py"
-        temp_file.write_text('''"""Temporary module."""
+        temp_file.write_text(
+            '''"""Temporary module."""
 
 def temp_function():
     """Will be deleted."""
     return "temporary"
-''')
+'''
+        )
 
         watcher = Watcher(
             repo_path=temp_repo,
@@ -306,9 +310,9 @@ def temp_function():
             consistency_achieved = wait_for_eventual_consistency(
                 search_temp_function, expected_count=0, timeout=10.0, verbose=True
             )
-            assert consistency_achieved, (
-                "Eventual consistency timeout: deleted file references should be cleaned up"
-            )
+            assert (
+                consistency_achieved
+            ), "Eventual consistency timeout: deleted file references should be cleaned up"
 
         finally:
             await watcher.stop()
@@ -354,9 +358,9 @@ def temp_function():
             await asyncio.sleep(0.5)
 
             # Watcher should still be running despite the error
-            assert not watch_task.done(), (
-                "Watcher should continue running despite errors"
-            )
+            assert (
+                not watch_task.done()
+            ), "Watcher should continue running despite errors"
 
         finally:
             await watcher.stop()
@@ -408,9 +412,9 @@ def temp_function():
             await asyncio.sleep(0.5)
 
             # Should have fewer indexing calls than file changes due to debouncing
-            assert len(index_calls) < 5, (
-                f"Expected debouncing, but got {len(index_calls)} calls for 5 rapid changes"
-            )
+            assert (
+                len(index_calls) < 5
+            ), f"Expected debouncing, but got {len(index_calls)} calls for 5 rapid changes"
 
         finally:
             await watcher.stop()

@@ -126,7 +126,9 @@ class TemplateManager:
         """
         template_path = self._resolve_template_path(template_name)
         if not template_path.exists():
-            logger.warning(f"Template not found: {template_name} (tried {template_path})")
+            logger.warning(
+                f"Template not found: {template_name} (tried {template_path})"
+            )
             return None
 
         try:

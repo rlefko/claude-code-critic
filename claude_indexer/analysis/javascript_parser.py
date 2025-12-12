@@ -261,10 +261,12 @@ class JavaScriptParser(TreeSitterParser):
         end_line = node.end_point[0] + 1
         impl_chunk = EntityChunk(
             id=self._create_chunk_id(
-                file_path, name, "implementation",
+                file_path,
+                name,
+                "implementation",
                 entity_type="function",
                 line_number=start_line,
-                end_line=end_line
+                end_line=end_line,
             ),
             entity_name=name,
             chunk_type="implementation",
@@ -301,7 +303,11 @@ class JavaScriptParser(TreeSitterParser):
             return self.extract_node_text(name_node, content)
 
         # For arrow functions assigned to variables
-        if node.type == "arrow_function" and node.parent and node.parent.type == "variable_declarator":
+        if (
+            node.type == "arrow_function"
+            and node.parent
+            and node.parent.type == "variable_declarator"
+        ):
             id_node = node.parent.child_by_field_name("name")
             if id_node:
                 return self.extract_node_text(id_node, content)
@@ -385,10 +391,12 @@ class JavaScriptParser(TreeSitterParser):
         end_line = node.end_point[0] + 1
         impl_chunk = EntityChunk(
             id=self._create_chunk_id(
-                file_path, name, "implementation",
+                file_path,
+                name,
+                "implementation",
                 entity_type="class",
                 line_number=start_line,
-                end_line=end_line
+                end_line=end_line,
             ),
             entity_name=name,
             chunk_type="implementation",
@@ -473,24 +481,29 @@ class JavaScriptParser(TreeSitterParser):
 
         # Skip external modules to avoid orphan relations
         # Relative imports (starting with ./ or ../) are always internal
-        if (not module_name.startswith("./") and not module_name.startswith("../") and
-            (module_name.startswith("@")  # Scoped npm packages
-             or "/" not in module_name  # Top-level npm packages
-             or module_name
-             in {
-                 "fs",
-                 "path",
-                 "os",
-                 "crypto",
-                 "http",
-                 "https",
-                 "url",
-                 "child_process",
-                 "dotenv",
-                 "express",
-                 "react",
-                 "vue",
-             })):
+        if (
+            not module_name.startswith("./")
+            and not module_name.startswith("../")
+            and (
+                module_name.startswith("@")  # Scoped npm packages
+                or "/" not in module_name  # Top-level npm packages
+                or module_name
+                in {
+                    "fs",
+                    "path",
+                    "os",
+                    "crypto",
+                    "http",
+                    "https",
+                    "url",
+                    "child_process",
+                    "dotenv",
+                    "express",
+                    "react",
+                    "vue",
+                }
+            )
+        ):
             return None
 
         return RelationFactory.create_imports_relation(
@@ -592,7 +605,10 @@ class JavaScriptParser(TreeSitterParser):
                 for called_function in calls:
                     # Only create relations to entities we actually indexed
                     # Skip self-referential relations (function calling itself)
-                    if called_function in entity_names and called_function != chunk.entity_name:
+                    if (
+                        called_function in entity_names
+                        and called_function != chunk.entity_name
+                    ):
                         relation = RelationFactory.create_calls_relation(
                             caller=chunk.entity_name,
                             callee=called_function,
@@ -891,11 +907,17 @@ class JavaScriptParser(TreeSitterParser):
             # Extract from assignment expressions (e.g., assigned = "value")
             elif node.type == "assignment_expression":
                 left_node = node.child_by_field_name("left")
-                if (left_node and left_node.type == "identifier" and
-                    current_scope is None):  # Only module-level assignments
+                if (
+                    left_node
+                    and left_node.type == "identifier"
+                    and current_scope is None
+                ):  # Only module-level assignments
                     var_name = self.extract_node_text(left_node, content)
-                    if (var_name and self._should_include_variable(var_name, current_scope) and
-                        var_name not in seen_variables):
+                    if (
+                        var_name
+                        and self._should_include_variable(var_name, current_scope)
+                        and var_name not in seen_variables
+                    ):
                         seen_variables.add(var_name)
                         entity = Entity(
                             name=var_name,
@@ -1146,10 +1168,33 @@ class JavaScriptParser(TreeSitterParser):
             return False
 
         # Skip very short variable names that are likely temporary, but allow common mathematical variables
-        return not (len(var_name) <= 1 and var_name not in [
-            "x", "y", "z", "a", "b", "c", "d", "e", "f", "g", "h",
-            "n", "m", "p", "q", "r", "s", "t", "u", "v", "w"
-        ])
+        return not (
+            len(var_name) <= 1
+            and var_name
+            not in [
+                "x",
+                "y",
+                "z",
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                "h",
+                "n",
+                "m",
+                "p",
+                "q",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+            ]
+        )
 
     def _create_variable_entity(
         self, var_name: str, file_path: Path, declarator: Node, pattern_type: str

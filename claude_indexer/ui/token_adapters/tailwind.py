@@ -62,7 +62,9 @@ class TailwindConfigAdapter(TokenAdapter):
         token_set.source_files.append(str(file_path))
         return token_set
 
-    def extract_from_content(self, content: str, source_name: str = "inline") -> TokenSet:
+    def extract_from_content(
+        self, content: str, source_name: str = "inline"
+    ) -> TokenSet:
         """Extract tokens from Tailwind config content.
 
         Args:
@@ -198,9 +200,7 @@ class TailwindConfigAdapter(TokenAdapter):
         colors: dict[str, ColorToken] = {}
 
         # Extract simple key-value pairs: 'name': '#value' or name: '#value'
-        simple_pattern = re.compile(
-            r"""['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]"""
-        )
+        simple_pattern = re.compile(r"""['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]""")
 
         for match in simple_pattern.finditer(section):
             name = match.group(1)

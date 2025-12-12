@@ -1,7 +1,8 @@
 """Unit tests for claude_indexer.rules.engine module."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.rules.base import (
     BaseRule,
@@ -453,9 +454,7 @@ class TestRuleEngine:
 
     def test_engine_handles_rule_error(self):
         """Test engine handling of rule errors."""
-        engine = RuleEngine(
-            config=RuleEngineConfig(continue_on_error=True)
-        )
+        engine = RuleEngine(config=RuleEngineConfig(continue_on_error=True))
         engine.register(FailingRule())
         engine.register(MockRule())
 
@@ -472,9 +471,7 @@ class TestRuleEngine:
 
     def test_engine_stop_on_error(self):
         """Test engine stopping on first error."""
-        engine = RuleEngine(
-            config=RuleEngineConfig(continue_on_error=False)
-        )
+        engine = RuleEngine(config=RuleEngineConfig(continue_on_error=False))
         engine.register(FailingRule())
         engine.register(MockRule(rule_id="TEST.AFTER"))
 

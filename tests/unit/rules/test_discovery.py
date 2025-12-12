@@ -1,7 +1,8 @@
 """Unit tests for claude_indexer.rules.discovery module."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.rules.discovery import RuleDiscovery, discover_rules
 

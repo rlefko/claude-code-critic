@@ -229,7 +229,9 @@ debug/
                     message=f"Created {target_path} ({self.project_type.value} template)",
                 )
             except IOError as e:
-                logger.warning(f"Failed to write template: {e}, falling back to default")
+                logger.warning(
+                    f"Failed to write template: {e}, falling back to default"
+                )
 
         # Fallback: generate programmatically
         try:

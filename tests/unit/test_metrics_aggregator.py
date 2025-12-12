@@ -109,17 +109,13 @@ class TestMetricsAggregator:
         assert all("timestamp" in point for point in trend)
         assert all("value" in point for point in trend)
 
-    def test_get_trend_data_filters_by_days(
-        self, report_with_snapshots: MetricsReport
-    ):
+    def test_get_trend_data_filters_by_days(self, report_with_snapshots: MetricsReport):
         """get_trend_data should filter by date range."""
         # Add old snapshot
         old_time = (datetime.now() - timedelta(days=60)).isoformat()
         report_with_snapshots.snapshots.insert(
             0,
-            MetricSnapshot(
-                timestamp=old_time, tier=1, unique_hardcoded_colors=150
-            ),
+            MetricSnapshot(timestamp=old_time, tier=1, unique_hardcoded_colors=150),
         )
 
         aggregator = MetricsAggregator(report_with_snapshots)

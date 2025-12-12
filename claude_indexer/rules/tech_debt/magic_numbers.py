@@ -102,7 +102,15 @@ class MagicNumbersRule(BaseRule):
         file_path_lower = file_path.lower()
         return any(
             marker in file_path_lower
-            for marker in ["test_", "_test", "tests/", "spec/", "__tests__/", ".test.", ".spec."]
+            for marker in [
+                "test_",
+                "_test",
+                "tests/",
+                "spec/",
+                "__tests__/",
+                ".test.",
+                ".spec.",
+            ]
         )
 
     def check(self, context: RuleContext) -> list["Finding"]:

@@ -17,7 +17,9 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def timed(operation_name: str | None = None, log_args: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def timed(
+    operation_name: str | None = None, log_args: bool = False
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator to time function execution and log results.
 
     Measures the execution time of a function and logs it at DEBUG level.

@@ -48,9 +48,7 @@ class InitManager:
             self._detector = ProjectDetector(self.options.project_path)
         return self._detector
 
-    def _init_components(
-        self, collection_name: str, project_type: ProjectType
-    ) -> None:
+    def _init_components(self, collection_name: str, project_type: ProjectType) -> None:
         """Initialize all components after detection phase."""
         self._template_manager = TemplateManager(
             self.options.project_path,
@@ -197,8 +195,8 @@ class InitManager:
             InitStepResult indicating success or failure.
         """
         try:
-            from ..indexer import CoreIndexer
             from ..config.project_config import ProjectConfigManager
+            from ..indexer import CoreIndexer
 
             # Load project config
             project_manager = ProjectConfigManager(self.options.project_path)
@@ -243,7 +241,9 @@ class InitManager:
                     },
                 )
             else:
-                error_msg = ", ".join(result.errors) if result.errors else "Unknown error"
+                error_msg = (
+                    ", ".join(result.errors) if result.errors else "Unknown error"
+                )
                 return InitStepResult(
                     step_name="indexing",
                     success=False,

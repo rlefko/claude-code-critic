@@ -180,9 +180,7 @@ class ComplexityRule(BaseRule):
 
         return complexity
 
-    def _find_functions(
-        self, context: RuleContext
-    ) -> list[FunctionInfo]:
+    def _find_functions(self, context: RuleContext) -> list[FunctionInfo]:
         """Find all functions in the file with their complexity."""
         functions = []
         language = context.language

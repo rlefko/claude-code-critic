@@ -352,9 +352,7 @@ class BaseRule(ABC):
         """Whether this rule supports automatic fixes."""
         return False
 
-    def auto_fix(
-        self, finding: Finding, context: RuleContext
-    ) -> "AutoFix | None":
+    def auto_fix(self, finding: Finding, context: RuleContext) -> "AutoFix | None":
         """Generate an auto-fix for a finding.
 
         Override this method in subclasses that support auto-fix.

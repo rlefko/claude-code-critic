@@ -5,25 +5,27 @@ These tests validate that the UI consistency checker correctly identifies
 duplicates and inconsistencies across React, Vue, and Svelte components.
 """
 
-import pytest
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import pytest
 
 # Import UI modules
 try:
-    from claude_indexer.ui.collectors.source import SourceCollector
     from claude_indexer.ui.collectors.adapters.react import ReactAdapter
-    from claude_indexer.ui.collectors.adapters.vue import VueAdapter
     from claude_indexer.ui.collectors.adapters.svelte import SvelteAdapter
-    from claude_indexer.ui.normalizers.component import ComponentNormalizer
-    from claude_indexer.ui.similarity.engine import SimilarityEngine
-    from claude_indexer.ui.similarity.clustering import Clustering
+    from claude_indexer.ui.collectors.adapters.vue import VueAdapter
+    from claude_indexer.ui.collectors.source import SourceCollector
     from claude_indexer.ui.models import (
-        StaticComponentFingerprint,
-        StyleFingerprint,
         Finding,
         Severity,
+        StaticComponentFingerprint,
+        StyleFingerprint,
     )
+    from claude_indexer.ui.normalizers.component import ComponentNormalizer
+    from claude_indexer.ui.similarity.clustering import Clustering
+    from claude_indexer.ui.similarity.engine import SimilarityEngine
+
     UI_MODULES_AVAILABLE = True
 except ImportError as e:
     UI_MODULES_AVAILABLE = False
@@ -35,7 +37,7 @@ FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "ui_repo"
 
 pytestmark = pytest.mark.skipif(
     not UI_MODULES_AVAILABLE,
-    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}"
+    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}",
 )
 
 
@@ -245,9 +247,7 @@ class TestCrossFrameworkSimilarityScoring:
         button_components = source_collector.extract_components(
             button, button.read_text()
         )
-        card_components = source_collector.extract_components(
-            card, card.read_text()
-        )
+        card_components = source_collector.extract_components(card, card.read_text())
 
         button_fp = component_normalizer.normalize(button_components[0])
         card_fp = component_normalizer.normalize(card_components[0])
@@ -255,7 +255,9 @@ class TestCrossFrameworkSimilarityScoring:
         similarity = similarity_engine.calculate_similarity(button_fp, card_fp)
 
         # Should be dissimilar (< 0.5)
-        assert similarity < 0.5, f"Expected low similarity between Button and Card, got {similarity}"
+        assert (
+            similarity < 0.5
+        ), f"Expected low similarity between Button and Card, got {similarity}"
 
 
 class TestCrossFrameworkClustering:
@@ -293,7 +295,9 @@ class TestCrossFrameworkClustering:
 
         # Find the largest cluster (should contain the buttons)
         largest_cluster = max(clusters, key=len)
-        assert len(largest_cluster) >= 2, "Largest cluster should contain at least 2 buttons"
+        assert (
+            len(largest_cluster) >= 2
+        ), "Largest cluster should contain at least 2 buttons"
 
     def test_clusters_similar_cards(
         self,
@@ -383,8 +387,13 @@ class TestCrossFrameworkRecommendations:
 
         # If highly similar, should recommend shared design tokens/styles
         if similarity > 0.8:
-            recommendation = "Consider extracting shared design tokens or style constants"
-            assert "shared" in recommendation.lower() or "extract" in recommendation.lower()
+            recommendation = (
+                "Consider extracting shared design tokens or style constants"
+            )
+            assert (
+                "shared" in recommendation.lower()
+                or "extract" in recommendation.lower()
+            )
 
 
 class TestStyleUsageConsistency:
@@ -414,9 +423,7 @@ class TestStyleUsageConsistency:
                 if "ButtonVariant" not in name:  # Variant has some hardcoded values
                     assert token in content, f"{name} should use token {token}"
 
-    def test_all_cards_use_same_tokens(
-        self, fixture_path: Path
-    ):
+    def test_all_cards_use_same_tokens(self, fixture_path: Path):
         """All card implementations should use consistent tokens."""
         card_files = [
             fixture_path / "components" / "Card.tsx",

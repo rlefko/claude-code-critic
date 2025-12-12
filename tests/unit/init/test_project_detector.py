@@ -1,8 +1,9 @@
 """Tests for project detector functionality."""
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.init.project_detector import ProjectDetector
 from claude_indexer.init.types import ProjectType

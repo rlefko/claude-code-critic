@@ -6,7 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_indexer.doctor.manager import DoctorManager
-from claude_indexer.doctor.types import CheckCategory, CheckResult, CheckStatus, DoctorOptions
+from claude_indexer.doctor.types import (
+    CheckCategory,
+    CheckResult,
+    CheckStatus,
+    DoctorOptions,
+)
 
 
 class TestDoctorManager:
@@ -127,8 +132,9 @@ class TestDoctorManagerIntegration:
 
         # Should have results
         assert len(result.checks) >= 6  # At least 6 basic checks
-        assert result.passed + result.warnings + result.failures + result.skipped == len(
-            result.checks
+        assert (
+            result.passed + result.warnings + result.failures + result.skipped
+            == len(result.checks)
         )
 
     def test_full_run_with_project_path(self, tmp_path: Path):

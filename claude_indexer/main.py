@@ -337,7 +337,7 @@ def run_indexing_with_specific_files(
                 logger.info("✅ No files to process")
             # Ensure collection exists even when no files to process (critical for watcher startup)
             # Get correct vector size from embedder (handle caching wrapper)
-            if hasattr(embedder, 'embedder'):
+            if hasattr(embedder, "embedder"):
                 # CachingEmbedder wrapper - get from underlying embedder
                 vector_size = embedder.embedder.dimension()
             else:
@@ -364,6 +364,7 @@ def run_indexing_with_specific_files(
         pre_captured_states = None
         if paths_to_process and not skip_change_detection:
             from datetime import datetime
+
             logger.info(
                 f"🔒 PRE-CAPTURE: Taking atomic file state snapshot at {datetime.now().strftime('%H:%M:%S.%f')[:-3]}"
             )
@@ -372,7 +373,9 @@ def run_indexing_with_specific_files(
                 f"🔒 PRE-CAPTURE: Captured {len(pre_captured_states)} file states for atomic consistency"
             )
         elif skip_change_detection and verbose:
-            logger.info("🚀 BYPASS: Skipping change detection for watcher-triggered files")
+            logger.info(
+                "🚀 BYPASS: Skipping change detection for watcher-triggered files"
+            )
 
         # Process files directly using batch processing
         entities, relations, implementation_chunks, errors, actually_processed_files = (
@@ -391,9 +394,11 @@ def run_indexing_with_specific_files(
             # Git+Meta: compute changed entity IDs for event awareness
             changed_entity_ids = (
                 {
-                    f"{entity.file_path}::{entity.name}"
-                    if entity.file_path
-                    else entity.name
+                    (
+                        f"{entity.file_path}::{entity.name}"
+                        if entity.file_path
+                        else entity.name
+                    )
                     for entity in entities
                 }
                 if entities
@@ -678,22 +683,38 @@ def run_indexing_with_specific_files(
                     metrics = indexer._embedding_metrics
                     logger.info("")
                     logger.info("📊 Embedding Metrics Dashboard:")
-                    logger.info(f"   Metadata embeddings:     {metrics.get('metadata_embeddings', 0):>6}")
-                    logger.info(f"   Implementation embeddings: {metrics.get('implementation_embeddings', 0):>6}")
-                    logger.info(f"   Relation embeddings:     {metrics.get('relation_embeddings', 0):>6}")
-                    logger.info(f"   Total embeddings:        {metrics.get('total_embeddings', 0):>6}")
-                    logger.info(f"   Embeddings reused:       {metrics.get('embeddings_reused', 0):>6}")
+                    logger.info(
+                        f"   Metadata embeddings:     {metrics.get('metadata_embeddings', 0):>6}"
+                    )
+                    logger.info(
+                        f"   Implementation embeddings: {metrics.get('implementation_embeddings', 0):>6}"
+                    )
+                    logger.info(
+                        f"   Relation embeddings:     {metrics.get('relation_embeddings', 0):>6}"
+                    )
+                    logger.info(
+                        f"   Total embeddings:        {metrics.get('total_embeddings', 0):>6}"
+                    )
+                    logger.info(
+                        f"   Embeddings reused:       {metrics.get('embeddings_reused', 0):>6}"
+                    )
 
                     # Calculate efficiency metrics
-                    total = metrics.get('total_embeddings', 0) + metrics.get('embeddings_reused', 0)
+                    total = metrics.get("total_embeddings", 0) + metrics.get(
+                        "embeddings_reused", 0
+                    )
                     if total > 0:
-                        reuse_pct = (metrics.get('embeddings_reused', 0) / total) * 100
+                        reuse_pct = (metrics.get("embeddings_reused", 0) / total) * 100
                         logger.info(f"   Cache hit rate:          {reuse_pct:>5.1f}%")
 
                     # Show optimization impact
-                    if metrics.get('relation_batch_size', 0) > 0:
-                        logger.info(f"   Relation batch size:     {metrics.get('relation_batch_size', 0):>6}")
-                        logger.info(f"   Avg embeddings/entity:   {metrics.get('avg_embeddings_per_entity', 0):>6.2f}")
+                    if metrics.get("relation_batch_size", 0) > 0:
+                        logger.info(
+                            f"   Relation batch size:     {metrics.get('relation_batch_size', 0):>6}"
+                        )
+                        logger.info(
+                            f"   Avg embeddings/entity:   {metrics.get('avg_embeddings_per_entity', 0):>6.2f}"
+                        )
             else:
                 logger.info(f"✅ Processed {files_processed} files")
                 if files_failed > 0:
@@ -818,9 +839,7 @@ def run_indexing(
                 if not files_to_process and not quiet and verbose:
                     # Get total tracked files from state (after deletion)
                     state = indexer._load_state(collection_name)
-                    total_tracked = len(
-                        [k for k in state if not k.startswith("_")]
-                    )
+                    total_tracked = len([k for k in state if not k.startswith("_")])
 
                     # Get actual database counts AFTER deletion
                     try:
@@ -900,7 +919,7 @@ def run_indexing(
                 logger.info("✅ No files to process")
             # Ensure collection exists even when no files to process (critical for watcher startup)
             # Get correct vector size from embedder (handle caching wrapper)
-            if hasattr(embedder, 'embedder'):
+            if hasattr(embedder, "embedder"):
                 # CachingEmbedder wrapper - get from underlying embedder
                 vector_size = embedder.embedder.dimension()
             else:

@@ -7,7 +7,14 @@ near-duplicate styles and components.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StaticComponentFingerprint, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StaticComponentFingerprint,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.duplication import (
     ComponentDuplicateClusterRule,
@@ -152,7 +159,9 @@ class TestStyleNearDuplicateSetRule:
         # Create styles that differ by only one property
         styles = [
             create_style("a.css", {"color": "red", "padding": "10px", "margin": "5px"}),
-            create_style("b.css", {"color": "blue", "padding": "10px", "margin": "5px"}),
+            create_style(
+                "b.css", {"color": "blue", "padding": "10px", "margin": "5px"}
+            ),
         ]
 
         context = RuleContext(config=config, styles=styles)

@@ -172,7 +172,9 @@ class CollectionManager:
                     message=f"Created collection '{collection_name}' ({vector_size}D vectors)",
                 )
             else:
-                error_msg = ", ".join(result.errors) if result.errors else "Unknown error"
+                error_msg = (
+                    ", ".join(result.errors) if result.errors else "Unknown error"
+                )
                 return InitStepResult(
                     step_name="qdrant_collection",
                     success=False,
@@ -219,9 +221,11 @@ class CollectionManager:
             return InitStepResult(
                 step_name="delete_collection",
                 success=result.success,
-                message=f"Deleted collection '{collection_name}'"
-                if result.success
-                else f"Failed to delete: {result.errors}",
+                message=(
+                    f"Deleted collection '{collection_name}'"
+                    if result.success
+                    else f"Failed to delete: {result.errors}"
+                ),
             )
 
         except Exception as e:
@@ -323,11 +327,13 @@ class CollectionManager:
 
             # Check if hash is known
             if known_project_hashes and collection_hash not in known_project_hashes:
-                stale.append({
-                    "name": collection_name,
-                    "reason": "Unknown project hash - may be orphaned",
-                    "hash": collection_hash,
-                })
+                stale.append(
+                    {
+                        "name": collection_name,
+                        "reason": "Unknown project hash - may be orphaned",
+                        "hash": collection_hash,
+                    }
+                )
 
         return stale
 

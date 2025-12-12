@@ -51,8 +51,15 @@ Example usage:
     print(f"P95: {stats['p95_ms']}ms")
 """
 
-# Re-export timing utilities (backward compatibility)
-from .timing import PerformanceAggregator, PerformanceTimer, timed
+# Re-export metrics
+from .metrics import (
+    MetricWindow,
+    PerformanceMetricsCollector,
+    get_all_stats,
+    get_stats,
+    measure,
+    record,
+)
 
 # Re-export profiler
 from .profiler import (
@@ -63,15 +70,8 @@ from .profiler import (
     profile,
 )
 
-# Re-export metrics
-from .metrics import (
-    MetricWindow,
-    PerformanceMetricsCollector,
-    get_all_stats,
-    get_stats,
-    measure,
-    record,
-)
+# Re-export timing utilities (backward compatibility)
+from .timing import PerformanceAggregator, PerformanceTimer, timed
 
 __all__ = [
     # Timing

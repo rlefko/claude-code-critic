@@ -21,7 +21,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-
 # Performance thresholds (adjust based on baseline measurements)
 THRESHOLDS = {
     "search_latency_ms": 100,  # Search should complete in <100ms
@@ -42,7 +41,8 @@ def sample_python_files(tmp_path) -> List[Path]:
     # Generate 50 sample files with realistic content
     for i in range(50):
         file_path = src_dir / f"module_{i}.py"
-        file_path.write_text(f'''
+        file_path.write_text(
+            f'''
 """Module {i} for performance testing."""
 
 import logging
@@ -96,7 +96,8 @@ async def async_operation_{i}(items: List[dict]) -> List[dict]:
     import asyncio
     await asyncio.sleep(0.001)
     return [{{**item, "async": True}} for item in items]
-''')
+'''
+        )
         files.append(file_path)
 
     return files
@@ -226,7 +227,9 @@ class TestIndexerPerformance:
         entities_per_second = entities_processed / (timer.duration_ms / 1000)
 
         # Should process at least 10 files per second
-        assert files_per_second > 10, f"Throughput {files_per_second:.1f} files/s is too slow"
+        assert (
+            files_per_second > 10
+        ), f"Throughput {files_per_second:.1f} files/s is too slow"
 
         print(f"\nBatch indexing throughput:")
         print(f"  Files: {files_per_second:.1f} files/second")
@@ -258,7 +261,9 @@ class TestIndexerPerformance:
         # Incremental should be at least 5x faster when only ~4% of files changed
         expected_speedup = len(all_files) / len(changed_files) * 0.5  # Conservative
 
-        print(f"\nIncremental speedup: {speedup:.1f}x (expected ~{expected_speedup:.1f}x)")
+        print(
+            f"\nIncremental speedup: {speedup:.1f}x (expected ~{expected_speedup:.1f}x)"
+        )
         assert speedup > 2, f"Incremental speedup {speedup:.1f}x is too low"
 
 
@@ -284,7 +289,9 @@ class TestMemoryUsage:
                 content = file_path.read_text()
                 # Simulate parsing
                 lines = content.split("\n")
-                entities = [line for line in lines if "def " in line or "class " in line]
+                entities = [
+                    line for line in lines if "def " in line or "class " in line
+                ]
                 del entities
             gc.collect()
 
@@ -363,7 +370,10 @@ def example_function(x, y):
         # Parallel execution
         with PerformanceTimer("parallel") as par_timer:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                futures = [executor.submit(mock_rule_check, sample_code) for _ in range(num_rules)]
+                futures = [
+                    executor.submit(mock_rule_check, sample_code)
+                    for _ in range(num_rules)
+                ]
                 concurrent.futures.wait(futures)
 
         speedup = seq_timer.duration_ms / par_timer.duration_ms

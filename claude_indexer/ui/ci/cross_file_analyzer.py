@@ -214,9 +214,7 @@ class CrossFileAnalyzer:
                         cluster_id=cluster.cluster_id,
                         file_locations=cluster.items,  # file:line format
                         similarity_score=cluster.avg_internal_similarity,
-                        recommended_action=self._recommend_action(
-                            cluster, "style"
-                        ),
+                        recommended_action=self._recommend_action(cluster, "style"),
                         impact_estimate=self._estimate_impact(cluster),
                         details={
                             "cluster_size": cluster.size,
@@ -240,9 +238,7 @@ class CrossFileAnalyzer:
                         cluster_id=cluster.cluster_id,
                         file_locations=cluster.items,
                         similarity_score=cluster.avg_internal_similarity,
-                        recommended_action=self._recommend_action(
-                            cluster, "component"
-                        ),
+                        recommended_action=self._recommend_action(cluster, "component"),
                         impact_estimate=self._estimate_impact(cluster),
                         details={
                             "cluster_size": cluster.size,

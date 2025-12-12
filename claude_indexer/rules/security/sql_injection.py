@@ -18,7 +18,7 @@ class SQLInjectionRule(BaseRule):
     """Detect SQL injection vulnerabilities."""
 
     # SQL keywords to look for
-    SQL_KEYWORDS = r'(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE|UNION|WHERE)'
+    SQL_KEYWORDS = r"(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE|UNION|WHERE)"
 
     # Language-specific patterns for SQL injection
     # Format: (pattern, description, confidence)
@@ -26,7 +26,7 @@ class SQLInjectionRule(BaseRule):
         "python": [
             # f-string with SQL keywords
             (
-                r'f["\'].*?' + SQL_KEYWORDS + r'.*?\{',
+                r'f["\'].*?' + SQL_KEYWORDS + r".*?\{",
                 "SQL query with f-string interpolation",
                 0.95,
             ),
@@ -62,7 +62,7 @@ class SQLInjectionRule(BaseRule):
             ),
             # cursor operations with dynamic strings
             (
-                r'cursor\.(execute|executemany)\s*\([^,)]*(\+|\.format|\{)',
+                r"cursor\.(execute|executemany)\s*\([^,)]*(\+|\.format|\{)",
                 "Cursor execution with dynamic SQL",
                 0.90,
             ),
@@ -70,7 +70,7 @@ class SQLInjectionRule(BaseRule):
         "javascript": [
             # Template literals with SQL
             (
-                r'`.*?' + SQL_KEYWORDS + r'.*?\$\{',
+                r"`.*?" + SQL_KEYWORDS + r".*?\$\{",
                 "SQL query with template literal interpolation",
                 0.95,
             ),
@@ -88,7 +88,7 @@ class SQLInjectionRule(BaseRule):
             ),
             # query() with template literal
             (
-                r'\.query\s*\(\s*`[^`]*\$\{',
+                r"\.query\s*\(\s*`[^`]*\$\{",
                 "SQL query with template literal",
                 0.90,
             ),
@@ -102,7 +102,7 @@ class SQLInjectionRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'`.*?' + SQL_KEYWORDS + r'.*?\$\{',
+                r"`.*?" + SQL_KEYWORDS + r".*?\$\{",
                 "SQL query with template literal interpolation",
                 0.95,
             ),
@@ -112,7 +112,7 @@ class SQLInjectionRule(BaseRule):
                 0.85,
             ),
             (
-                r'\.query\s*\(\s*`[^`]*\$\{',
+                r"\.query\s*\(\s*`[^`]*\$\{",
                 "SQL query with template literal",
                 0.90,
             ),
@@ -126,7 +126,7 @@ class SQLInjectionRule(BaseRule):
             ),
             # Statement.execute with concatenation
             (
-                r'(Statement|Connection)\.(execute|executeQuery|executeUpdate)\s*\([^)]*\+',
+                r"(Statement|Connection)\.(execute|executeQuery|executeUpdate)\s*\([^)]*\+",
                 "SQL Statement with string concatenation",
                 0.90,
             ),
@@ -140,7 +140,7 @@ class SQLInjectionRule(BaseRule):
         "php": [
             # String interpolation in SQL
             (
-                r'["\'].*?' + SQL_KEYWORDS + r'.*?\$\w+',
+                r'["\'].*?' + SQL_KEYWORDS + r".*?\$\w+",
                 "SQL query with variable interpolation",
                 0.90,
             ),
@@ -178,7 +178,7 @@ class SQLInjectionRule(BaseRule):
             ),
             # db.Exec/Query with formatting
             (
-                r'db\.(Exec|Query|QueryRow)\s*\(\s*fmt\.Sprintf',
+                r"db\.(Exec|Query|QueryRow)\s*\(\s*fmt\.Sprintf",
                 "SQL query with fmt.Sprintf()",
                 0.90,
             ),
@@ -186,7 +186,7 @@ class SQLInjectionRule(BaseRule):
         "ruby": [
             # String interpolation with SQL
             (
-                r'["\'].*?' + SQL_KEYWORDS + r'.*?#\{',
+                r'["\'].*?' + SQL_KEYWORDS + r".*?#\{",
                 "SQL query with string interpolation",
                 0.90,
             ),
@@ -207,14 +207,14 @@ class SQLInjectionRule(BaseRule):
 
     # Patterns indicating safe parameterized queries
     SAFE_PATTERNS = [
-        r'\?\s*\)',  # Placeholder ?
-        r'\$\d+',  # PostgreSQL-style $1, $2
-        r':\w+',  # Named parameters :name
-        r'%\(.*?\)s',  # Python dict formatting with psycopg2
-        r'bindValue|bindParam',  # PHP PDO
-        r'setString|setInt|setParameter',  # Java PreparedStatement
-        r'\.prepare\s*\(',  # Prepared statement
-        r'Prepared|PreparedStatement',
+        r"\?\s*\)",  # Placeholder ?
+        r"\$\d+",  # PostgreSQL-style $1, $2
+        r":\w+",  # Named parameters :name
+        r"%\(.*?\)s",  # Python dict formatting with psycopg2
+        r"bindValue|bindParam",  # PHP PDO
+        r"setString|setInt|setParameter",  # Java PreparedStatement
+        r"\.prepare\s*\(",  # Prepared statement
+        r"Prepared|PreparedStatement",
     ]
 
     @property
@@ -381,8 +381,11 @@ class SQLInjectionRule(BaseRule):
                 "Never interpolate user input directly into SQL strings",
             ],
         }
-        return hints.get(language, [
-            "Use parameterized/prepared statements instead of string concatenation",
-            "Use an ORM or query builder with built-in SQL injection protection",
-            "Validate and sanitize all user inputs",
-        ])
+        return hints.get(
+            language,
+            [
+                "Use parameterized/prepared statements instead of string concatenation",
+                "Use an ORM or query builder with built-in SQL injection protection",
+                "Validate and sanitize all user inputs",
+            ],
+        )

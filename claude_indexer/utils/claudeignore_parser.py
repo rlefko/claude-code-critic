@@ -75,6 +75,7 @@ class ClaudeIgnoreParser:
         except (OSError, IOError) as e:
             # Log but don't fail - file may be temporarily unavailable
             import logging
+
             logging.getLogger(__name__).warning(f"Could not read {ignore_path}: {e}")
             return 0
 
@@ -102,8 +103,7 @@ class ClaudeIgnoreParser:
 
         # Use gitwildmatch for proper gitignore semantics
         self._spec = pathspec.PathSpec.from_lines(
-            pathspec.patterns.GitWildMatchPattern,
-            self._patterns
+            pathspec.patterns.GitWildMatchPattern, self._patterns
         )
 
     def matches(self, path: Union[Path, str]) -> bool:
@@ -173,8 +173,7 @@ class ClaudeIgnoreParser:
         # Check each pattern individually to find the matching one
         for pattern in self._patterns:
             spec = pathspec.PathSpec.from_lines(
-                pathspec.patterns.GitWildMatchPattern,
-                [pattern]
+                pathspec.patterns.GitWildMatchPattern, [pattern]
             )
             if spec.match_file(path_str):
                 # For negation patterns, continue checking

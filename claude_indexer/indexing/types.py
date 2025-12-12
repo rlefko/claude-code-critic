@@ -245,9 +245,7 @@ class BatchMetrics:
     def __post_init__(self) -> None:
         """Calculate files_per_second if not provided."""
         if self.files_per_second == 0.0 and self.processing_time_ms > 0:
-            self.files_per_second = (
-                self.batch_size / (self.processing_time_ms / 1000)
-            )
+            self.files_per_second = self.batch_size / (self.processing_time_ms / 1000)
 
 
 @dataclass

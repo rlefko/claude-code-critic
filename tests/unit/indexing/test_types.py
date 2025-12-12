@@ -1,7 +1,8 @@
 """Unit tests for indexing pipeline type definitions."""
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from claude_indexer.indexing.types import (
     BatchMetrics,

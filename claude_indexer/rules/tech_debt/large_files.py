@@ -112,9 +112,11 @@ class LargeFilesRule(BaseRule):
                         "Look for logical groupings that could become separate modules",
                         "Consider using a package structure with __init__.py",
                     ],
-                    config=context.config.get_rule_config(self.rule_id)
-                    if context.config
-                    else None,
+                    config=(
+                        context.config.get_rule_config(self.rule_id)
+                        if context.config
+                        else None
+                    ),
                 )
             )
 

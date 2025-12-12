@@ -126,7 +126,7 @@ class TestUIGuardHookInput:
             "tool_name": "Edit",
             "tool_input": {
                 "file_path": "src/Button.tsx",
-                "new_string": "className=\"btn-primary\"",
+                "new_string": 'className="btn-primary"',
             },
             "hook_event_name": "PreToolUse",
         }
@@ -276,10 +276,12 @@ class TestUIGuardPerformance:
     def test_fast_mode_timing(self, guard):
         """Fast mode should complete quickly."""
         # Generate some CSS content
-        content = "\n".join([
-            f".class-{i} {{ padding: {i * 4}px; color: #{i:02x}{i:02x}{i:02x}; }}"
-            for i in range(100)
-        ])
+        content = "\n".join(
+            [
+                f".class-{i} {{ padding: {i * 4}px; color: #{i:02x}{i:02x}{i:02x}; }}"
+                for i in range(100)
+            ]
+        )
 
         result = guard.check_file(Path("test.css"), content, fast_mode=True)
 

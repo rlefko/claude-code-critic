@@ -104,16 +104,20 @@ class TestCLIEndToEnd:
             mock_indexer_class.return_value = mock_indexer
 
             # Mock embedder and store creation
-            with patch(
-                "claude_indexer.cli_full.create_embedder_from_config"
-            ) as mock_embedder, patch(
-                "claude_indexer.cli_full.create_store_from_config"
-            ) as mock_store:
+            with (
+                patch(
+                    "claude_indexer.cli_full.create_embedder_from_config"
+                ) as mock_embedder,
+                patch("claude_indexer.cli_full.create_store_from_config") as mock_store,
+            ):
                 # Mock file operations to prevent path errors
                 mock_file = Mock()
                 mock_file.__enter__ = Mock(return_value=mock_file)
                 mock_file.__exit__ = Mock(return_value=None)
-                with patch("builtins.open", Mock(return_value=mock_file)), patch("json.dump", Mock()):
+                with (
+                    patch("builtins.open", Mock(return_value=mock_file)),
+                    patch("json.dump", Mock()),
+                ):
                     mock_embedder.return_value = Mock()
                     mock_store.return_value = Mock()
 
@@ -141,6 +145,7 @@ class TestCLIEndToEnd:
         """Test CLI search functionality."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -150,11 +155,15 @@ class TestCLIEndToEnd:
         runner = CliRunner()
 
         # Mock search components
-        with patch(
-            "claude_indexer.cli_full.create_embedder_from_config"
-        ) as mock_embedder_factory, patch(
-            "claude_indexer.cli_full.create_store_from_config"
-        ) as mock_store_factory, patch("claude_indexer.cli_full.CoreIndexer") as mock_indexer_class:
+        with (
+            patch(
+                "claude_indexer.cli_full.create_embedder_from_config"
+            ) as mock_embedder_factory,
+            patch(
+                "claude_indexer.cli_full.create_store_from_config"
+            ) as mock_store_factory,
+            patch("claude_indexer.cli_full.CoreIndexer") as mock_indexer_class,
+        ):
             # Configure mock embedder
             mock_embedder = Mock()
             mock_embedder.embed_single.return_value = [0.1] * 1536
@@ -182,15 +191,15 @@ class TestCLIEndToEnd:
             # Test search command
             result = runner.invoke(
                 cli.cli,
-                    [
-                        "search",
-                        "--project",
-                        str(temp_repo),
-                        "--collection",
-                        "test-collection",
-                        "test function",
-                    ],
-                )
+                [
+                    "search",
+                    "--project",
+                    str(temp_repo),
+                    "--collection",
+                    "test-collection",
+                    "test function",
+                ],
+            )
 
             assert result.exit_code == 0
             assert "test_function" in result.output
@@ -200,6 +209,7 @@ class TestCLIEndToEnd:
         """Test CLI configuration validation."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -259,12 +269,14 @@ class TestFullSystemWorkflows:
 
         # Step 3: Modify files and re-index
         new_file = temp_repo / "new_module.py"
-        new_file.write_text('''"""New module added during test."""
+        new_file.write_text(
+            '''"""New module added during test."""
 
 def search_test_function():
     """Function added for search testing."""
     return "searchable"
-''')
+'''
+        )
 
         result2 = indexer.index_project("test_e2e_workflow")
         assert result2.success
@@ -456,9 +468,9 @@ def module_{module_i}_function_{func_i}():
         # For large projects, just verify that Module0Class0 entities are found (no exact count requirement)
         # The system successfully indexes all entities, DummyEmbedder just ranks them differently
         matching_entities = search_for_class()
-        assert len(matching_entities) >= 1, (
-            f"Should find at least 1 Module0Class0 entity, found {len(matching_entities)}"
-        )
+        assert (
+            len(matching_entities) >= 1
+        ), f"Should find at least 1 Module0Class0 entity, found {len(matching_entities)}"
 
         # Verify the entities are properly structured
         for entity in matching_entities[:3]:  # Check first 3 found entities
@@ -473,9 +485,10 @@ def module_{module_i}_function_{func_i}():
                 "entity_type",
                 entity.payload.get("type", entity.payload.get("entityType", "")),
             )
-            assert entity_type in ["class", "entity"], (
-                f"Expected class or entity type, got {entity_type}"
-            )
+            assert entity_type in [
+                "class",
+                "entity",
+            ], f"Expected class or entity type, got {entity_type}"
 
 
 @pytest.mark.e2e
@@ -486,6 +499,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI with custom configuration file."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -588,6 +602,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI output modes."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -690,6 +705,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI error handling and user-friendly error messages."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner

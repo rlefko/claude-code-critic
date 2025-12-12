@@ -5,10 +5,11 @@ These tests require Playwright to be installed:
     playwright install chromium
 """
 
-import pytest
+import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-import tempfile
+
+import pytest
 
 # Skip all tests if Playwright is not available
 pytest.importorskip("playwright", reason="Playwright not installed")
@@ -347,14 +348,11 @@ class TestCrawlSingleTarget:
         )
 
         # Mock dependencies
-        with patch(
-            "claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"
-        ), patch(
-            "claude_indexer.ui.collectors.runtime.ComputedStyleCapture"
-        ), patch(
-            "claude_indexer.ui.collectors.runtime.PseudoStateCapture"
-        ), patch(
-            "claude_indexer.ui.collectors.runtime.ScreenshotCapture"
+        with (
+            patch("claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"),
+            patch("claude_indexer.ui.collectors.runtime.ComputedStyleCapture"),
+            patch("claude_indexer.ui.collectors.runtime.PseudoStateCapture"),
+            patch("claude_indexer.ui.collectors.runtime.ScreenshotCapture"),
         ):
             result = await collector._crawl_single_target(
                 target=target,

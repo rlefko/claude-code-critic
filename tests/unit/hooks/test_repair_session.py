@@ -181,7 +181,9 @@ class TestRepairSessionManager:
     def test_compute_findings_hash_order_independent(self, sample_findings):
         """Test hash is order-independent."""
         hash1 = RepairSessionManager.compute_findings_hash(sample_findings)
-        hash2 = RepairSessionManager.compute_findings_hash(list(reversed(sample_findings)))
+        hash2 = RepairSessionManager.compute_findings_hash(
+            list(reversed(sample_findings))
+        )
 
         assert hash1 == hash2
 
@@ -319,9 +321,7 @@ class TestRepairSessionManager:
 
         # Manually expire
         state = manager._load_state()
-        state["sessions"][session.session_id]["last_check_at"] = (
-            time.time() - 7200
-        )
+        state["sessions"][session.session_id]["last_check_at"] = time.time() - 7200
         manager._save_state(state)
 
         # New session should start fresh

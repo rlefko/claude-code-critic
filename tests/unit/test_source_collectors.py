@@ -266,11 +266,11 @@ class TestReactAdapter:
 
     def test_extract_classname_usage(self, adapter: ReactAdapter):
         """Test extracting className attributes."""
-        content = '''
+        content = """
         function Button() {
             return <button className="btn btn-primary">Click</button>;
         }
-        '''
+        """
         styles = adapter.extract_style_usage(Path("Button.tsx"), content)
 
         assert len(styles) >= 1
@@ -402,11 +402,11 @@ class TestGenericAdapter:
 
     def test_extract_html_classes(self, adapter: GenericAdapter):
         """Test extracting classes from HTML."""
-        content = '''
+        content = """
         <div class="container flex">
             <span class="text-bold">Text</span>
         </div>
-        '''
+        """
         styles = adapter.extract_style_usage(Path("page.html"), content)
 
         class_names = []
@@ -418,9 +418,9 @@ class TestGenericAdapter:
 
     def test_extract_inline_styles(self, adapter: GenericAdapter):
         """Test extracting inline styles from HTML."""
-        content = '''
+        content = """
         <div style="color: red; padding: 10px;">Content</div>
-        '''
+        """
         styles = adapter.extract_style_usage(Path("page.html"), content)
 
         inline = [s for s in styles if s.is_inline]
@@ -494,11 +494,11 @@ class TestSourceCollector:
 
     def test_extract_from_tsx(self, collector: SourceCollector):
         """Test extraction from TSX file."""
-        content = '''
+        content = """
         export function Button({ onClick }) {
             return <button className="btn" onClick={onClick}>Click</button>;
         }
-        '''
+        """
         result = collector.extract(Path("Button.tsx"), content)
 
         assert not result.has_errors

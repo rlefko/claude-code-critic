@@ -1,10 +1,11 @@
 """Unit tests for IndexingCheckpoint."""
 
 import json
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from claude_indexer.indexing.checkpoint import IndexingCheckpoint
 from claude_indexer.indexing.types import CheckpointState, PipelineConfig
@@ -234,7 +235,9 @@ class TestIndexingCheckpoint:
         checkpoint.save()
 
         # Check file exists
-        checkpoint_file = checkpoint.cache_dir / "indexing_checkpoint_test-collection.json"
+        checkpoint_file = (
+            checkpoint.cache_dir / "indexing_checkpoint_test-collection.json"
+        )
         assert checkpoint_file.exists()
 
         # Verify content

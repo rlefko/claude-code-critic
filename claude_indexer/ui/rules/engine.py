@@ -86,7 +86,8 @@ class RuleEngine:
 
             if rule.category in self._rules_by_category:
                 self._rules_by_category[rule.category] = [
-                    r for r in self._rules_by_category[rule.category]
+                    r
+                    for r in self._rules_by_category[rule.category]
                     if r.rule_id != rule_id
                 ]
 

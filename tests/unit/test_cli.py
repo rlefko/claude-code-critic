@@ -1121,7 +1121,9 @@ class TestCollectionsCommands:
         mock_manager_class.return_value = mock_manager
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["collections", "cleanup", "--prefix", "nonexistent"])
+        result = runner.invoke(
+            cli, ["collections", "cleanup", "--prefix", "nonexistent"]
+        )
 
         assert result.exit_code == 0
         assert "No collections found" in result.output

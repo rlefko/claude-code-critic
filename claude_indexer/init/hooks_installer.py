@@ -180,10 +180,11 @@ class HooksInstaller:
             hook_path = self.hooks_dest / hook_file
             results["claude_hooks"][hook_file] = {
                 "exists": hook_path.exists(),
-                "executable": hook_path.exists()
-                and os.access(hook_path, os.X_OK)
-                if hook_file.endswith(".sh")
-                else True,
+                "executable": (
+                    hook_path.exists() and os.access(hook_path, os.X_OK)
+                    if hook_file.endswith(".sh")
+                    else True
+                ),
             }
 
         # Check git hook
@@ -219,7 +220,9 @@ class HooksInstaller:
         return InitStepResult(
             step_name="uninstall_claude_hooks",
             success=True,
-            message=f"Removed {len(removed)} hooks" if removed else "No hooks to remove",
+            message=(
+                f"Removed {len(removed)} hooks" if removed else "No hooks to remove"
+            ),
         )
 
     def uninstall_git_hooks(self) -> InitStepResult:
@@ -251,7 +254,11 @@ class HooksInstaller:
             return InitStepResult(
                 step_name="uninstall_git_hooks",
                 success=success,
-                message="Removed git pre-commit hook" if success else "Failed to remove hook",
+                message=(
+                    "Removed git pre-commit hook"
+                    if success
+                    else "Failed to remove hook"
+                ),
             )
         except Exception as e:
             return InitStepResult(

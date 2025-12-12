@@ -27,7 +27,11 @@ class UnsafeLoopRule(BaseRule):
         "python": [
             (r"^\s*while\s+True\s*:", "while True", 0.70),
             (r"^\s*while\s+1\s*:", "while 1", 0.75),
-            (r'^\s*while\s+["\'][^"\']+["\']\s*:', "while with constant truthy string", 0.85),
+            (
+                r'^\s*while\s+["\'][^"\']+["\']\s*:',
+                "while with constant truthy string",
+                0.85,
+            ),
         ],
         "javascript": [
             (r"\bwhile\s*\(\s*true\s*\)", "while(true)", 0.70),

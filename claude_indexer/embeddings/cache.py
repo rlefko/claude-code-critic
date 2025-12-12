@@ -136,7 +136,9 @@ class PersistentEmbeddingCache:
             results[h] = self.get(h)
         return results
 
-    def set(self, content_hash: str, embedding: list[float], dimension: int = 0) -> None:
+    def set(
+        self, content_hash: str, embedding: list[float], dimension: int = 0
+    ) -> None:
         """Store embedding with automatic eviction if needed.
 
         Args:
@@ -168,11 +170,7 @@ class PersistentEmbeddingCache:
             except Exception as e:
                 self.logger.warning(f"Failed to cache embedding: {e}")
 
-    def set_batch(
-        self,
-        embeddings: dict[str, list[float]],
-        dimension: int = 0
-    ) -> None:
+    def set_batch(self, embeddings: dict[str, list[float]], dimension: int = 0) -> None:
         """Store multiple embeddings at once.
 
         Args:
@@ -214,8 +212,7 @@ class PersistentEmbeddingCache:
 
         # Sort by last access time (oldest first)
         sorted_entries = sorted(
-            self._index.items(),
-            key=lambda x: x[1].get("last_access", 0)
+            self._index.items(), key=lambda x: x[1].get("last_access", 0)
         )
 
         # Remove oldest 25% of entries

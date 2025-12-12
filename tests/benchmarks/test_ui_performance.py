@@ -11,21 +11,22 @@ Requires pytest-benchmark: pip install pytest-benchmark
 
 import time
 from pathlib import Path
-from typing import List, Callable
+from typing import Callable, List
 
 import pytest
 
 # Import UI modules
 try:
-    from claude_indexer.ui.config import UIQualityConfig
-    from claude_indexer.ui.rules.engine import RuleEngine
-    from claude_indexer.ui.rules.token_drift import ColorNonTokenRule
-    from claude_indexer.ui.rules.smells import ImportantNewUsageRule
-    from claude_indexer.ui.collectors.source import SourceCollector
-    from claude_indexer.ui.normalizers.style import StyleNormalizer
-    from claude_indexer.ui.normalizers.token_resolver import TokenResolver
     from claude_indexer.ui.ci.audit_runner import CIAuditRunner
     from claude_indexer.ui.cli.guard import UIGuard
+    from claude_indexer.ui.collectors.source import SourceCollector
+    from claude_indexer.ui.config import UIQualityConfig
+    from claude_indexer.ui.normalizers.style import StyleNormalizer
+    from claude_indexer.ui.normalizers.token_resolver import TokenResolver
+    from claude_indexer.ui.rules.engine import RuleEngine
+    from claude_indexer.ui.rules.smells import ImportantNewUsageRule
+    from claude_indexer.ui.rules.token_drift import ColorNonTokenRule
+
     UI_MODULES_AVAILABLE = True
 except ImportError as e:
     UI_MODULES_AVAILABLE = False
@@ -35,7 +36,7 @@ except ImportError as e:
 pytestmark = [
     pytest.mark.skipif(
         not UI_MODULES_AVAILABLE,
-        reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}"
+        reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}",
     ),
     pytest.mark.benchmark,
     pytest.mark.slow,
@@ -83,7 +84,9 @@ class TestTier0Performance:
         p95 = timings[p95_index] if p95_index < len(timings) else timings[-1]
 
         # P95 should be under 100ms for single file
-        assert p95 < 0.100, f"Single file analysis p95 ({p95:.3f}s) exceeds 100ms target"
+        assert (
+            p95 < 0.100
+        ), f"Single file analysis p95 ({p95:.3f}s) exceeds 100ms target"
 
     def test_batch_file_analysis_under_target(
         self, fixture_path: Path, benchmark_iterations: int
@@ -112,9 +115,9 @@ class TestTier0Performance:
         p95_index = int(len(timings) * 0.95)
         p95 = timings[p95_index] if p95_index < len(timings) else timings[-1]
 
-        assert p95 < TIER_0_TARGET_P95, (
-            f"Batch file analysis p95 ({p95:.3f}s) exceeds {TIER_0_TARGET_P95}s target"
-        )
+        assert (
+            p95 < TIER_0_TARGET_P95
+        ), f"Batch file analysis p95 ({p95:.3f}s) exceeds {TIER_0_TARGET_P95}s target"
 
     def test_ui_guard_hook_under_target(
         self, fixture_path: Path, benchmark_iterations: int
@@ -143,9 +146,9 @@ class TestTier0Performance:
         p95_index = int(len(timings) * 0.95)
         p95 = timings[p95_index] if p95_index < len(timings) else timings[-1]
 
-        assert p95 < TIER_0_TARGET_P95, (
-            f"UI Guard hook p95 ({p95:.3f}s) exceeds {TIER_0_TARGET_P95}s target"
-        )
+        assert (
+            p95 < TIER_0_TARGET_P95
+        ), f"UI Guard hook p95 ({p95:.3f}s) exceeds {TIER_0_TARGET_P95}s target"
 
     def test_style_normalization_performance(
         self, single_file_content: str, benchmark_iterations: int
@@ -184,8 +187,9 @@ class TestTier1Performance:
     ):
         """Medium repo (~100 files) audit should complete in <60s."""
         # Count files
-        file_count = len(list(medium_codebase.glob("**/*.tsx"))) + \
-                     len(list(medium_codebase.glob("**/*.css")))
+        file_count = len(list(medium_codebase.glob("**/*.tsx"))) + len(
+            list(medium_codebase.glob("**/*.css"))
+        )
 
         config = UIQualityConfig()
         runner = CIAuditRunner(project_path=medium_codebase, config=config)
@@ -214,8 +218,8 @@ class TestTier1Performance:
         self, fixture_path: Path, benchmark_iterations: int
     ):
         """Cross-file clustering should scale linearly."""
-        from claude_indexer.ui.similarity.clustering import Clustering
         from claude_indexer.ui.normalizers.component import ComponentNormalizer
+        from claude_indexer.ui.similarity.clustering import Clustering
 
         # Create mock fingerprints
         normalizer = ComponentNormalizer()
@@ -278,9 +282,9 @@ class TestTier1Performance:
 
         # Cache should provide at least 30% improvement
         # (50% is ideal but may vary based on I/O)
-        assert improvement >= 30, (
-            f"Cache improvement ({improvement:.1f}%) is less than 30% target"
-        )
+        assert (
+            improvement >= 30
+        ), f"Cache improvement ({improvement:.1f}%) is less than 30% target"
 
 
 class TestTier2Performance:
@@ -315,8 +319,8 @@ class TestTier2Performance:
         self, fixture_path: Path, benchmark_iterations: int
     ):
         """HTML report generation should complete in <5s."""
-        from claude_indexer.ui.reporters.html import HTMLReporter
         from claude_indexer.ui.ci.audit_runner import CIAuditRunner
+        from claude_indexer.ui.reporters.html import HTMLReporter
 
         config = UIQualityConfig()
         runner = CIAuditRunner(project_path=fixture_path, config=config)
@@ -340,9 +344,7 @@ class TestTier2Performance:
 class TestMemoryUsage:
     """Test memory usage stays within reasonable bounds."""
 
-    def test_memory_usage_under_limit(
-        self, medium_codebase: Path
-    ):
+    def test_memory_usage_under_limit(self, medium_codebase: Path):
         """Memory usage should stay under 500MB for medium repos."""
         import tracemalloc
 
@@ -363,9 +365,7 @@ class TestMemoryUsage:
 class TestScalabilityMetrics:
     """Test that performance scales appropriately."""
 
-    def test_linear_scaling_with_file_count(
-        self, fixture_path: Path
-    ):
+    def test_linear_scaling_with_file_count(self, fixture_path: Path):
         """Processing time should scale linearly with file count."""
         components_path = fixture_path / "components"
         all_files = list(components_path.glob("*.tsx"))
@@ -394,13 +394,11 @@ class TestScalabilityMetrics:
 
         # 10 files should take less than 30x the time of 1 file
         # (allowing for some overhead)
-        assert time_10 < time_1 * 30, (
-            f"Non-linear scaling: 1 file={time_1:.3f}s, 10 files={time_10:.3f}s"
-        )
+        assert (
+            time_10 < time_1 * 30
+        ), f"Non-linear scaling: 1 file={time_1:.3f}s, 10 files={time_10:.3f}s"
 
-    def test_incremental_mode_faster_than_full(
-        self, fixture_path: Path
-    ):
+    def test_incremental_mode_faster_than_full(self, fixture_path: Path):
         """Incremental mode should be faster than full analysis."""
         config = UIQualityConfig()
 

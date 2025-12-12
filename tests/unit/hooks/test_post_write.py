@@ -387,13 +387,13 @@ def calculate_total(items):
 
     def test_end_to_end_javascript_file(self):
         """Test complete flow with a JavaScript file."""
-        content = '''
+        content = """
 function greet(name) {
     console.log("Hello, " + name);
 }
 
 module.exports = { greet };
-'''
+"""
 
         with tempfile.NamedTemporaryFile(suffix=".js", delete=False) as f:
             f.write(content.encode())

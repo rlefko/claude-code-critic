@@ -34,7 +34,9 @@ class SmartWatcherWait:
             r"Traceback",
         ]
 
-    def wait_for_watcher_completion(self, expected_files: int | list[str] = None, grace_period: int = 2) -> dict:
+    def wait_for_watcher_completion(
+        self, expected_files: int | list[str] = None, grace_period: int = 2
+    ) -> dict:
         """
         Smart wait for watcher to complete processing files.
 
@@ -63,14 +65,18 @@ class SmartWatcherWait:
         else:
             expected_file_names = None
             expected_count = expected_files
-            print(f"🕐 Smart wait: Monitoring {self.log_file} for completion signals...")
+            print(
+                f"🕐 Smart wait: Monitoring {self.log_file} for completion signals..."
+            )
             print(f"   Expected files: {expected_files if expected_files else 'any'}")
         print(f"   Timeout: {self.timeout}s, Grace period: {grace_period}s")
 
         while time.time() - start_time < self.timeout:
             if not self.log_file.exists():
                 if time.time() - start_time > 5:  # Give more time for log file creation
-                    print(f"⏰ Log file {self.log_file} not found after 5s, continuing to wait...")
+                    print(
+                        f"⏰ Log file {self.log_file} not found after 5s, continuing to wait..."
+                    )
                 time.sleep(0.5)
                 continue
 
@@ -83,20 +89,24 @@ class SmartWatcherWait:
 
                 if new_content:
                     activity_detected = True
-                    lines = new_content.split('\n')
+                    lines = new_content.split("\n")
                     for line in lines:
                         if not line.strip():
                             continue
 
                         # Check for batch processing patterns first
-                        batch_match = re.search(r'🔄 Auto-indexing batch \((\d+) files\): (.+)', line)
+                        batch_match = re.search(
+                            r"🔄 Auto-indexing batch \((\d+) files\): (.+)", line
+                        )
                         if batch_match:
                             file_count = int(batch_match.group(1))
                             file_list = batch_match.group(2)
-                            print(f"📦 Batch detected: {file_count} files - {file_list}")
+                            print(
+                                f"📦 Batch detected: {file_count} files - {file_list}"
+                            )
 
                             # Extract actual filenames from batch
-                            batch_files = [f.strip() for f in file_list.split(',')]
+                            batch_files = [f.strip() for f in file_list.split(",")]
                             for filename in batch_files:
                                 files_found.add(filename)
                                 print(f"📁 File found: {filename}")
@@ -109,13 +119,19 @@ class SmartWatcherWait:
                                 completion_found = True
 
                                 # Extract file count if mentioned
-                                file_count_match = re.search(r'(\d+)\s+files?', line, re.IGNORECASE)
+                                file_count_match = re.search(
+                                    r"(\d+)\s+files?", line, re.IGNORECASE
+                                )
                                 if file_count_match:
                                     files_processed = int(file_count_match.group(1))
                                     print(f"📊 Files processed: {files_processed}")
 
                         # Also look for individual file processing
-                        file_processing_match = re.search(r'(?:Processing|Indexing).*?([a-zA-Z_][a-zA-Z0-9_]*\.py)', line, re.IGNORECASE)
+                        file_processing_match = re.search(
+                            r"(?:Processing|Indexing).*?([a-zA-Z_][a-zA-Z0-9_]*\.py)",
+                            line,
+                            re.IGNORECASE,
+                        )
                         if file_processing_match:
                             filename = file_processing_match.group(1)
                             files_found.add(filename)
@@ -132,7 +148,9 @@ class SmartWatcherWait:
                     if expected_file_names:
                         # Check if all expected files were found
                         if expected_file_names.issubset(files_found):
-                            print(f"🎯 All expected files processed! Files: {files_found}, Grace period: {grace_period}s")
+                            print(
+                                f"🎯 All expected files processed! Files: {files_found}, Grace period: {grace_period}s"
+                            )
                             time.sleep(grace_period)
                             break
                         else:
@@ -140,11 +158,15 @@ class SmartWatcherWait:
                             print(f"⏳ Waiting for files: {missing}")
                             completion_found = False  # Reset for continued waiting
                     elif expected_count is None or files_processed >= expected_count:
-                        print(f"🎯 Processing complete! Files: {files_processed}, Grace period: {grace_period}s")
+                        print(
+                            f"🎯 Processing complete! Files: {files_processed}, Grace period: {grace_period}s"
+                        )
                         time.sleep(grace_period)
                         break
                     else:
-                        print(f"⏳ Partial completion: {files_processed}/{expected_count} files")
+                        print(
+                            f"⏳ Partial completion: {files_processed}/{expected_count} files"
+                        )
                         completion_found = False  # Reset for continued waiting
 
             except Exception as e:
@@ -155,16 +177,16 @@ class SmartWatcherWait:
         elapsed = time.time() - start_time
 
         result = {
-            'completed': completion_found,
-            'files_processed': files_processed,
-            'files_found': list(files_found),
-            'elapsed_time': elapsed,
-            'errors': errors_found,
-            'timed_out': elapsed >= self.timeout,
-            'activity_detected': activity_detected
+            "completed": completion_found,
+            "files_processed": files_processed,
+            "files_found": list(files_found),
+            "elapsed_time": elapsed,
+            "errors": errors_found,
+            "timed_out": elapsed >= self.timeout,
+            "activity_detected": activity_detected,
         }
 
-        if result['timed_out']:
+        if result["timed_out"]:
             print(f"⏰ Timeout after {elapsed:.1f}s (activity: {activity_detected})")
         else:
             print(f"✅ Smart wait completed in {elapsed:.1f}s")

@@ -1,7 +1,8 @@
 """Unit tests for element targeting strategy."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestUIRole:
@@ -248,7 +249,9 @@ class TestElementTargetingAsync:
         # Mock page
         mock_page = AsyncMock()
         mock_page.query_selector_all = AsyncMock(return_value=[mock_element])
-        mock_page.locator = MagicMock(return_value=MagicMock(count=AsyncMock(return_value=1)))
+        mock_page.locator = MagicMock(
+            return_value=MagicMock(count=AsyncMock(return_value=1))
+        )
 
         strategy = ElementTargetingStrategy(
             roles=["button"],

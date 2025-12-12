@@ -23,61 +23,61 @@ class CommandInjectionRule(BaseRule):
         "python": [
             # os.system with variables
             (
-                r'os\.system\s*\([^)]*[\+\{\%]',
+                r"os\.system\s*\([^)]*[\+\{\%]",
                 "os.system() with dynamic input",
                 0.95,
             ),
             # os.system alone (warning)
             (
-                r'os\.system\s*\(',
+                r"os\.system\s*\(",
                 "os.system() usage (consider subprocess with shell=False)",
                 0.60,
             ),
             # subprocess with shell=True and dynamic input
             (
-                r'subprocess\.(call|run|Popen)\s*\([^)]*shell\s*=\s*True[^)]*[\+\{\%]',
+                r"subprocess\.(call|run|Popen)\s*\([^)]*shell\s*=\s*True[^)]*[\+\{\%]",
                 "subprocess with shell=True and dynamic input",
                 0.95,
             ),
             # subprocess with shell=True (warning)
             (
-                r'subprocess\.(call|run|Popen)\s*\([^)]*shell\s*=\s*True',
+                r"subprocess\.(call|run|Popen)\s*\([^)]*shell\s*=\s*True",
                 "subprocess with shell=True (security risk)",
                 0.70,
             ),
             # os.popen
             (
-                r'os\.popen\s*\(',
+                r"os\.popen\s*\(",
                 "os.popen() is vulnerable to injection",
                 0.85,
             ),
             # eval with user input
             (
-                r'\beval\s*\([^)]*[\+\{\%]',
+                r"\beval\s*\([^)]*[\+\{\%]",
                 "eval() with dynamic input",
                 0.95,
             ),
             # exec with user input
             (
-                r'\bexec\s*\([^)]*[\+\{\%]',
+                r"\bexec\s*\([^)]*[\+\{\%]",
                 "exec() with dynamic input",
                 0.95,
             ),
             # compile + exec pattern
             (
-                r'compile\s*\([^)]+\).*exec',
+                r"compile\s*\([^)]+\).*exec",
                 "compile() followed by exec()",
                 0.80,
             ),
             # commands module (legacy)
             (
-                r'commands\.(getoutput|getstatusoutput)\s*\(',
+                r"commands\.(getoutput|getstatusoutput)\s*\(",
                 "commands module is deprecated and unsafe",
                 0.90,
             ),
             # subprocess.getoutput/getstatusoutput
             (
-                r'subprocess\.(getoutput|getstatusoutput)\s*\(',
+                r"subprocess\.(getoutput|getstatusoutput)\s*\(",
                 "subprocess.getoutput() uses shell (security risk)",
                 0.80,
             ),
@@ -85,37 +85,37 @@ class CommandInjectionRule(BaseRule):
         "javascript": [
             # child_process.exec with concatenation
             (
-                r'(child_process\.)?exec\s*\([^)]*[\+\`]',
+                r"(child_process\.)?exec\s*\([^)]*[\+\`]",
                 "exec() with dynamic input",
                 0.95,
             ),
             # execSync with dynamic input
             (
-                r'execSync\s*\([^)]*[\+\`]',
+                r"execSync\s*\([^)]*[\+\`]",
                 "execSync() with dynamic input",
                 0.95,
             ),
             # spawn with shell option
             (
-                r'spawn\s*\([^)]*shell\s*:\s*true',
+                r"spawn\s*\([^)]*shell\s*:\s*true",
                 "spawn with shell option enabled",
                 0.85,
             ),
             # eval with dynamic input
             (
-                r'\beval\s*\([^)]*[\+\`]',
+                r"\beval\s*\([^)]*[\+\`]",
                 "eval() with dynamic input",
                 0.95,
             ),
             # Function constructor
             (
-                r'new\s+Function\s*\([^)]*[\+\`]',
+                r"new\s+Function\s*\([^)]*[\+\`]",
                 "Function constructor with dynamic input",
                 0.90,
             ),
             # vm.runInContext with dynamic code
             (
-                r'vm\.(runInContext|runInNewContext|runInThisContext)\s*\([^)]*[\+\`]',
+                r"vm\.(runInContext|runInNewContext|runInThisContext)\s*\([^)]*[\+\`]",
                 "vm module with dynamic code",
                 0.90,
             ),
@@ -123,22 +123,22 @@ class CommandInjectionRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'(child_process\.)?exec\s*\([^)]*[\+\`]',
+                r"(child_process\.)?exec\s*\([^)]*[\+\`]",
                 "exec() with dynamic input",
                 0.95,
             ),
             (
-                r'execSync\s*\([^)]*[\+\`]',
+                r"execSync\s*\([^)]*[\+\`]",
                 "execSync() with dynamic input",
                 0.95,
             ),
             (
-                r'\beval\s*\([^)]*[\+\`]',
+                r"\beval\s*\([^)]*[\+\`]",
                 "eval() with dynamic input",
                 0.95,
             ),
             (
-                r'new\s+Function\s*\([^)]*[\+\`]',
+                r"new\s+Function\s*\([^)]*[\+\`]",
                 "Function constructor with dynamic input",
                 0.90,
             ),
@@ -146,19 +146,19 @@ class CommandInjectionRule(BaseRule):
         "java": [
             # Runtime.exec with concatenation
             (
-                r'Runtime\.getRuntime\(\)\.exec\s*\([^)]*\+',
+                r"Runtime\.getRuntime\(\)\.exec\s*\([^)]*\+",
                 "Runtime.exec() with string concatenation",
                 0.95,
             ),
             # ProcessBuilder with dynamic input
             (
-                r'new\s+ProcessBuilder\s*\([^)]*\+',
+                r"new\s+ProcessBuilder\s*\([^)]*\+",
                 "ProcessBuilder with dynamic input",
                 0.85,
             ),
             # ScriptEngine eval
             (
-                r'ScriptEngine.*\.eval\s*\([^)]*\+',
+                r"ScriptEngine.*\.eval\s*\([^)]*\+",
                 "ScriptEngine.eval() with dynamic input",
                 0.90,
             ),
@@ -166,31 +166,31 @@ class CommandInjectionRule(BaseRule):
         "php": [
             # system/exec/passthru with variable
             (
-                r'\b(system|exec|passthru|shell_exec)\s*\([^)]*\$',
+                r"\b(system|exec|passthru|shell_exec)\s*\([^)]*\$",
                 "Shell function with variable input",
                 0.95,
             ),
             # Backticks with variable
             (
-                r'`[^`]*\$\w+',
+                r"`[^`]*\$\w+",
                 "Backtick execution with variable",
                 0.95,
             ),
             # popen with variable
             (
-                r'popen\s*\([^)]*\$',
+                r"popen\s*\([^)]*\$",
                 "popen() with variable input",
                 0.90,
             ),
             # proc_open with variable
             (
-                r'proc_open\s*\([^)]*\$',
+                r"proc_open\s*\([^)]*\$",
                 "proc_open() with variable input",
                 0.90,
             ),
             # eval with variable
             (
-                r'\beval\s*\([^)]*\$',
+                r"\beval\s*\([^)]*\$",
                 "eval() with variable input",
                 0.95,
             ),
@@ -198,13 +198,13 @@ class CommandInjectionRule(BaseRule):
         "go": [
             # exec.Command with variable
             (
-                r'exec\.Command\s*\([^)]*\+',
+                r"exec\.Command\s*\([^)]*\+",
                 "exec.Command with string concatenation",
                 0.85,
             ),
             # os/exec with fmt.Sprintf
             (
-                r'exec\.Command\s*\(\s*fmt\.Sprintf',
+                r"exec\.Command\s*\(\s*fmt\.Sprintf",
                 "exec.Command with fmt.Sprintf()",
                 0.90,
             ),
@@ -212,25 +212,25 @@ class CommandInjectionRule(BaseRule):
         "ruby": [
             # system/exec with interpolation
             (
-                r'\b(system|exec|`)[^`]*#\{',
+                r"\b(system|exec|`)[^`]*#\{",
                 "Shell execution with string interpolation",
                 0.95,
             ),
             # Open3 with interpolation
             (
-                r'Open3\.\w+\s*\([^)]*#\{',
+                r"Open3\.\w+\s*\([^)]*#\{",
                 "Open3 with string interpolation",
                 0.90,
             ),
             # %x with interpolation
             (
-                r'%x\[[^\]]*#\{|%x\{[^}]*#\{',
+                r"%x\[[^\]]*#\{|%x\{[^}]*#\{",
                 "%x execution with interpolation",
                 0.95,
             ),
             # Kernel.system
             (
-                r'Kernel\.system\s*\([^)]*#\{',
+                r"Kernel\.system\s*\([^)]*#\{",
                 "Kernel.system with interpolation",
                 0.95,
             ),
@@ -275,15 +275,15 @@ class CommandInjectionRule(BaseRule):
     def _has_input_validation(self, surrounding_lines: list[str]) -> bool:
         """Check if there appears to be input validation nearby."""
         validation_patterns = [
-            r'shlex\.quote',
-            r'escapeshellarg',
-            r'escapeshellcmd',
-            r'allowlist|whitelist',
-            r'validate.*input',
-            r'sanitize',
-            r'\.match\s*\(',
-            r'\.test\s*\(',
-            r'regex|regexp',
+            r"shlex\.quote",
+            r"escapeshellarg",
+            r"escapeshellcmd",
+            r"allowlist|whitelist",
+            r"validate.*input",
+            r"sanitize",
+            r"\.match\s*\(",
+            r"\.test\s*\(",
+            r"regex|regexp",
         ]
         text = " ".join(surrounding_lines)
         for pattern in validation_patterns:
@@ -410,8 +410,11 @@ class CommandInjectionRule(BaseRule):
                 "Prefer Open3.capture3 with array arguments",
             ],
         }
-        return hints.get(language, [
-            "Pass command arguments as an array, not a concatenated string",
-            "Use language-specific escaping functions for shell arguments",
-            "Implement strict input validation using allowlists",
-        ])
+        return hints.get(
+            language,
+            [
+                "Pass command arguments as an array, not a concatenated string",
+                "Use language-specific escaping functions for shell arguments",
+                "Implement strict input validation using allowlists",
+            ],
+        )

@@ -49,11 +49,27 @@ class ViewportConfig:
 class ElementTargetingConfig:
     """Configuration for element targeting during crawl."""
 
-    roles: list[str] = field(default_factory=lambda: [
-        "button", "link", "textbox", "checkbox", "radio", "combobox",
-        "listbox", "menu", "menuitem", "tab", "tabpanel", "dialog",
-        "alert", "heading", "img", "navigation", "main"
-    ])
+    roles: list[str] = field(
+        default_factory=lambda: [
+            "button",
+            "link",
+            "textbox",
+            "checkbox",
+            "radio",
+            "combobox",
+            "listbox",
+            "menu",
+            "menuitem",
+            "tab",
+            "tabpanel",
+            "dialog",
+            "alert",
+            "heading",
+            "img",
+            "navigation",
+            "main",
+        ]
+    )
     selectors: list[str] = field(default_factory=list)
     test_id_patterns: list[str] = field(
         default_factory=lambda: ["data-testid", "data-test-id", "data-cy"]
@@ -71,9 +87,13 @@ class ElementTargetingConfig:
     def from_dict(cls, data: dict[str, Any]) -> "ElementTargetingConfig":
         """Create from dictionary."""
         return cls(
-            roles=data.get("roles", cls.__dataclass_fields__["roles"].default_factory()),
+            roles=data.get(
+                "roles", cls.__dataclass_fields__["roles"].default_factory()
+            ),
             selectors=data.get("selectors", []),
-            test_id_patterns=data.get("testIdPatterns", ["data-testid", "data-test-id", "data-cy"]),
+            test_id_patterns=data.get(
+                "testIdPatterns", ["data-testid", "data-test-id", "data-cy"]
+            ),
         )
 
 
@@ -120,9 +140,7 @@ class CrawlConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CrawlConfig":
         """Create from dictionary."""
-        viewports = [
-            ViewportConfig.from_dict(v) for v in data.get("viewports", [])
-        ]
+        viewports = [ViewportConfig.from_dict(v) for v in data.get("viewports", [])]
         if not viewports:
             viewports = cls.__dataclass_fields__["viewports"].default_factory()
 
@@ -207,9 +225,7 @@ class SimilarityThresholds:
 class GatingConfig:
     """Gating and severity configuration."""
 
-    severity_thresholds: SeverityThresholds = field(
-        default_factory=SeverityThresholds
-    )
+    severity_thresholds: SeverityThresholds = field(default_factory=SeverityThresholds)
     similarity_thresholds: SimilarityThresholds = field(
         default_factory=SimilarityThresholds
     )
@@ -314,9 +330,7 @@ class AllowedScales:
     spacing: list[float] = field(
         default_factory=lambda: [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128]
     )
-    radius: list[float] = field(
-        default_factory=lambda: [0, 2, 4, 6, 8, 12, 16, 9999]
-    )
+    radius: list[float] = field(default_factory=lambda: [0, 2, 4, 6, 8, 12, 16, 9999])
     typography: list[TypographyToken] = field(
         default_factory=lambda: [
             TypographyToken("xs", 12, 16),
@@ -359,10 +373,16 @@ class AllowedScales:
             typography = cls.__dataclass_fields__["typography"].default_factory()
 
         return cls(
-            spacing=data.get("spacing", cls.__dataclass_fields__["spacing"].default_factory()),
-            radius=data.get("radius", cls.__dataclass_fields__["radius"].default_factory()),
+            spacing=data.get(
+                "spacing", cls.__dataclass_fields__["spacing"].default_factory()
+            ),
+            radius=data.get(
+                "radius", cls.__dataclass_fields__["radius"].default_factory()
+            ),
             typography=typography,
-            shadows=data.get("shadows", cls.__dataclass_fields__["shadows"].default_factory()),
+            shadows=data.get(
+                "shadows", cls.__dataclass_fields__["shadows"].default_factory()
+            ),
         )
 
 
@@ -582,9 +602,7 @@ class UIQualityConfig:
             design_system=DesignSystemConfig.from_dict(data.get("designSystem", {})),
             crawl=CrawlConfig.from_dict(data.get("crawl", {})),
             gating=GatingConfig.from_dict(data.get("gating", {})),
-            ignore_rules=[
-                IgnoreRule.from_dict(r) for r in data.get("ignoreRules", [])
-            ],
+            ignore_rules=[IgnoreRule.from_dict(r) for r in data.get("ignoreRules", [])],
             output=OutputConfig.from_dict(data.get("output", {})),
             risk_mitigation=RiskMitigationConfig.from_dict(
                 data.get("riskMitigation", {})

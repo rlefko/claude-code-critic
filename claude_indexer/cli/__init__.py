@@ -9,17 +9,17 @@ Modules:
     status: Unified status command aggregating all subsystem statuses
 """
 
-from .output import OutputConfig, OutputManager, should_use_color
 from .errors import (
     CLIError,
+    ConfigurationError,
     ErrorCategory,
-    QdrantConnectionError,
+    IndexingError,
     MissingAPIKeyError,
     ProjectNotFoundError,
-    ConfigurationError,
-    IndexingError,
+    QdrantConnectionError,
 )
-from .status import StatusCollector, SystemStatus, SubsystemStatus
+from .output import OutputConfig, OutputManager, should_use_color
+from .status import StatusCollector, SubsystemStatus, SystemStatus
 
 __all__ = [
     # Output

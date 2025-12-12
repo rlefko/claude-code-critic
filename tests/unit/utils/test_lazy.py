@@ -43,6 +43,7 @@ class TestLazyProperty:
 
     def test_per_instance_caching(self):
         """Test that each instance has its own cached value."""
+
         class TestClass:
             def __init__(self, value):
                 self._value = value
@@ -59,6 +60,7 @@ class TestLazyProperty:
 
     def test_set_property(self):
         """Test setting lazy property directly."""
+
         class TestClass:
             @lazy_property
             def value(self) -> str:

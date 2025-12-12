@@ -1,7 +1,8 @@
 """Unit tests for workspace types module."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.workspace.types import (
     CollectionStrategy,

@@ -20,9 +20,10 @@ from claude_indexer.doctor.checkers import (
 )
 from claude_indexer.doctor.types import CheckCategory, CheckStatus
 
-
 # Create a named tuple similar to sys.version_info
-VersionInfo = namedtuple("VersionInfo", ["major", "minor", "micro", "releaselevel", "serial"])
+VersionInfo = namedtuple(
+    "VersionInfo", ["major", "minor", "micro", "releaselevel", "serial"]
+)
 
 
 class TestCheckPythonVersion:
@@ -99,7 +100,9 @@ class TestCheckQdrantConnection:
 
     def test_connection_refused(self):
         """Test connection refused error."""
-        with patch("qdrant_client.QdrantClient", side_effect=Exception("Connection refused")):
+        with patch(
+            "qdrant_client.QdrantClient", side_effect=Exception("Connection refused")
+        ):
             result = check_qdrant_connection()
             assert result.status == CheckStatus.FAIL
             assert "connection refused" in result.message.lower()
@@ -113,7 +116,9 @@ class TestCheckQdrantConnection:
         mock_collections.collections = []
         mock_client.get_collections.return_value = mock_collections
 
-        with patch("qdrant_client.QdrantClient", return_value=mock_client) as mock_class:
+        with patch(
+            "qdrant_client.QdrantClient", return_value=mock_client
+        ) as mock_class:
             config = MagicMock()
             config.qdrant_url = "http://custom:6333"
             config.qdrant_api_key = "test-key"
@@ -170,7 +175,9 @@ class TestCheckOpenaiKey:
 
     def test_key_invalid_format(self):
         """Test key with invalid format."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "invalid-key-format-1234567890"}):
+        with patch.dict(
+            os.environ, {"OPENAI_API_KEY": "invalid-key-format-1234567890"}
+        ):
             result = check_openai_key()
             assert result.status == CheckStatus.WARN
             assert "invalid" in result.message.lower()
@@ -279,7 +286,9 @@ class TestCheckCollectionExists:
 
     def test_qdrant_unavailable(self):
         """Test when Qdrant is unavailable."""
-        with patch("qdrant_client.QdrantClient", side_effect=Exception("Connection refused")):
+        with patch(
+            "qdrant_client.QdrantClient", side_effect=Exception("Connection refused")
+        ):
             result = check_collection_exists(None, "test-collection")
             assert result.status == CheckStatus.SKIP
             assert "unavailable" in result.message.lower()

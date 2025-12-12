@@ -28,11 +28,13 @@ def load_existing_chats(chats_file: Path) -> set[str]:
         for line in f:
             # Extract session ID from markdown format
             # Format: - [ ] **Session ID**: abc123...
-            if (line.strip().startswith("- [ ]") or line.strip().startswith("- [x]")) and "**Session ID**:" in line:
-                    parts = line.split("**Session ID**:", 1)
-                    if len(parts) > 1:
-                        session_id = parts[1].strip().split()[0]
-                        existing_ids.add(session_id)
+            if (
+                line.strip().startswith("- [ ]") or line.strip().startswith("- [x]")
+            ) and "**Session ID**:" in line:
+                parts = line.split("**Session ID**:", 1)
+                if len(parts) > 1:
+                    session_id = parts[1].strip().split()[0]
+                    existing_ids.add(session_id)
 
     return existing_ids
 

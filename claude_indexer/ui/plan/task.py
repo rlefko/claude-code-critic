@@ -25,7 +25,9 @@ class Task:
     estimated_effort: str  # "low" | "medium" | "high"
     impact: float  # 0.0-1.0, how much it improves consistency
     acceptance_criteria: list[str] = field(default_factory=list)
-    evidence_links: list[str] = field(default_factory=list)  # file:line or screenshot paths
+    evidence_links: list[str] = field(
+        default_factory=list
+    )  # file:line or screenshot paths
     related_critique_ids: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)  # task IDs
     tags: list[str] = field(default_factory=list)

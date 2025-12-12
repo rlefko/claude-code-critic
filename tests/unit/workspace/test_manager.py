@@ -2,8 +2,9 @@
 
 import json
 import time
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_indexer.workspace.manager import (
     WorkspaceManager,

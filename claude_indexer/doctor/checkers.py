@@ -19,7 +19,11 @@ def check_python_version() -> CheckResult:
             category=CheckCategory.PYTHON,
             status=CheckStatus.PASS,
             message=f"Python {version_str} (required: 3.10+)",
-            details={"version": version_str, "major": version.major, "minor": version.minor},
+            details={
+                "version": version_str,
+                "major": version.major,
+                "minor": version.minor,
+            },
         )
     else:
         return CheckResult(
@@ -28,7 +32,11 @@ def check_python_version() -> CheckResult:
             status=CheckStatus.FAIL,
             message=f"Python {version_str} is below minimum (required: 3.10+)",
             suggestion="Install Python 3.10+ from https://python.org",
-            details={"version": version_str, "major": version.major, "minor": version.minor},
+            details={
+                "version": version_str,
+                "major": version.major,
+                "minor": version.minor,
+            },
         )
 
 
@@ -170,7 +178,10 @@ def check_openai_key(config: Optional[Any] = None) -> CheckResult:
                 category=CheckCategory.API_KEYS,
                 status=CheckStatus.PASS,
                 message=f"OpenAI API key configured ({masked})",
-                details={"masked_key": masked, "source": "env" if os.environ.get("OPENAI_API_KEY") else "config"},
+                details={
+                    "masked_key": masked,
+                    "source": "env" if os.environ.get("OPENAI_API_KEY") else "config",
+                },
             )
         else:
             return CheckResult(
@@ -209,7 +220,10 @@ def check_voyage_key(config: Optional[Any] = None) -> CheckResult:
             category=CheckCategory.API_KEYS,
             status=CheckStatus.PASS,
             message=f"Voyage AI API key configured ({masked})",
-            details={"masked_key": masked, "source": "env" if os.environ.get("VOYAGE_API_KEY") else "config"},
+            details={
+                "masked_key": masked,
+                "source": "env" if os.environ.get("VOYAGE_API_KEY") else "config",
+            },
         )
     else:
         return CheckResult(
@@ -319,7 +333,11 @@ def check_collection_exists(config: Optional[Any], collection_name: str) -> Chec
                 details={
                     "collection_name": collection_name,
                     "vector_count": vector_count,
-                    "status": collection_info.status.value if collection_info.status else "unknown",
+                    "status": (
+                        collection_info.status.value
+                        if collection_info.status
+                        else "unknown"
+                    ),
                 },
             )
         except Exception:

@@ -77,7 +77,9 @@ class WorkspaceDetector:
         workspace_root = workspace_file.parent if workspace_file else path
 
         # Parse workspace configuration
-        members = cls._parse_workspace_members(workspace_type, workspace_file, workspace_root)
+        members = cls._parse_workspace_members(
+            workspace_type, workspace_file, workspace_root
+        )
 
         # Determine collection strategy
         strategy = cls._determine_collection_strategy(workspace_type)
@@ -529,7 +531,9 @@ class WorkspaceDetector:
         return []
 
     @classmethod
-    def _determine_collection_strategy(cls, ws_type: WorkspaceType) -> CollectionStrategy:
+    def _determine_collection_strategy(
+        cls, ws_type: WorkspaceType
+    ) -> CollectionStrategy:
         """Determine collection strategy based on workspace type.
 
         VS Code multi-root gets MULTIPLE (isolated collections).

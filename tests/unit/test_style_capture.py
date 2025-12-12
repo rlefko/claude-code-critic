@@ -1,7 +1,8 @@
 """Unit tests for computed style capture."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 class TestCapturedStyles:

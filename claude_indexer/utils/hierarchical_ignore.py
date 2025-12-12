@@ -242,9 +242,7 @@ class HierarchicalIgnoreManager:
 
 
 def create_default_claudeignore(
-    path: Union[Path, str],
-    include_secrets: bool = True,
-    include_ml: bool = True
+    path: Union[Path, str], include_secrets: bool = True, include_ml: bool = True
 ) -> Path:
     """Create a default .claudeignore file at the specified path.
 
@@ -260,7 +258,7 @@ def create_default_claudeignore(
     if path.is_dir():
         path = path / ".claudeignore"
 
-    content = '''# .claudeignore - Custom Exclusions for Code Indexing
+    content = """# .claudeignore - Custom Exclusions for Code Indexing
 #
 # This file works like .gitignore but specifically controls what gets indexed
 # into semantic memory. Patterns here are IN ADDITION to .gitignore patterns.
@@ -273,10 +271,10 @@ def create_default_claudeignore(
 # - / at end denotes a directory
 # - / at start makes pattern relative to project root
 
-'''
+"""
 
     if include_secrets:
-        content += '''# ============================================================================
+        content += """# ============================================================================
 # Secrets and Credentials (CRITICAL - NEVER INDEX)
 # ============================================================================
 
@@ -297,10 +295,10 @@ def create_default_claudeignore(
 **/auth.json
 **/.netrc
 
-'''
+"""
 
     if include_ml:
-        content += '''# ============================================================================
+        content += """# ============================================================================
 # AI/ML Artifacts (Large Files)
 # ============================================================================
 
@@ -321,9 +319,9 @@ def create_default_claudeignore(
 *.arrow
 *.feather
 
-'''
+"""
 
-    content += '''# ============================================================================
+    content += """# ============================================================================
 # Personal Development Files
 # ============================================================================
 
@@ -356,7 +354,7 @@ debug-*.log
 # Your Custom Patterns Below
 # ============================================================================
 
-'''
+"""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:

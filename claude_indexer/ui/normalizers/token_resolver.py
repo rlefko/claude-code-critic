@@ -80,7 +80,10 @@ class TokenResolution:
     @property
     def is_on_scale(self) -> bool:
         """Check if value is on the design scale."""
-        return self.status in (ResolutionStatus.EXACT_MATCH, ResolutionStatus.NEAR_MATCH)
+        return self.status in (
+            ResolutionStatus.EXACT_MATCH,
+            ResolutionStatus.NEAR_MATCH,
+        )
 
 
 class TokenResolver:
@@ -192,7 +195,9 @@ class TokenResolver:
 
         # Custom tolerances
         self.spacing_tolerance = (
-            spacing_tolerance if spacing_tolerance is not None else self.SPACING_TOLERANCE
+            spacing_tolerance
+            if spacing_tolerance is not None
+            else self.SPACING_TOLERANCE
         )
         self.radius_tolerance = (
             radius_tolerance if radius_tolerance is not None else self.RADIUS_TOLERANCE
@@ -280,7 +285,9 @@ class TokenResolver:
             distance=distance,
             nearest_token=nearest_token,
             suggestion=(
-                f"Consider using token '{nearest_token}' instead" if nearest_token else None
+                f"Consider using token '{nearest_token}' instead"
+                if nearest_token
+                else None
             ),
         )
 
@@ -294,7 +301,9 @@ class TokenResolver:
             TokenResolution with spacing matching details.
         """
         px_value = SpacingToken.normalize_length(value, self.base_font_size)
-        normalized_value = f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        normalized_value = (
+            f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        )
 
         # Check if on scale
         token_name, distance = self.token_set.find_nearest_spacing(px_value)
@@ -323,7 +332,9 @@ class TokenResolver:
         suggestion = None
         if token_name and token_name in self.token_set.spacing:
             token_value = self.token_set.spacing[token_name].value
-            suggestion = f"Consider using spacing token '{token_name}' ({token_value}px) instead"
+            suggestion = (
+                f"Consider using spacing token '{token_name}' ({token_value}px) instead"
+            )
 
         return TokenResolution(
             category=TokenCategory.SPACING,
@@ -345,7 +356,9 @@ class TokenResolver:
             TokenResolution with radius matching details.
         """
         px_value = SpacingToken.normalize_length(value, self.base_font_size)
-        normalized_value = f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        normalized_value = (
+            f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        )
 
         token_name, distance = self.token_set.find_nearest_radius(px_value)
 
@@ -373,7 +386,9 @@ class TokenResolver:
         suggestion = None
         if token_name and token_name in self.token_set.radii:
             token_value = self.token_set.radii[token_name].value
-            suggestion = f"Consider using radius token '{token_name}' ({token_value}px) instead"
+            suggestion = (
+                f"Consider using radius token '{token_name}' ({token_value}px) instead"
+            )
 
         return TokenResolution(
             category=TokenCategory.RADIUS,
@@ -395,7 +410,9 @@ class TokenResolver:
             TokenResolution with typography matching details.
         """
         px_value = SpacingToken.normalize_length(value, self.base_font_size)
-        normalized_value = f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        normalized_value = (
+            f"{px_value}px" if px_value != int(px_value) else f"{int(px_value)}px"
+        )
 
         # Find nearest typography token by size
         nearest_token = None
@@ -607,4 +624,6 @@ class TokenResolver:
             List of TokenResolution objects for off-scale values only.
         """
         resolutions = self.resolve_declarations(declarations)
-        return [r for r in resolutions.values() if r.status == ResolutionStatus.OFF_SCALE]
+        return [
+            r for r in resolutions.values() if r.status == ResolutionStatus.OFF_SCALE
+        ]

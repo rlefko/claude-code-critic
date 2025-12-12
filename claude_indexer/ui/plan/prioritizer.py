@@ -192,9 +192,7 @@ class TaskPrioritizer:
 
         return result
 
-    def group_by_scope(
-        self, tasks: list["Task"]
-    ) -> dict[str, list["Task"]]:
+    def group_by_scope(self, tasks: list["Task"]) -> dict[str, list["Task"]]:
         """Group tasks by scope.
 
         Args:
@@ -225,10 +223,7 @@ class TaskPrioritizer:
             Capped dict.
         """
         max_tasks = self.config.max_tasks_per_scope
-        return {
-            scope: tasks[:max_tasks]
-            for scope, tasks in grouped_tasks.items()
-        }
+        return {scope: tasks[:max_tasks] for scope, tasks in grouped_tasks.items()}
 
     def full_prioritization(self, tasks: list["Task"]) -> list["Task"]:
         """Run full prioritization pipeline.

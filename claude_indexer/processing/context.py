@@ -11,9 +11,13 @@ class ProcessingContext:
     changed_entity_ids: set[str]
     implementation_entity_names: set[str]
     files_being_processed: set[str] = None  # NEW: Track files for replacement logic
-    entities_to_delete: list[str] = None    # NEW: Track entity IDs to delete before upsert
-    replacement_mode: bool = True           # NEW: Enable file-level replacement
-    replaced_entity_ids: set[str] = None    # NEW: Track entities that were just replaced (skip dedup)
+    entities_to_delete: list[str] = (
+        None  # NEW: Track entity IDs to delete before upsert
+    )
+    replacement_mode: bool = True  # NEW: Enable file-level replacement
+    replaced_entity_ids: set[str] = (
+        None  # NEW: Track entities that were just replaced (skip dedup)
+    )
     total_tokens: int = 0
     total_cost: float = 0.0
     total_requests: int = 0

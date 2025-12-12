@@ -47,7 +47,9 @@ class ConfigPaths:
     PROJECT_LOCAL = "settings.local.json"
 
     @classmethod
-    def get_project_config_dir(cls, project_path: Path, prefer_new: bool = True) -> Path:
+    def get_project_config_dir(
+        cls, project_path: Path, prefer_new: bool = True
+    ) -> Path:
         """Get the project configuration directory.
 
         Checks for both new (.claude) and legacy (.claude-indexer) locations.
@@ -87,7 +89,9 @@ class ConfigPaths:
             return new_config
 
         # Check legacy location
-        legacy_config = project_path / cls.LEGACY_PROJECT_DIR / cls.LEGACY_PROJECT_CONFIG
+        legacy_config = (
+            project_path / cls.LEGACY_PROJECT_DIR / cls.LEGACY_PROJECT_CONFIG
+        )
         if legacy_config.exists():
             return legacy_config
 
@@ -304,9 +308,7 @@ class HierarchicalConfigLoader:
             else:
                 config_dict[key] = value
 
-    def _load_optional_config(
-        self, path: Path, config_dict: dict, key: str
-    ) -> None:
+    def _load_optional_config(self, path: Path, config_dict: dict, key: str) -> None:
         """Load an optional config file into a specific key."""
         if path.exists():
             try:

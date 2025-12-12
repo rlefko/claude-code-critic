@@ -286,9 +286,7 @@ class TestGitDiffCollector:
         """Test that cache miss triggers computation."""
         computed = collector._get_cached_or_compute(
             "new_key",
-            lambda: DiffResult(
-                changes=[FileChange(Path("computed.tsx"), "added")]
-            ),
+            lambda: DiffResult(changes=[FileChange(Path("computed.tsx"), "added")]),
         )
 
         assert len(computed.changes) == 1
@@ -330,9 +328,7 @@ class TestGitDiffCollector:
         assert any("develop" in str(call) for call in calls)
 
     @patch.object(GitDiffCollector, "collect_all_uncommitted")
-    def test_is_line_new(
-        self, mock_collect: MagicMock, collector: GitDiffCollector
-    ):
+    def test_is_line_new(self, mock_collect: MagicMock, collector: GitDiffCollector):
         """Test is_line_new helper method."""
         mock_collect.return_value = DiffResult(
             changes=[

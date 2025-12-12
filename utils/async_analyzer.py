@@ -80,7 +80,9 @@ class AsyncAnalyzerManager:
         self._log_path: Optional[Path] = None
 
     @classmethod
-    def get_instance(cls, project_root: Optional[Path] = None) -> "AsyncAnalyzerManager":
+    def get_instance(
+        cls, project_root: Optional[Path] = None
+    ) -> "AsyncAnalyzerManager":
         """Get singleton instance."""
         with cls._lock:
             if cls._instance is None:
@@ -311,7 +313,10 @@ class AsyncAnalyzerManager:
             cli_response = json.loads(stdout)
 
             # Check for errors
-            if cli_response.get("is_error") or cli_response.get("subtype") == "error_max_turns":
+            if (
+                cli_response.get("is_error")
+                or cli_response.get("subtype") == "error_max_turns"
+            ):
                 return AsyncAnalysisResult(
                     request_id=request_id,
                     success=False,
@@ -390,7 +395,9 @@ Reason: {result.reason}
                 if result.analysis.get("test_coverage"):
                     log_entry += f"Test Coverage: {result.analysis['test_coverage']}\n"
                 if result.analysis.get("quality_markers"):
-                    log_entry += f"Quality Markers: {result.analysis['quality_markers']}\n"
+                    log_entry += (
+                        f"Quality Markers: {result.analysis['quality_markers']}\n"
+                    )
 
             log_entry += f"{'=' * 60}\n"
 

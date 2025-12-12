@@ -7,7 +7,13 @@ style inconsistencies within UI element roles.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StaticComponentFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StaticComponentFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.inconsistency import (
     ButtonOutlierRule,
@@ -98,7 +104,9 @@ class TestButtonOutlierRule:
             create_component("SecondaryButton", ["button", "rounded-md", "p-4"]),
             create_component("TertiaryButton", ["button", "rounded-md", "p-4"]),
             create_component("SubmitButton", ["button", "rounded-md", "p-4"]),
-            create_component("OutlierButton", ["button", "rounded-full", "p-8"]),  # Different
+            create_component(
+                "OutlierButton", ["button", "rounded-full", "p-8"]
+            ),  # Different
         ]
 
         context = RuleContext(config=config, components=components)
@@ -214,10 +222,18 @@ class TestFocusRingInconsistentRule:
 
         # Create interactive elements with different focus styles
         components = [
-            create_component("PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("TextInput", ["input", "focus:outline-none", "focus:border-green-500"]),
-            create_component("EmailInput", ["input", "focus:outline-none", "focus:border-green-500"]),
+            create_component(
+                "PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "TextInput", ["input", "focus:outline-none", "focus:border-green-500"]
+            ),
+            create_component(
+                "EmailInput", ["input", "focus:outline-none", "focus:border-green-500"]
+            ),
             create_component("NavLink", ["link", "focus:ring-1", "focus:ring-red-500"]),
         ]
 
@@ -233,9 +249,15 @@ class TestFocusRingInconsistentRule:
         rule = FocusRingInconsistentRule()
 
         components = [
-            create_component("PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("TextInput", ["input", "focus:ring-2", "focus:ring-blue-500"]),
+            create_component(
+                "PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "TextInput", ["input", "focus:ring-2", "focus:ring-blue-500"]
+            ),
         ]
 
         context = RuleContext(config=config, components=components)
@@ -276,7 +298,9 @@ class TestFocusRingInconsistentRule:
         """Test focus style extraction."""
         rule = FocusRingInconsistentRule()
 
-        comp_with_focus = create_component("ActionButton", ["btn", "focus:ring-2", "focus:ring-blue-500"])
+        comp_with_focus = create_component(
+            "ActionButton", ["btn", "focus:ring-2", "focus:ring-blue-500"]
+        )
         comp_without_focus = create_component("ActionButton", ["btn", "primary"])
 
         focus_style = rule._extract_focus_style(comp_with_focus)

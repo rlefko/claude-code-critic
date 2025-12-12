@@ -318,9 +318,7 @@ class IndexingCheckpoint:
 
         try:
             # Atomic write: write to temp file, then rename
-            fd, temp_path = tempfile.mkstemp(
-                dir=self.cache_dir, suffix=".tmp"
-            )
+            fd, temp_path = tempfile.mkstemp(dir=self.cache_dir, suffix=".tmp")
             try:
                 with os.fdopen(fd, "w") as f:
                     json.dump(self._state.to_dict(), f, indent=2)
@@ -424,10 +422,7 @@ class IndexingCheckpoint:
     @property
     def has_pending(self) -> bool:
         """Check if there are pending files."""
-        return (
-            self._state is not None
-            and len(self._state.pending_files) > 0
-        )
+        return self._state is not None and len(self._state.pending_files) > 0
 
     @property
     def progress_percent(self) -> float:

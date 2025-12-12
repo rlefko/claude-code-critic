@@ -27,7 +27,6 @@ UNIVERSAL_EXCLUDES = [
     ".claude/",
     ".svn/",
     ".hg/",
-
     # Python
     "*.pyc",
     "*.pyo",
@@ -40,18 +39,15 @@ UNIVERSAL_EXCLUDES = [
     ".venv/",
     "venv/",
     "env/",
-
     # Node.js
     "node_modules/",
     ".npm/",
     ".yarn/",
-
     # Build outputs
     "dist/",
     "build/",
     "out/",
     "target/",  # Rust/Java
-
     # Binaries and compiled code
     "*.exe",
     "*.dll",
@@ -63,7 +59,6 @@ UNIVERSAL_EXCLUDES = [
     "*.obj",
     "*.class",
     "*.bin",
-
     # Archives
     "*.zip",
     "*.tar",
@@ -73,7 +68,6 @@ UNIVERSAL_EXCLUDES = [
     "*.bz2",
     "*.xz",
     "*.tgz",
-
     # OS artifacts
     ".DS_Store",
     "Thumbs.db",
@@ -82,7 +76,6 @@ UNIVERSAL_EXCLUDES = [
     ".Trashes/",
     ".fseventsd/",
     "~$*",  # Windows temp files
-
     # Package lock files (large, auto-generated)
     "package-lock.json",
     "yarn.lock",
@@ -92,7 +85,6 @@ UNIVERSAL_EXCLUDES = [
     "Gemfile.lock",
     "composer.lock",
     "Pipfile.lock",
-
     # Media files
     "*.mp4",
     "*.avi",
@@ -115,20 +107,16 @@ UNIVERSAL_EXCLUDES = [
     "*.pptx",
     "*.xls",
     "*.xlsx",
-
     # Database files
     "*.sqlite",
     "*.sqlite3",
     "*.db",
-
     # Logs
     "*.log",
     "logs/",
-
     # Memory guard artifacts
     "memory_guard_debug.txt",
     "memory_guard_debug_*.txt",
-
     # IDE and editor
     ".idea/",
     ".vscode/",
@@ -139,18 +127,30 @@ UNIVERSAL_EXCLUDES = [
 
 # Binary file extensions
 BINARY_EXTENSIONS = {
-    '.exe', '.dll', '.so', '.dylib', '.a', '.lib', '.o', '.obj',
-    '.class', '.pyc', '.pyd', '.pyo', '.bin', '.elf',
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".a",
+    ".lib",
+    ".o",
+    ".obj",
+    ".class",
+    ".pyc",
+    ".pyd",
+    ".pyo",
+    ".bin",
+    ".elf",
 }
 
 # Magic number signatures for binary files
 BINARY_MAGIC_SIGNATURES = [
-    b'\x7fELF',           # ELF (Linux executables)
-    b'MZ',                # PE (Windows executables)
-    b'\xfe\xed\xfa\xce',  # Mach-O 32-bit (macOS)
-    b'\xfe\xed\xfa\xcf',  # Mach-O 64-bit (macOS)
-    b'\xca\xfe\xba\xbe',  # Universal binary (macOS)
-    b'\xcf\xfa\xed\xfe',  # Mach-O reverse byte order
+    b"\x7fELF",  # ELF (Linux executables)
+    b"MZ",  # PE (Windows executables)
+    b"\xfe\xed\xfa\xce",  # Mach-O 32-bit (macOS)
+    b"\xfe\xed\xfa\xcf",  # Mach-O 64-bit (macOS)
+    b"\xca\xfe\xba\xbe",  # Universal binary (macOS)
+    b"\xcf\xfa\xed\xfe",  # Mach-O reverse byte order
 ]
 
 
@@ -248,7 +248,7 @@ class ExclusionManager:
 
         # Check magic numbers (first 4 bytes)
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 magic = f.read(4)
                 for signature in BINARY_MAGIC_SIGNATURES:
                     if magic.startswith(signature):
@@ -275,16 +275,16 @@ class ExclusionManager:
         patterns = []
 
         try:
-            with open(ignore_path, 'r', encoding='utf-8') as f:
+            with open(ignore_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
 
                     # Skip empty lines and comments
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
 
                     # Skip negation patterns (not supported in simple exclude)
-                    if line.startswith('!'):
+                    if line.startswith("!"):
                         continue
 
                     # Convert pattern
@@ -314,18 +314,32 @@ class ExclusionManager:
             return ""
 
         # Remove leading slash (absolute paths in git)
-        if pattern.startswith('/'):
+        if pattern.startswith("/"):
             pattern = pattern[1:]
 
         # Ensure directory patterns end with /
-        if not pattern.endswith('/') and not pattern.endswith('*'):
+        if not pattern.endswith("/") and not pattern.endswith("*"):
             # Check if it's likely a directory (common patterns)
-            if any(pattern.endswith(d) for d in [
-                'modules', 'cache', 'dist', 'build', '_pycache__',
-                'coverage', 'logs', '.git', '.venv', 'env', 'target',
-                'node_modules', '__pycache__', 'htmlcov'
-            ]):
-                pattern += '/'
+            if any(
+                pattern.endswith(d)
+                for d in [
+                    "modules",
+                    "cache",
+                    "dist",
+                    "build",
+                    "_pycache__",
+                    "coverage",
+                    "logs",
+                    ".git",
+                    ".venv",
+                    "env",
+                    "target",
+                    "node_modules",
+                    "__pycache__",
+                    "htmlcov",
+                ]
+            ):
+                pattern += "/"
 
         return pattern
 
@@ -344,14 +358,15 @@ class ExclusionManager:
         from fnmatch import fnmatch
 
         # Directory pattern
-        if pattern.endswith('/'):
-            return path.startswith(pattern.rstrip('/')) or fnmatch(path, pattern + '*')
+        if pattern.endswith("/"):
+            return path.startswith(pattern.rstrip("/")) or fnmatch(path, pattern + "*")
 
         # File pattern
         return fnmatch(path, pattern) or fnmatch(os.path.basename(path), pattern)
 
 
 # Backward compatibility functions
+
 
 def get_patterns_for_project(project_path: Path | str) -> List[str]:
     """

@@ -104,9 +104,9 @@ class SessionStartResult:
                 "message": self.collection_message,
                 "vector_count": self.collection_vector_count,
             },
-            "index_freshness": self.index_freshness.to_dict()
-            if self.index_freshness
-            else None,
+            "index_freshness": (
+                self.index_freshness.to_dict() if self.index_freshness else None
+            ),
             "git": {
                 "branch": self.git_branch,
                 "uncommitted_files": self.uncommitted_files,
@@ -336,10 +336,18 @@ class SessionStartExecutor:
         """
         try:
             check_result = check_qdrant_connection(self._config)
-            collection_count = check_result.details.get("collection_count", 0) if check_result.details else 0
+            collection_count = (
+                check_result.details.get("collection_count", 0)
+                if check_result.details
+                else 0
+            )
 
             if check_result.status == CheckStatus.PASS:
-                url = check_result.details.get("url", "localhost:6333") if check_result.details else "localhost:6333"
+                url = (
+                    check_result.details.get("url", "localhost:6333")
+                    if check_result.details
+                    else "localhost:6333"
+                )
                 return CheckStatus.PASS, f"Connected ({url})", collection_count
             else:
                 return check_result.status, check_result.message, 0
@@ -356,7 +364,11 @@ class SessionStartExecutor:
             check_result = check_collection_exists(self._config, self.collection_name)
 
             if check_result.status == CheckStatus.PASS:
-                vector_count = check_result.details.get("vector_count", 0) if check_result.details else 0
+                vector_count = (
+                    check_result.details.get("vector_count", 0)
+                    if check_result.details
+                    else 0
+                )
                 return CheckStatus.PASS, "Found", vector_count
             elif check_result.status == CheckStatus.WARN:
                 return (
@@ -383,7 +395,9 @@ class SessionStartExecutor:
         result = IndexFreshnessResult(is_fresh=True)
 
         # Look for state file in .claude-indexer directory
-        state_file = self.project_path / ".claude-indexer" / f"{self.collection_name}.json"
+        state_file = (
+            self.project_path / ".claude-indexer" / f"{self.collection_name}.json"
+        )
 
         if not state_file.exists():
             result.is_fresh = False
@@ -397,9 +411,7 @@ class SessionStartExecutor:
                 state = json.load(f)
         except (json.JSONDecodeError, IOError):
             result.is_fresh = False
-            result.suggestion = (
-                f"Index state corrupted. Run: claude-indexer index -c {self.collection_name}"
-            )
+            result.suggestion = f"Index state corrupted. Run: claude-indexer index -c {self.collection_name}"
             return result
 
         # Check time freshness
@@ -426,9 +438,7 @@ class SessionStartExecutor:
 
         # Generate suggestion if stale
         if not result.is_fresh and not result.suggestion:
-            result.suggestion = (
-                f"Run: claude-indexer index -c {self.collection_name}"
-            )
+            result.suggestion = f"Run: claude-indexer index -c {self.collection_name}"
 
         return result
 

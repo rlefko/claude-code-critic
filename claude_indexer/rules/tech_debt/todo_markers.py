@@ -132,7 +132,9 @@ class TodoMarkersRule(BaseRule):
                 elif marker == "FIXME":
                     hints.append("Fix the issue or create a high-priority ticket")
                 elif marker == "HACK":
-                    hints.append("Refactor to remove the hack or document why it's needed")
+                    hints.append(
+                        "Refactor to remove the hack or document why it's needed"
+                    )
                 elif marker == "DEPRECATED":
                     hints.append("Update to use the recommended replacement")
 
@@ -146,9 +148,11 @@ class TodoMarkersRule(BaseRule):
                         line_number=line_num,
                         evidence=evidence,
                         remediation_hints=hints,
-                        config=context.config.get_rule_config(self.rule_id)
-                        if context.config
-                        else None,
+                        config=(
+                            context.config.get_rule_config(self.rule_id)
+                            if context.config
+                            else None
+                        ),
                     )
                 )
 

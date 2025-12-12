@@ -7,7 +7,13 @@ like specificity escalation, !important usage, and suppressions.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.smells import (
     ImportantNewUsageRule,
@@ -200,11 +206,14 @@ class TestImportantNewUsageRule:
         """Test detection of multiple !important declarations."""
         rule = ImportantNewUsageRule()
 
-        style = create_style("test.css", {
-            "color": "red !important",
-            "background": "blue !important",
-            "padding": "10px !important",
-        })
+        style = create_style(
+            "test.css",
+            {
+                "color": "red !important",
+                "background": "blue !important",
+                "padding": "10px !important",
+            },
+        )
 
         context = RuleContext(config=config, styles=[style])
         findings = rule.evaluate(context)
@@ -310,28 +319,33 @@ const x = 1;
         rule = SuppressionNoRationaleRule()
 
         # With rationale (-- format)
-        assert rule._has_rationale(
-            "/* ui-quality-disable -- Intentional: legacy code */",
-            "ui-quality-disable"
-        ) is True
+        assert (
+            rule._has_rationale(
+                "/* ui-quality-disable -- Intentional: legacy code */",
+                "ui-quality-disable",
+            )
+            is True
+        )
 
         # With rationale (: format)
-        assert rule._has_rationale(
-            "/* eslint-disable: This is intentional */",
-            "eslint-disable"
-        ) is True
+        assert (
+            rule._has_rationale(
+                "/* eslint-disable: This is intentional */", "eslint-disable"
+            )
+            is True
+        )
 
         # Without rationale
-        assert rule._has_rationale(
-            "/* ui-quality-disable */",
-            "ui-quality-disable"
-        ) is False
+        assert (
+            rule._has_rationale("/* ui-quality-disable */", "ui-quality-disable")
+            is False
+        )
 
         # Short rationale (less than 5 chars)
-        assert rule._has_rationale(
-            "/* ui-quality-disable -- ok */",
-            "ui-quality-disable"
-        ) is False
+        assert (
+            rule._has_rationale("/* ui-quality-disable -- ok */", "ui-quality-disable")
+            is False
+        )
 
     def test_find_suppressions(self):
         """Test suppression finding helper."""

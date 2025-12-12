@@ -225,9 +225,7 @@ class TestNormalizedStyle:
 
     def test_is_exact_duplicate(self):
         """Test exact duplicate detection."""
-        style1 = NormalizedStyle(
-            declarations={}, exact_hash="abc", near_hash="xyz"
-        )
+        style1 = NormalizedStyle(declarations={}, exact_hash="abc", near_hash="xyz")
         style2 = NormalizedStyle(
             declarations={}, exact_hash="abc", near_hash="different"
         )
@@ -369,9 +367,24 @@ class TestStyleNormalizer:
         # Use styles with more properties in common for higher similarity
         styles = normalizer.normalize_declaration_list(
             [
-                {"color": "#ff0000", "padding": "10px", "margin": "10px", "display": "flex"},
-                {"color": "#ff0000", "padding": "10px", "margin": "10px", "display": "block"},
-                {"color": "#00ff00", "padding": "100px", "margin": "50px", "display": "none"},
+                {
+                    "color": "#ff0000",
+                    "padding": "10px",
+                    "margin": "10px",
+                    "display": "flex",
+                },
+                {
+                    "color": "#ff0000",
+                    "padding": "10px",
+                    "margin": "10px",
+                    "display": "block",
+                },
+                {
+                    "color": "#00ff00",
+                    "padding": "100px",
+                    "margin": "50px",
+                    "display": "none",
+                },
             ]
         )
 
@@ -390,9 +403,7 @@ class TestStyleNormalizer:
 
     def test_inherit_initial_preservation(self, normalizer: StyleNormalizer):
         """Test that inherit/initial values are preserved."""
-        result = normalizer.normalize(
-            {"color": "inherit", "margin": "initial"}
-        )
+        result = normalizer.normalize({"color": "inherit", "margin": "initial"})
 
         assert result.declarations["color"] == "inherit"
         assert result.declarations["margin"] == "initial"

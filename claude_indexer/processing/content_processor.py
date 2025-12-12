@@ -3,8 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from ..storage.qdrant import ContentHashMixin
 from ..embeddings.registry import create_bm25_embedder
+from ..storage.qdrant import ContentHashMixin
 from .context import ProcessingContext
 from .results import ProcessingResult
 
@@ -70,31 +70,36 @@ class ContentProcessor(ContentHashMixin, ABC):
         self, collection_name: str, file_path: str, chunk_type: str
     ) -> list[str]:
         """Get existing entity IDs for file and chunk type."""
-        if hasattr(self.vector_store, 'find_entities_for_file_by_type'):
+        if hasattr(self.vector_store, "find_entities_for_file_by_type"):
             entities_by_type = self.vector_store.find_entities_for_file_by_type(
                 collection_name, file_path, [chunk_type]
             )
-            entity_ids = [entity["id"] for entity in entities_by_type.get(chunk_type, [])]
-            if hasattr(self, 'logger') and self.logger:
-                self.logger.debug(f"🔍 DEBUG: _get_existing_entities_for_file found {len(entity_ids)} entities for {file_path}::{chunk_type}")
+            entity_ids = [
+                entity["id"] for entity in entities_by_type.get(chunk_type, [])
+            ]
+            if hasattr(self, "logger") and self.logger:
+                self.logger.debug(
+                    f"🔍 DEBUG: _get_existing_entities_for_file found {len(entity_ids)} entities for {file_path}::{chunk_type}"
+                )
                 for eid in entity_ids[:5]:  # Show first 5
                     self.logger.debug(f"🔍 DEBUG: Entity ID: {eid}")
             return entity_ids
         return []
 
-    def _should_replace_file_entities(self, entity_file_path: str, context: "ProcessingContext") -> bool:
+    def _should_replace_file_entities(
+        self, entity_file_path: str, context: "ProcessingContext"
+    ) -> bool:
         """Determine if file entities should be replaced."""
         from pathlib import Path
 
         # Convert string path to Path for comparison since files_being_processed contains Path objects
         entity_path = Path(entity_file_path)
 
-        return (
-            context.replacement_mode and
-            entity_path in context.files_being_processed
-        )
+        return context.replacement_mode and entity_path in context.files_being_processed
 
-    def process_embeddings(self, items: list, item_name: str) -> tuple[list, dict]:  # noqa: ARG002
+    def process_embeddings(
+        self, items: list, item_name: str
+    ) -> tuple[list, dict]:  # noqa: ARG002
         """Generate embeddings with error handling and cost tracking.
 
         For unified hybrid architecture:
@@ -113,11 +118,15 @@ class ContentProcessor(ContentHashMixin, ABC):
             for item in items:
                 # Try to get implementation for this entity
                 entity_key = f"{item.metadata.get('file_path', '')}::{item.entity_name}"
-                impl_content = getattr(self, "_implementation_cache", {}).get(entity_key, "")
+                impl_content = getattr(self, "_implementation_cache", {}).get(
+                    entity_key, ""
+                )
 
                 if impl_content:
                     # Combine metadata description with implementation
-                    unified_content = f"{item.content}\n\n# Implementation:\n{impl_content}"
+                    unified_content = (
+                        f"{item.content}\n\n# Implementation:\n{impl_content}"
+                    )
                     texts.append(unified_content)
                     # Mark that this entity has unified embedding
                     item.metadata["has_unified_embedding"] = True
@@ -141,11 +150,13 @@ class ContentProcessor(ContentHashMixin, ABC):
             # Other processors: apply BM25 only to metadata chunks
             should_apply_bm25 = []
             for item in items:
-                chunk_type = getattr(item, 'chunk_type', None)
+                chunk_type = getattr(item, "chunk_type", None)
                 # Apply BM25 to metadata chunks, exclude implementation chunks
-                is_metadata = chunk_type == 'metadata' or (chunk_type is None and item_name != 'implementation')
+                is_metadata = chunk_type == "metadata" or (
+                    chunk_type is None and item_name != "implementation"
+                )
                 should_apply_bm25.append(is_metadata)
-        
+
         if any(should_apply_bm25):
             bm25_embedder = self._get_bm25_embedder()
             if bm25_embedder:
@@ -154,23 +165,37 @@ class ContentProcessor(ContentHashMixin, ABC):
                     bm25_texts = []
                     for item in items:
                         # Try to get BM25 content from metadata, fallback to regular content
-                        if hasattr(item, 'metadata') and item.metadata and 'content_bm25' in item.metadata:
-                            bm25_texts.append(item.metadata['content_bm25'])
+                        if (
+                            hasattr(item, "metadata")
+                            and item.metadata
+                            and "content_bm25" in item.metadata
+                        ):
+                            bm25_texts.append(item.metadata["content_bm25"])
                         else:
                             bm25_texts.append(getattr(item, "content", str(item)))
-                    
+
                     # Generate BM25 embeddings using optimized content
-                    bm25_results = bm25_embedder.embed_batch(bm25_texts, item_type=item_name)
-                    
+                    bm25_results = bm25_embedder.embed_batch(
+                        bm25_texts, item_type=item_name
+                    )
+
                     # Add sparse vectors only to items that should have BM25
-                    for dense_result, sparse_result, should_have_bm25 in zip(embedding_results, bm25_results, should_apply_bm25, strict=False):
-                        if should_have_bm25 and dense_result.success and sparse_result.success:
+                    for dense_result, sparse_result, should_have_bm25 in zip(
+                        embedding_results, bm25_results, should_apply_bm25, strict=False
+                    ):
+                        if (
+                            should_have_bm25
+                            and dense_result.success
+                            and sparse_result.success
+                        ):
                             dense_result.sparse_embedding = sparse_result.embedding
-                            
+
                     if self.logger:
                         successful_sparse = sum(1 for r in bm25_results if r.success)
-                        self.logger.debug(f"🔤 Generated {successful_sparse}/{len(bm25_results)} BM25 entity sparse vectors")
-                        
+                        self.logger.debug(
+                            f"🔤 Generated {successful_sparse}/{len(bm25_results)} BM25 entity sparse vectors"
+                        )
+
                 except Exception as e:
                     if self.logger:
                         self.logger.warning(f"BM25 entity embedding failed: {e}")
@@ -194,28 +219,43 @@ class ContentProcessor(ContentHashMixin, ABC):
         for item, embedding_result in zip(items, embedding_results, strict=False):
             if embedding_result.success:
                 # Check if sparse embedding is available for hybrid point creation
-                if hasattr(embedding_result, 'sparse_embedding') and embedding_result.sparse_embedding is not None:
+                if (
+                    hasattr(embedding_result, "sparse_embedding")
+                    and embedding_result.sparse_embedding is not None
+                ):
                     # Get the backend vector store (handles CachingVectorStore wrapper)
-                    backend_store = getattr(self.vector_store, 'backend', self.vector_store)
-                    
+                    backend_store = getattr(
+                        self.vector_store, "backend", self.vector_store
+                    )
+
                     # Use hybrid point creation method
-                    hybrid_method = f"create_hybrid_{point_creation_method.replace('create_', '')}"
+                    hybrid_method = (
+                        f"create_hybrid_{point_creation_method.replace('create_', '')}"
+                    )
                     if hasattr(backend_store, hybrid_method):
                         point_creator = getattr(backend_store, hybrid_method)
                         point = point_creator(
-                            item, embedding_result.embedding, embedding_result.sparse_embedding, collection_name
+                            item,
+                            embedding_result.embedding,
+                            embedding_result.sparse_embedding,
+                            collection_name,
                         )
                         points.append(point)
-                    elif hasattr(backend_store, 'create_hybrid_chunk_point'):
+                    elif hasattr(backend_store, "create_hybrid_chunk_point"):
                         # Fallback to hybrid chunk point
                         point = backend_store.create_hybrid_chunk_point(
-                            item, embedding_result.embedding, embedding_result.sparse_embedding, collection_name
+                            item,
+                            embedding_result.embedding,
+                            embedding_result.sparse_embedding,
+                            collection_name,
                         )
                         points.append(point)
                     else:
                         # No hybrid support, use dense-only
                         if hasattr(self.vector_store, point_creation_method):
-                            point_creator = getattr(self.vector_store, point_creation_method)
+                            point_creator = getattr(
+                                self.vector_store, point_creation_method
+                            )
                             point = point_creator(
                                 item, embedding_result.embedding, collection_name
                             )
@@ -228,7 +268,9 @@ class ContentProcessor(ContentHashMixin, ABC):
                 else:
                     # Standard dense-only point creation
                     if hasattr(self.vector_store, point_creation_method):
-                        point_creator = getattr(self.vector_store, point_creation_method)
+                        point_creator = getattr(
+                            self.vector_store, point_creation_method
+                        )
                         point = point_creator(
                             item, embedding_result.embedding, collection_name
                         )

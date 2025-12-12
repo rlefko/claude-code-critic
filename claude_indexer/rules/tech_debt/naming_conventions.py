@@ -106,12 +106,26 @@ class NamingConventionsRule(BaseRule):
     IGNORED_NAMES = {
         "_",  # Unused variable placeholder
         "__",
-        "i", "j", "k", "n", "x", "y", "z",  # Loop/math variables
-        "e", "ex", "err",  # Exception variables
-        "f", "fp",  # File handles
-        "db", "id", "pk", "fk",  # Common abbreviations
-        "setUp", "tearDown",  # Test methods
-        "setUpClass", "tearDownClass",
+        "i",
+        "j",
+        "k",
+        "n",
+        "x",
+        "y",
+        "z",  # Loop/math variables
+        "e",
+        "ex",
+        "err",  # Exception variables
+        "f",
+        "fp",  # File handles
+        "db",
+        "id",
+        "pk",
+        "fk",  # Common abbreviations
+        "setUp",
+        "tearDown",  # Test methods
+        "setUpClass",
+        "tearDownClass",
     }
 
     # Patterns that indicate special methods (don't enforce)
@@ -287,9 +301,7 @@ class NamingConventionsRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: "Finding", context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: "Finding", context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to rename identifier.
 
         Note: This only fixes the current line. Full rename refactoring

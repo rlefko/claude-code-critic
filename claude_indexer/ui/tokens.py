@@ -67,7 +67,11 @@ class ColorToken:
             value,
         )
         if rgb_match:
-            r, g, b = int(rgb_match.group(1)), int(rgb_match.group(2)), int(rgb_match.group(3))
+            r, g, b = (
+                int(rgb_match.group(1)),
+                int(rgb_match.group(2)),
+                int(rgb_match.group(3)),
+            )
             a = float(rgb_match.group(4)) if rgb_match.group(4) else 1.0
             a_hex = format(int(a * 255), "02X")
             return f"#{r:02X}{g:02X}{b:02X}{a_hex}"
@@ -290,11 +294,15 @@ class TokenSet:
     def from_dict(cls, data: dict[str, Any]) -> "TokenSet":
         """Create from dictionary."""
         return cls(
-            colors={k: ColorToken.from_dict(v) for k, v in data.get("colors", {}).items()},
+            colors={
+                k: ColorToken.from_dict(v) for k, v in data.get("colors", {}).items()
+            },
             spacing={
                 k: SpacingToken.from_dict(v) for k, v in data.get("spacing", {}).items()
             },
-            radii={k: RadiusToken.from_dict(v) for k, v in data.get("radii", {}).items()},
+            radii={
+                k: RadiusToken.from_dict(v) for k, v in data.get("radii", {}).items()
+            },
             typography={
                 k: TypographyToken.from_dict(v)
                 for k, v in data.get("typography", {}).items()

@@ -185,12 +185,14 @@ class ConsistencyAnalyzer:
                         if prop not in metrics.off_scale_by_property:
                             metrics.off_scale_by_property[prop] = []
                         metrics.off_scale_by_property[prop].append(value)
-                        evidence_items.append({
-                            "property": prop,
-                            "value": value,
-                            "element": fp.selector,
-                            "page": fp.page_id,
-                        })
+                        evidence_items.append(
+                            {
+                                "property": prop,
+                                "value": value,
+                                "element": fp.selector,
+                                "page": fp.page_id,
+                            }
+                        )
                     else:
                         metrics.on_scale_values += 1
 
@@ -205,12 +207,14 @@ class ConsistencyAnalyzer:
                         if prop not in metrics.off_scale_by_property:
                             metrics.off_scale_by_property[prop] = []
                         metrics.off_scale_by_property[prop].append(value)
-                        evidence_items.append({
-                            "property": prop,
-                            "value": value,
-                            "element": fp.selector,
-                            "page": fp.page_id,
-                        })
+                        evidence_items.append(
+                            {
+                                "property": prop,
+                                "value": value,
+                                "element": fp.selector,
+                                "page": fp.page_id,
+                            }
+                        )
                     else:
                         metrics.on_scale_values += 1
 
@@ -225,12 +229,14 @@ class ConsistencyAnalyzer:
                         if prop not in metrics.off_scale_by_property:
                             metrics.off_scale_by_property[prop] = []
                         metrics.off_scale_by_property[prop].append(value)
-                        evidence_items.append({
-                            "property": prop,
-                            "value": value,
-                            "element": fp.selector,
-                            "page": fp.page_id,
-                        })
+                        evidence_items.append(
+                            {
+                                "property": prop,
+                                "value": value,
+                                "element": fp.selector,
+                                "page": fp.page_id,
+                            }
+                        )
                     else:
                         metrics.on_scale_values += 1
 
@@ -245,12 +251,14 @@ class ConsistencyAnalyzer:
                         if prop not in metrics.off_scale_by_property:
                             metrics.off_scale_by_property[prop] = []
                         metrics.off_scale_by_property[prop].append(value)
-                        evidence_items.append({
-                            "property": prop,
-                            "value": value,
-                            "element": fp.selector,
-                            "page": fp.page_id,
-                        })
+                        evidence_items.append(
+                            {
+                                "property": prop,
+                                "value": value,
+                                "element": fp.selector,
+                                "page": fp.page_id,
+                            }
+                        )
                     else:
                         metrics.on_scale_values += 1
 
@@ -292,7 +300,12 @@ class ConsistencyAnalyzer:
             for fp in fps:
                 # Create a signature from key style properties
                 sig_parts = []
-                for prop in ["background-color", "border-radius", "padding", "font-size"]:
+                for prop in [
+                    "background-color",
+                    "border-radius",
+                    "padding",
+                    "font-size",
+                ]:
                     if prop in fp.computed_style_subset:
                         sig_parts.append(f"{prop}:{fp.computed_style_subset[prop]}")
                 signature = "|".join(sorted(sig_parts)) or "default"
@@ -371,15 +384,20 @@ class ConsistencyAnalyzer:
                     expected_freq = total / len(values)
                     if expected_freq > 0:
                         z_score = abs(count - expected_freq) / (expected_freq**0.5 + 1)
-                        if z_score > self.OUTLIER_Z_THRESHOLD and count < majority_count * 0.25:
-                            outliers.append(OutlierMetrics(
-                                property_name=prop,
-                                majority_value=majority_value,
-                                outlier_value=value,
-                                outlier_count=count,
-                                total_count=total,
-                                z_score=z_score,
-                            ))
+                        if (
+                            z_score > self.OUTLIER_Z_THRESHOLD
+                            and count < majority_count * 0.25
+                        ):
+                            outliers.append(
+                                OutlierMetrics(
+                                    property_name=prop,
+                                    majority_value=majority_value,
+                                    outlier_value=value,
+                                    outlier_count=count,
+                                    total_count=total,
+                                    z_score=z_score,
+                                )
+                            )
 
         return outliers
 
@@ -404,19 +422,23 @@ class ConsistencyAnalyzer:
         # 1. Token adherence critique
         token_metrics, token_evidence = self.analyze_token_adherence(fingerprints)
         if token_metrics.adherence_rate < 0.9:  # Less than 90% adherence
-            severity = Severity.FAIL if token_metrics.adherence_rate < 0.7 else Severity.WARN
-            critiques.append({
-                "category": "consistency",
-                "subcategory": "token_adherence",
-                "severity": severity,
-                "title": "Low Token Adherence Rate",
-                "description": (
-                    f"Only {token_metrics.adherence_rate:.0%} of style values use design tokens. "
-                    f"{token_metrics.off_scale_values} values are off-scale."
-                ),
-                "evidence": token_evidence[:10],  # Limit evidence items
-                "metrics": token_metrics.to_dict(),
-            })
+            severity = (
+                Severity.FAIL if token_metrics.adherence_rate < 0.7 else Severity.WARN
+            )
+            critiques.append(
+                {
+                    "category": "consistency",
+                    "subcategory": "token_adherence",
+                    "severity": severity,
+                    "title": "Low Token Adherence Rate",
+                    "description": (
+                        f"Only {token_metrics.adherence_rate:.0%} of style values use design tokens. "
+                        f"{token_metrics.off_scale_values} values are off-scale."
+                    ),
+                    "evidence": token_evidence[:10],  # Limit evidence items
+                    "metrics": token_metrics.to_dict(),
+                }
+            )
 
         # 2. Role variant critiques
         variant_metrics = self.analyze_role_variants(fingerprints, visual_clusters)
@@ -425,36 +447,40 @@ class ConsistencyAnalyzer:
 
         for role, metrics in variant_metrics.items():
             if metrics.variant_count > max_variants:
-                critiques.append({
-                    "category": "consistency",
-                    "subcategory": "role_variants",
-                    "severity": Severity.WARN,
-                    "title": f"Excessive {role.title()} Variants",
-                    "description": (
-                        f"Found {metrics.variant_count} distinct {role} styles. "
-                        f"Consider consolidating to {max_variants} or fewer variants."
-                    ),
-                    "evidence": [],
-                    "screenshots": metrics.representative_screenshots,
-                    "metrics": metrics.to_dict(),
-                })
+                critiques.append(
+                    {
+                        "category": "consistency",
+                        "subcategory": "role_variants",
+                        "severity": Severity.WARN,
+                        "title": f"Excessive {role.title()} Variants",
+                        "description": (
+                            f"Found {metrics.variant_count} distinct {role} styles. "
+                            f"Consider consolidating to {max_variants} or fewer variants."
+                        ),
+                        "evidence": [],
+                        "screenshots": metrics.representative_screenshots,
+                        "metrics": metrics.to_dict(),
+                    }
+                )
 
         # 3. Outlier critiques
         outliers = self.detect_outliers(fingerprints)
         for outlier in outliers:
-            critiques.append({
-                "category": "consistency",
-                "subcategory": "outlier",
-                "severity": Severity.INFO,
-                "title": f"Style Outlier: {outlier.property_name}",
-                "description": (
-                    f"Found {outlier.outlier_count} elements with {outlier.property_name}: "
-                    f"{outlier.outlier_value} while most ({outlier.total_count - outlier.outlier_count}) "
-                    f"use {outlier.majority_value}"
-                ),
-                "evidence": [],
-                "metrics": outlier.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "consistency",
+                    "subcategory": "outlier",
+                    "severity": Severity.INFO,
+                    "title": f"Style Outlier: {outlier.property_name}",
+                    "description": (
+                        f"Found {outlier.outlier_count} elements with {outlier.property_name}: "
+                        f"{outlier.outlier_value} while most ({outlier.total_count - outlier.outlier_count}) "
+                        f"use {outlier.majority_value}"
+                    ),
+                    "evidence": [],
+                    "metrics": outlier.to_dict(),
+                }
+            )
 
         return critiques
 

@@ -223,7 +223,9 @@ class GitChangeDetector:
             self.logger.warning(f"Could not find merge base with {base_branch}")
             return ChangeSet(is_git_repo=True, base_commit=base_branch)
 
-        self.logger.debug(f"Detecting branch diff against {base_branch} (base: {merge_base})")
+        self.logger.debug(
+            f"Detecting branch diff against {base_branch} (base: {merge_base})"
+        )
         return self._detect_via_git(
             ["diff", "--name-status", "-M", f"{merge_base}..HEAD"]
         )

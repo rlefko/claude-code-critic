@@ -181,9 +181,7 @@ class StyleNearDuplicateSetRule(BaseRule):
                 ref2 = style2.source_refs[0]
 
             # Find differences
-            diffs = self._find_declaration_diffs(
-                norm1.declarations, norm2.declarations
-            )
+            diffs = self._find_declaration_diffs(norm1.declarations, norm2.declarations)
 
             evidence = [
                 self._create_static_evidence(
@@ -283,8 +281,7 @@ class UtilityDuplicateSequenceRule(BaseRule):
 
             # Get class-like style refs
             classes = [
-                ref for ref in component.style_refs
-                if self._is_utility_class(ref)
+                ref for ref in component.style_refs if self._is_utility_class(ref)
             ]
 
             if len(classes) >= self.MIN_SEQUENCE_LENGTH:
@@ -407,7 +404,8 @@ class ComponentDuplicateClusterRule(BaseRule):
 
                 # Get components in cluster
                 cluster_components = [
-                    c for c in context.components
+                    c
+                    for c in context.components
                     if self._get_component_id(c) in cluster.items
                 ]
 

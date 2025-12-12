@@ -6,7 +6,13 @@ and styles using DBSCAN.
 
 import pytest
 
-from claude_indexer.ui.models import StaticComponentFingerprint, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    StaticComponentFingerprint,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.similarity.clustering import (
     Cluster,
     ClusteringResult,
@@ -213,9 +219,21 @@ class TestSimilarityClustering:
     def test_cluster_components_distinct(self, clustering):
         """Test clustering distinct components."""
         components = [
-            create_component("Button", structure_hash="abc123def456abc123def456abc12345", style_refs=["btn"]),
-            create_component("Card", structure_hash="123456789abcdef0123456789abcdef0", style_refs=["card"]),
-            create_component("Modal", structure_hash="fedcba9876543210fedcba9876543210", style_refs=["modal"]),
+            create_component(
+                "Button",
+                structure_hash="abc123def456abc123def456abc12345",
+                style_refs=["btn"],
+            ),
+            create_component(
+                "Card",
+                structure_hash="123456789abcdef0123456789abcdef0",
+                style_refs=["card"],
+            ),
+            create_component(
+                "Modal",
+                structure_hash="fedcba9876543210fedcba9876543210",
+                style_refs=["modal"],
+            ),
         ]
 
         result = clustering.cluster_components(components)
@@ -304,11 +322,13 @@ class TestSimpleClustering:
         import numpy as np
 
         # Create a simple distance matrix where items 0,1 are close, 2 is far
-        distance_matrix = np.array([
-            [0.0, 0.1, 0.9],  # 0 is close to 1, far from 2
-            [0.1, 0.0, 0.9],  # 1 is close to 0, far from 2
-            [0.9, 0.9, 0.0],  # 2 is far from both
-        ])
+        distance_matrix = np.array(
+            [
+                [0.0, 0.1, 0.9],  # 0 is close to 1, far from 2
+                [0.1, 0.0, 0.9],  # 1 is close to 0, far from 2
+                [0.9, 0.9, 0.0],  # 2 is far from both
+            ]
+        )
 
         labels = clustering._simple_clustering(distance_matrix)
 
@@ -338,7 +358,9 @@ class TestClusteringEdgeCases:
         """Test when all items are distinct."""
         # Use unique valid hex hashes
         components = [
-            create_component(f"Comp{i}", structure_hash=f"{i:032x}", style_refs=[f"style{i}"])
+            create_component(
+                f"Comp{i}", structure_hash=f"{i:032x}", style_refs=[f"style{i}"]
+            )
             for i in range(5)
         ]
 

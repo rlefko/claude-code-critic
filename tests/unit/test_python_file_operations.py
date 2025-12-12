@@ -45,9 +45,9 @@ df3.to_excel('output_inventory.xlsx')
         # Check for file operation relations
         file_relations = [r for r in result.relations if "pandas" in r.context]
 
-        assert len(file_relations) >= 6, (
-            f"Expected 6+ pandas operations, got {len(file_relations)}"
-        )
+        assert (
+            len(file_relations) >= 6
+        ), f"Expected 6+ pandas operations, got {len(file_relations)}"
 
         # Check specific operations
         contexts = [r.context for r in file_relations]
@@ -91,16 +91,16 @@ Path('output.bin').write_bytes(b'binary_results')
 
         # Note: Updated expectation based on current parser behavior
         # Parser currently detects write operations more reliably than read operations
-        assert len(path_relations) >= 2, (
-            f"Expected 2+ pathlib operations, got {len(path_relations)}"
-        )
+        assert (
+            len(path_relations) >= 2
+        ), f"Expected 2+ pathlib operations, got {len(path_relations)}"
 
         # Check that pathlib operations are being detected
         contexts = [r.context for r in path_relations]
         # Ensure at least path_write_text operations are detected
-        assert any("path_write_text" in ctx for ctx in contexts), (
-            f"Expected path_write_text operations, got contexts: {contexts}"
-        )
+        assert any(
+            "path_write_text" in ctx for ctx in contexts
+        ), f"Expected path_write_text operations, got contexts: {contexts}"
 
     def test_basic_file_operations(self, python_parser, tmp_path):
         """Test basic file operations detection."""
@@ -133,9 +133,9 @@ with open('settings.yaml', 'r') as f:
             if any(op in r.context for op in ["file_open", "json_load", "yaml_load"])
         ]
 
-        assert len(file_relations) >= 3, (
-            f"Expected 3+ basic operations, got {len(file_relations)}"
-        )
+        assert (
+            len(file_relations) >= 3
+        ), f"Expected 3+ basic operations, got {len(file_relations)}"
 
         # Check file targets
         targets = [r.to_entity for r in file_relations]
@@ -164,9 +164,9 @@ result = requests.post('api/upload.json', json={'data': 'test'})
         # Check for requests operation relations
         req_relations = [r for r in result.relations if "requests_" in r.context]
 
-        assert len(req_relations) >= 2, (
-            f"Expected 2+ requests operations, got {len(req_relations)}"
-        )
+        assert (
+            len(req_relations) >= 2
+        ), f"Expected 2+ requests operations, got {len(req_relations)}"
 
         # Check specific operations
         contexts = [r.context for r in req_relations]
@@ -201,17 +201,17 @@ pyproject_data = toml.load('pyproject.toml')
 
         # Note: Updated expectation based on current parser behavior
         # Parser currently detects toml.load more reliably than configparser.read
-        assert len(config_relations) >= 1, (
-            f"Expected 1+ config operations, got {len(config_relations)}"
-        )
+        assert (
+            len(config_relations) >= 1
+        ), f"Expected 1+ config operations, got {len(config_relations)}"
 
         # Check that config operations are being detected
         [r.to_entity for r in config_relations]
         contexts = [r.context for r in config_relations]
         # Ensure at least toml operations are detected
-        assert any("toml_read" in ctx for ctx in contexts), (
-            f"Expected toml_read operations, got contexts: {contexts}"
-        )
+        assert any(
+            "toml_read" in ctx for ctx in contexts
+        ), f"Expected toml_read operations, got contexts: {contexts}"
 
     def test_no_false_positives(self, python_parser, tmp_path):
         """Test that non-file operations don't create file relations."""
@@ -239,9 +239,9 @@ df2 = pd.read_csv(var_name)  # Variable reference, not string literal
         ]
 
         # May have one relation for the variable case, but should not have many false positives
-        assert len(file_relations) <= 1, (
-            f"Expected ≤1 file relations (variable case), got {len(file_relations)}"
-        )
+        assert (
+            len(file_relations) <= 1
+        ), f"Expected ≤1 file relations (variable case), got {len(file_relations)}"
 
     def test_relation_format(self, python_parser, tmp_path):
         """Test that file operation relations have correct format."""
@@ -261,13 +261,13 @@ df = pd.read_csv('test.csv')
         )
 
         assert file_relation is not None, "Should find pandas_csv_read relation"
-        assert file_relation.relation_type == RelationType.IMPORTS, (
-            "Should use IMPORTS relation type"
-        )
-        assert file_relation.from_entity == str(test_file), (
-            "Source should be the Python file"
-        )
+        assert (
+            file_relation.relation_type == RelationType.IMPORTS
+        ), "Should use IMPORTS relation type"
+        assert file_relation.from_entity == str(
+            test_file
+        ), "Source should be the Python file"
         assert file_relation.to_entity == "test.csv", "Target should be the CSV file"
-        assert "pandas_csv_read" in file_relation.context, (
-            "Context should contain operation type"
-        )
+        assert (
+            "pandas_csv_read" in file_relation.context
+        ), "Context should contain operation type"

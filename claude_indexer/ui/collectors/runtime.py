@@ -82,7 +82,9 @@ class CrawlResult:
         return {
             "target": self.target.to_dict(),
             "fingerprints": [fp.to_dict() for fp in self.fingerprints],
-            "screenshots_dir": str(self.screenshots_dir) if self.screenshots_dir else None,
+            "screenshots_dir": (
+                str(self.screenshots_dir) if self.screenshots_dir else None
+            ),
             "errors": self.errors,
             "crawl_time_ms": self.crawl_time_ms,
         }
@@ -96,9 +98,9 @@ class CrawlResult:
                 RuntimeElementFingerprint.from_dict(fp)
                 for fp in data.get("fingerprints", [])
             ],
-            screenshots_dir=Path(data["screenshots_dir"])
-            if data.get("screenshots_dir")
-            else None,
+            screenshots_dir=(
+                Path(data["screenshots_dir"]) if data.get("screenshots_dir") else None
+            ),
             errors=data.get("errors", []),
             crawl_time_ms=data.get("crawl_time_ms", 0.0),
         )
@@ -251,7 +253,9 @@ class RuntimeCollector:
         while time.time() - start_time < timeout:
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=2)) as response:
+                    async with session.get(
+                        url, timeout=aiohttp.ClientTimeout(total=2)
+                    ) as response:
                         if response.status < 500:
                             return True
             except Exception:

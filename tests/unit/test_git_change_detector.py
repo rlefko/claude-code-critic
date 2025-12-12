@@ -166,9 +166,7 @@ class TestGitChangeDetector:
     @patch("subprocess.run")
     def test_get_current_commit(self, mock_run: MagicMock, tmp_path: Path):
         """Test getting current commit."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="abc123\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="abc123\n")
         detector = GitChangeDetector(tmp_path)
         detector._is_git_repo = True
 
@@ -298,10 +296,7 @@ R100\told.py\trenamed.py"""
         detector.get_staged_files()
 
         # Find the diff call (there may also be a rev-parse call)
-        diff_calls = [
-            call for call in mock_git.call_args_list
-            if "diff" in call[0][0]
-        ]
+        diff_calls = [call for call in mock_git.call_args_list if "diff" in call[0][0]]
         assert len(diff_calls) == 1
         call_args = diff_calls[0][0][0]
         assert "--cached" in call_args
@@ -342,7 +337,8 @@ R100\told.py\trenamed.py"""
         mock_merge_base.assert_called_once_with("main")
         # Find the diff call
         diff_calls = [
-            call for call in mock_git.call_args_list
+            call
+            for call in mock_git.call_args_list
             if len(call[0]) > 0 and "diff" in call[0][0]
         ]
         assert len(diff_calls) == 1
@@ -362,7 +358,8 @@ R100\told.py\trenamed.py"""
 
         # Find the diff call
         diff_calls = [
-            call for call in mock_git.call_args_list
+            call
+            for call in mock_git.call_args_list
             if len(call[0]) > 0 and "diff" in call[0][0]
         ]
         assert len(diff_calls) == 1

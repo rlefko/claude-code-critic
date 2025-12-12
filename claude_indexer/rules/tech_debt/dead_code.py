@@ -316,9 +316,7 @@ class DeadCodeRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: "Finding", context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: "Finding", context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to remove dead code.
 
         Args:

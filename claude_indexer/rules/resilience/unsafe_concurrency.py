@@ -230,9 +230,7 @@ class UnsafeConcurrencyRule(BaseRule):
 
         return (start, end)
 
-    def _is_async_without_await(
-        self, lines: list[str], start: int, end: int
-    ) -> bool:
+    def _is_async_without_await(self, lines: list[str], start: int, end: int) -> bool:
         """Check if async function lacks await statements."""
         for i in range(start, min(end + 1, len(lines))):
             if re.search(r"\bawait\s+", lines[i]):
@@ -322,7 +320,10 @@ class UnsafeConcurrencyRule(BaseRule):
                         continue
 
                     # Special check for async without await
-                    if "async" in description.lower() and "await" in description.lower():
+                    if (
+                        "async" in description.lower()
+                        and "await" in description.lower()
+                    ):
                         if not self._is_async_without_await(lines, start, end):
                             continue
 

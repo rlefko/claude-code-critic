@@ -18,7 +18,6 @@ from claude_indexer.ui.collectors.runtime import (
 from claude_indexer.ui.config import UIQualityConfig, ViewportConfig
 from claude_indexer.ui.models import LayoutBox, RuntimeElementFingerprint
 
-
 # ==============================================================================
 # Fixtures
 # ==============================================================================
@@ -126,12 +125,14 @@ def mock_playwright_objects():
 
     # Setup page methods
     page.goto = AsyncMock()
-    page.evaluate = AsyncMock(return_value={
-        "scrollHeight": 1000,
-        "scrollWidth": 800,
-        "bodyHeight": 1000,
-        "bodyWidth": 800,
-    })
+    page.evaluate = AsyncMock(
+        return_value={
+            "scrollHeight": 1000,
+            "scrollWidth": 800,
+            "bodyHeight": 1000,
+            "bodyWidth": 800,
+        }
+    )
     page.add_style_tag = AsyncMock()
     page.locator = MagicMock()
 
@@ -372,9 +373,7 @@ class TestRuntimeCollectorInit:
 
     def test_init_without_playwright_raises(self, mock_ui_config, tmp_path):
         """Test that initialization fails when Playwright is not available."""
-        with patch(
-            "claude_indexer.ui.collectors.runtime.PLAYWRIGHT_AVAILABLE", False
-        ):
+        with patch("claude_indexer.ui.collectors.runtime.PLAYWRIGHT_AVAILABLE", False):
             # Need to reload the module to get the new check
             from claude_indexer.ui.collectors import runtime
 
@@ -599,9 +598,7 @@ class TestServerManagement:
             )
             mock_aiohttp.ClientTimeout = MagicMock()
 
-            result = await collector.wait_for_server(
-                "http://localhost:6006", timeout=1
-            )
+            result = await collector.wait_for_server("http://localhost:6006", timeout=1)
             assert result is False
 
     @pytest.mark.skipif(not PLAYWRIGHT_AVAILABLE, reason="Playwright not installed")
@@ -635,9 +632,7 @@ class TestServerManagement:
             )
             mock_aiohttp.ClientTimeout = MagicMock()
 
-            result = await collector.wait_for_server(
-                "http://localhost:6006", timeout=5
-            )
+            result = await collector.wait_for_server("http://localhost:6006", timeout=5)
             # First response is 500 (>= 500), so it keeps waiting
             # Eventually times out since our mock doesn't change
             # For this test, we'll verify timeout behavior with 500
@@ -853,15 +848,9 @@ class TestCrawlSingleTarget:
                 patch(
                     "claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"
                 ) as mock_targeting_cls,
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ComputedStyleCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.PseudoStateCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ScreenshotCapture"
-                ),
+                patch("claude_indexer.ui.collectors.runtime.ComputedStyleCapture"),
+                patch("claude_indexer.ui.collectors.runtime.PseudoStateCapture"),
+                patch("claude_indexer.ui.collectors.runtime.ScreenshotCapture"),
             ):
                 mock_targeting = MagicMock()
                 mock_targeting.discover_elements = AsyncMock(return_value=[])
@@ -909,15 +898,9 @@ class TestCrawlSingleTarget:
                 patch(
                     "claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"
                 ) as mock_targeting_cls,
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ComputedStyleCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.PseudoStateCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ScreenshotCapture"
-                ),
+                patch("claude_indexer.ui.collectors.runtime.ComputedStyleCapture"),
+                patch("claude_indexer.ui.collectors.runtime.PseudoStateCapture"),
+                patch("claude_indexer.ui.collectors.runtime.ScreenshotCapture"),
             ):
                 mock_targeting = MagicMock()
                 mock_targeting_cls.return_value = mock_targeting

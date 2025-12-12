@@ -38,7 +38,9 @@ from .stop_check import (
     StopCheckExecutor,
     StopCheckResult,
     format_findings_for_claude,
-    format_findings_for_display as format_stop_findings_for_display,
+)
+from .stop_check import format_findings_for_display as format_stop_findings_for_display
+from .stop_check import (
     run_stop_check_with_repair,
 )
 

@@ -227,9 +227,7 @@ class LayoutBox:
     y: float
     width: float
     height: float
-    padding: dict[str, float] = field(
-        default_factory=dict
-    )  # top, right, bottom, left
+    padding: dict[str, float] = field(default_factory=dict)  # top, right, bottom, left
     margin: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

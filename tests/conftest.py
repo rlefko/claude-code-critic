@@ -21,9 +21,12 @@ from qdrant_client.http.models import Distance, VectorParams
 def pytest_addoption(parser):
     """Add custom command line option for watcher mode."""
     parser.addoption(
-        "--watcher", action="store_true", default=False,
-        help="Run tests using watcher mode instead of incremental indexing"
+        "--watcher",
+        action="store_true",
+        default=False,
+        help="Run tests using watcher mode instead of incremental indexing",
     )
+
 
 # Import project components
 try:
@@ -48,7 +51,8 @@ def temp_repo(tmp_path_factory) -> Path:
     repo_path = tmp_path_factory.mktemp("sample_repo")
 
     # Create sample Python files
-    (repo_path / "foo.py").write_text('''"""Sample module with functions."""
+    (repo_path / "foo.py").write_text(
+        '''"""Sample module with functions."""
 
 def add(x, y):
     """Return sum of two numbers."""
@@ -60,9 +64,11 @@ class Calculator:
     def multiply(self, a, b):
         """Multiply two numbers."""
         return a * b
-''')
+'''
+    )
 
-    (repo_path / "bar.py").write_text('''"""Module that imports and uses foo."""
+    (repo_path / "bar.py").write_text(
+        '''"""Module that imports and uses foo."""
 from foo import add, Calculator
 
 def main():
@@ -74,31 +80,36 @@ def main():
 
 if __name__ == "__main__":
     main()
-''')
+'''
+    )
 
     # Create a subdirectory with more code
     subdir = repo_path / "utils"
     subdir.mkdir()
     (subdir / "__init__.py").write_text("")
-    (subdir / "helpers.py").write_text('''"""Helper utilities."""
+    (subdir / "helpers.py").write_text(
+        '''"""Helper utilities."""
 
 def format_output(value):
     """Format value for display."""
     return f"Value: {value}"
 
 LOG_LEVEL = "INFO"
-''')
+'''
+    )
 
     # Create a test file (will be excluded by default)
     test_dir = repo_path / "tests"
     test_dir.mkdir()
-    (test_dir / "test_foo.py").write_text('''"""Tests for foo module."""
+    (test_dir / "test_foo.py").write_text(
+        '''"""Tests for foo module."""
 import pytest
 from foo import add
 
 def test_add():
     assert add(2, 3) == 5
-''')
+'''
+    )
 
     return repo_path
 
@@ -129,7 +140,7 @@ def is_production_collection(collection_name: str) -> bool:
         "memory-project",
         "general",
         "watcher-test",  # Add watcher-test as it's used for debugging
-        "parser-test",   # Used by integration tests - don't cleanup
+        "parser-test",  # Used by integration tests - don't cleanup
     }
     return collection_name in PRODUCTION_COLLECTIONS
 
@@ -212,18 +223,16 @@ def qdrant_store(qdrant_client) -> "QdrantStore":
 
     store = QdrantStore(
         url=config.qdrant_url,
-        api_key=config.qdrant_api_key
-        if config.qdrant_api_key != "default-key"
-        else None,
+        api_key=(
+            config.qdrant_api_key if config.qdrant_api_key != "default-key" else None
+        ),
     )
 
     # Clean up any existing test data
     try:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        Filter(
-            must=[FieldCondition(key="test", match=MatchValue(value=True))]
-        )
+        Filter(must=[FieldCondition(key="test", match=MatchValue(value=True))])
         # Note: collection_name should be passed from fixture if needed
         # For now, skip cleanup since we use timestamped collections
         pass
@@ -356,7 +365,8 @@ qdrant_url={real_config.qdrant_url}
 def sample_python_file(tmp_path) -> Path:
     """Create a single sample Python file for testing."""
     py_file = tmp_path / "sample.py"
-    py_file.write_text('''"""Sample Python file for testing."""
+    py_file.write_text(
+        '''"""Sample Python file for testing."""
 
 class SampleClass:
     """A sample class."""
@@ -374,7 +384,8 @@ def utility_function(data: list) -> int:
 
 # Module-level variable
 DEFAULT_NAME = "World"
-''')
+'''
+    )
     return py_file
 
 
@@ -511,6 +522,7 @@ def cleanup_test_collections_on_failure():
         ]
 
         import contextlib
+
         for collection_name in temp_test_collections:
             with contextlib.suppress(Exception):
                 client.delete_collection(collection_name)
@@ -744,7 +756,10 @@ def verify_entity_searchable(
                 continue
 
             # Only match if search term is in the entity name (not just content)
-            if entity_name in entity_name_field and entity_name_field not in unique_entity_names:
+            if (
+                entity_name in entity_name_field
+                and entity_name_field not in unique_entity_names
+            ):
                 unique_entity_names.add(entity_name_field)
                 matching_hits.append(hit)
                 if verbose:

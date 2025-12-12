@@ -99,10 +99,12 @@ class TestPythonParser:
     def test_parse_simple_function(self, tmp_path):
         """Test parsing a simple function."""
         test_file = tmp_path / "simple.py"
-        test_file.write_text('''def hello():
+        test_file.write_text(
+            '''def hello():
     """Say hello."""
     return "Hello, World!"
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -126,7 +128,8 @@ class TestPythonParser:
     def test_parse_class_with_methods(self, tmp_path):
         """Test parsing a class with methods."""
         test_file = tmp_path / "class_test.py"
-        test_file.write_text('''class TestClass:
+        test_file.write_text(
+            '''class TestClass:
     """A test class."""
 
     def __init__(self):
@@ -136,7 +139,8 @@ class TestPythonParser:
     def method(self):
         """A method."""
         return True
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -187,14 +191,16 @@ class TestPythonParser:
     def test_parse_with_imports(self, tmp_path):
         """Test parsing file with imports."""
         test_file = tmp_path / "with_imports.py"
-        test_file.write_text('''import os
+        test_file.write_text(
+            '''import os
 from pathlib import Path
 import json as js
 
 def process_file(path):
     """Process a file."""
     return os.path.exists(path)
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -210,10 +216,12 @@ def process_file(path):
     def test_parse_syntax_error_handling(self, tmp_path):
         """Test handling of syntax errors."""
         test_file = tmp_path / "syntax_error.py"
-        test_file.write_text("""def broken_function(
+        test_file.write_text(
+            """def broken_function(
     # Intentional syntax error - missing closing parenthesis
     return "This won't parse"
-""")
+"""
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -239,7 +247,8 @@ def process_file(path):
     def test_parse_docstring_extraction(self, tmp_path):
         """Test that docstrings are properly extracted."""
         test_file = tmp_path / "docstrings.py"
-        test_file.write_text('''"""Module docstring."""
+        test_file.write_text(
+            '''"""Module docstring."""
 
 def documented_function():
     """This function has a docstring."""
@@ -251,7 +260,8 @@ class DocumentedClass:
     def method_with_doc(self):
         """This method has a docstring."""
         pass
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -295,14 +305,16 @@ class TestMarkdownParser:
     def test_parse_simple_markdown(self, tmp_path):
         """Test parsing simple markdown content."""
         test_file = tmp_path / "simple.md"
-        test_file.write_text("""# Main Header
+        test_file.write_text(
+            """# Main Header
 
 Some content here.
 
 ## Second Header
 
 More content.
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)
@@ -357,7 +369,8 @@ More content.
     def test_parse_markdown_with_code_blocks(self, tmp_path):
         """Test parsing markdown with code blocks (should ignore code content)."""
         test_file = tmp_path / "with_code.md"
-        test_file.write_text("""# Documentation
+        test_file.write_text(
+            """# Documentation
 
 Some text here.
 
@@ -369,7 +382,8 @@ def code_function():
 ## Another Section
 
 More text.
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)
@@ -389,7 +403,8 @@ More text.
     def test_parse_malformed_headers(self, tmp_path):
         """Test handling of malformed headers."""
         test_file = tmp_path / "malformed.md"
-        test_file.write_text("""# Valid Header
+        test_file.write_text(
+            """# Valid Header
 
 ## Another Valid Header
 
@@ -400,7 +415,8 @@ More text.
 #####
 
 Regular text with # that's not a header
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)

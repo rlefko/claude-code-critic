@@ -45,7 +45,8 @@ def lifecycle_project(tmp_path):
 
     # Create Python files
     (project_dir / "src" / "__init__.py").write_text("")
-    (project_dir / "src" / "main.py").write_text('''
+    (project_dir / "src" / "main.py").write_text(
+        '''
 """Main application module."""
 
 
@@ -61,9 +62,11 @@ def calculate_sum(a: int, b: int) -> int:
 
 if __name__ == "__main__":
     print(greet("World"))
-''')
+'''
+    )
 
-    (project_dir / "src" / "utils.py").write_text('''
+    (project_dir / "src" / "utils.py").write_text(
+        '''
 """Utility functions."""
 
 import logging
@@ -79,11 +82,13 @@ def format_name(first: str, last: str) -> str:
 def validate_email(email: str) -> bool:
     """Validate an email address."""
     return "@" in email and "." in email
-''')
+'''
+    )
 
     # Create test file
     (project_dir / "tests" / "__init__.py").write_text("")
-    (project_dir / "tests" / "test_main.py").write_text('''
+    (project_dir / "tests" / "test_main.py").write_text(
+        '''
 """Tests for main module."""
 
 from src.main import greet, calculate_sum
@@ -97,10 +102,12 @@ def test_greet():
 def test_calculate_sum():
     """Test sum calculation."""
     assert calculate_sum(2, 3) == 5
-''')
+'''
+    )
 
     # Create README
-    (project_dir / "README.md").write_text('''
+    (project_dir / "README.md").write_text(
+        """
 # Lifecycle Test Project
 
 A sample project for testing the full lifecycle of claude-indexer.
@@ -110,7 +117,8 @@ A sample project for testing the full lifecycle of claude-indexer.
 - Greeting functionality
 - Mathematical operations
 - Email validation
-''')
+"""
+    )
 
     # Initialize as git repo
     subprocess.run(["git", "init"], cwd=project_dir, capture_output=True)
@@ -159,7 +167,9 @@ class TestFullLifecycle:
             pytest.skip("CLI not available")
 
         # Mock the external dependencies (Qdrant, MCP)
-        with patch("claude_indexer.init.collection_manager.QdrantClient") as mock_qdrant:
+        with patch(
+            "claude_indexer.init.collection_manager.QdrantClient"
+        ) as mock_qdrant:
             mock_qdrant.return_value.get_collections.return_value.collections = []
 
             result = runner.invoke(
@@ -264,12 +274,15 @@ class TestFullLifecycle:
         # Modify a file
         main_py = lifecycle_project / "src" / "main.py"
         content = main_py.read_text()
-        modified_content = content + '''
+        modified_content = (
+            content
+            + '''
 
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
     return a * b
 '''
+        )
         main_py.write_text(modified_content)
 
         # Stage the change
@@ -290,7 +303,11 @@ def multiply(a: int, b: int) -> int:
             mock_result.total_cost_estimate = 0.0
             mock_result.embedding_requests = 0
             mock_indexer.index_incremental.return_value = mock_result
-            mock_indexer._categorize_file_changes.return_value = (["src/main.py"], [], [])
+            mock_indexer._categorize_file_changes.return_value = (
+                ["src/main.py"],
+                [],
+                [],
+            )
             mock_indexer._load_state.return_value = {"_last_indexed_commit": "abc123"}
             mock_indexer._load_previous_statistics.return_value = {
                 "total_tracked": 4,
@@ -313,7 +330,10 @@ def multiply(a: int, b: int) -> int:
             )
 
             # Incremental index should be attempted
-            assert result.exit_code in [0, 1], f"Incremental index failed: {result.output}"
+            assert result.exit_code in [
+                0,
+                1,
+            ], f"Incremental index failed: {result.output}"
 
 
 @pytest.mark.e2e
@@ -332,8 +352,8 @@ class TestSessionIsolation:
         project_b.mkdir()
 
         # Create minimal files in each
-        (project_a / "app.py").write_text('def foo(): pass')
-        (project_b / "app.py").write_text('def bar(): pass')
+        (project_a / "app.py").write_text("def foo(): pass")
+        (project_b / "app.py").write_text("def bar(): pass")
 
         # Initialize git repos
         for project in [project_a, project_b]:
@@ -398,10 +418,12 @@ class TestWorkspaceSupport:
         workspace = tmp_path / "monorepo"
         workspace.mkdir()
 
-        (workspace / "pnpm-workspace.yaml").write_text("""
+        (workspace / "pnpm-workspace.yaml").write_text(
+            """
 packages:
   - 'packages/*'
-""")
+"""
+        )
 
         (workspace / "packages").mkdir()
         (workspace / "packages" / "core").mkdir()
@@ -432,14 +454,16 @@ packages:
         workspace_dir.mkdir()
 
         workspace_file = workspace_dir / "projects.code-workspace"
-        workspace_file.write_text("""
+        workspace_file.write_text(
+            """
 {
     "folders": [
         {"path": "./frontend"},
         {"path": "./backend"}
     ]
 }
-""")
+"""
+        )
 
         (workspace_dir / "frontend").mkdir()
         (workspace_dir / "backend").mkdir()

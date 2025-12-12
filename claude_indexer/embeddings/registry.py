@@ -185,7 +185,10 @@ def create_openai_embedder(
 
 
 def create_voyage_embedder(
-    api_key: str, model: str = "voyage-3-lite", enable_caching: bool = True, **kwargs: Any
+    api_key: str,
+    model: str = "voyage-3-lite",
+    enable_caching: bool = True,
+    **kwargs: Any,
 ) -> Embedder:
     """Create Voyage AI embedder with default configuration."""
     config = {

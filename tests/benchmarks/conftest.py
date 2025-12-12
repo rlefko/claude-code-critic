@@ -112,7 +112,7 @@ def medium_codebase(tmp_path: Path, fixture_path: Path) -> Generator[Path, None,
 @pytest.fixture
 def single_file_content() -> str:
     """Return content of a typical component file for single-file benchmarks."""
-    return '''
+    return """
 import React from 'react';
 
 interface ButtonProps {
@@ -145,7 +145,7 @@ export const Button: React.FC<ButtonProps> = ({
     </button>
   );
 };
-'''
+"""
 
 
 @pytest.fixture
