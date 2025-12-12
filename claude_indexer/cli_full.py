@@ -1127,12 +1127,18 @@ else:
         default="high",
         help="Severity threshold for blocking (default: high)",
     )
+    @click.option(
+        "--repair",
+        is_flag=True,
+        help="Enable repair loop tracking (limits retries, enables escalation)",
+    )
     @common_options
     def stop_check(
         project: str,
         output_json: bool,
         timeout: int,
         threshold: str,
+        repair: bool,
         verbose: bool,
         quiet: bool,
         config: str,
@@ -1147,22 +1153,34 @@ else:
             0 = Clean (no blocking issues)
             1 = Warnings found (non-blocking)
             2 = Critical/High issues (BLOCKS Claude)
+            3 = Escalated (max retries exceeded, requires --repair)
 
         Examples:
             claude-indexer stop-check
             claude-indexer stop-check -p /path/to/project --json
             claude-indexer stop-check --threshold critical
+            claude-indexer stop-check --repair  # Enable retry tracking
         """
-        from .hooks.stop_check import run_stop_check
         import sys as _sys
 
-        # Run the check and get exit code
-        exit_code = run_stop_check(
-            project=project,
-            output_json=output_json,
-            timeout_ms=timeout,
-            threshold=threshold,
-        )
+        if repair:
+            from .hooks.stop_check import run_stop_check_with_repair
+
+            exit_code = run_stop_check_with_repair(
+                project=project,
+                output_json=output_json,
+                timeout_ms=timeout,
+                threshold=threshold,
+            )
+        else:
+            from .hooks.stop_check import run_stop_check
+
+            exit_code = run_stop_check(
+                project=project,
+                output_json=output_json,
+                timeout_ms=timeout,
+                threshold=threshold,
+            )
 
         _sys.exit(exit_code)
 

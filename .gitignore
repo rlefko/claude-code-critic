@@ -33,12 +33,13 @@ logs/
 .coverage
 *.backup
 
-# Test/debug files
-test_*.py
+# Test/debug files (but allow tests/ directory)
+/test_*.py
 debug_*.py
 cleanup_*.py
 test_*/
 debug/
+!tests/
 
 # Node.js artifacts (should not be in Python project)
 node_modules/

@@ -736,3 +736,123 @@ def run_stop_check(
     elif result.findings:
         return 1
     return 0
+
+
+def run_stop_check_with_repair(
+    project: str = ".",
+    output_json: bool = False,
+    timeout_ms: int = 5000,
+    threshold: str = "high",
+) -> int:
+    """Run stop checks with repair loop tracking.
+
+    Like run_stop_check but tracks session state for retry limiting.
+    After 3 failed attempts with the same findings, escalates to user.
+
+    Args:
+        project: Path to project directory
+        output_json: Whether to output JSON format
+        timeout_ms: Timeout in milliseconds
+        threshold: Severity threshold ('critical', 'high', 'medium', 'low')
+
+    Returns:
+        Exit code:
+            0 = no blocking issues
+            1 = warnings (non-blocking)
+            2 = blocked (Claude should fix)
+            3 = escalated (max retries exceeded, ask user)
+    """
+    from .fix_generator import FixSuggestionGenerator, create_context_for_file
+    from .repair_result import RepairCheckResult
+    from .repair_session import RepairSessionManager
+
+    # Map threshold string to Severity
+    threshold_map = {
+        "critical": Severity.CRITICAL,
+        "high": Severity.HIGH,
+        "medium": Severity.MEDIUM,
+        "low": Severity.LOW,
+    }
+    severity_threshold = threshold_map.get(threshold.lower(), Severity.HIGH)
+
+    project_path = Path(project).resolve()
+
+    # Run the base stop check
+    executor = StopCheckExecutor.get_instance()
+    base_result = executor.check_uncommitted_changes(
+        project_path,
+        timeout_ms=float(timeout_ms),
+        severity_threshold=severity_threshold,
+    )
+
+    # If no blocking issues, return clean
+    if not base_result.should_block:
+        if output_json:
+            print(base_result.to_json())
+        elif base_result.findings:
+            print(format_findings_for_display(base_result))
+
+        return 1 if base_result.findings else 0
+
+    # Track repair session for blocking issues
+    session_manager = RepairSessionManager(project_path)
+
+    # Get or create session based on findings
+    session = session_manager.get_or_create_session(base_result.findings)
+
+    # Check if this is the same issue as before
+    current_hash = session_manager.compute_findings_hash(base_result.findings)
+    is_same_issue = session.findings_hash == current_hash
+
+    # Record this attempt
+    session = session_manager.record_attempt(session)
+
+    # Generate fix suggestions
+    fix_suggestions = []
+    if base_result.findings:
+        try:
+            # Build context map for fix generation
+            context_map = {}
+            for finding in base_result.findings:
+                if finding.file_path not in context_map:
+                    file_path = project_path / finding.file_path
+                    if file_path.exists():
+                        context_map[finding.file_path] = create_context_for_file(
+                            file_path
+                        )
+
+            # Generate suggestions
+            generator = FixSuggestionGenerator(engine=executor._engine)
+            fix_suggestions = generator.generate_suggestions(
+                base_result.findings, context_map
+            )
+        except Exception as e:
+            # Log but continue without fix suggestions
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Failed to generate fix suggestions: {e}"
+            )
+
+    # Create repair result
+    repair_result = RepairCheckResult(
+        base_result=base_result,
+        session=session,
+        fix_suggestions=fix_suggestions,
+        is_same_issue=is_same_issue,
+    )
+
+    # Output result
+    if output_json:
+        print(repair_result.to_json())
+    else:
+        print(repair_result.format_for_claude())
+
+    # Determine exit code
+    if repair_result.should_escalate:
+        return 3  # Escalated to user
+    elif repair_result.should_block:
+        return 2  # Blocked, Claude should fix
+    elif base_result.findings:
+        return 1  # Warnings
+    return 0  # Clean

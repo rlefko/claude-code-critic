@@ -69,8 +69,8 @@ fi
 RESULT_OUTPUT=""
 RESULT_EXIT_CODE=0
 
-# Run comprehensive quality checks with JSON output
-RESULT_OUTPUT=$(claude-indexer stop-check -p "$PROJECT_DIR" --json 2>/dev/null) || RESULT_EXIT_CODE=$?
+# Run comprehensive quality checks with JSON output and repair tracking
+RESULT_OUTPUT=$(claude-indexer stop-check -p "$PROJECT_DIR" --json --repair 2>/dev/null) || RESULT_EXIT_CODE=$?
 
 # ============================================================
 # Handle Results Based on Exit Code
@@ -118,11 +118,33 @@ case $RESULT_EXIT_CODE in
             echo "=== QUALITY CHECK BLOCKED ==="
             echo ""
 
+            # Show repair context if available
+            ATTEMPT=$(echo "$RESULT_OUTPUT" | jq -r '.repair_context.attempt_number // 0' 2>/dev/null)
+            MAX_ATTEMPTS=$(echo "$RESULT_OUTPUT" | jq -r '.repair_context.max_attempts // 3' 2>/dev/null)
+            REMAINING=$(echo "$RESULT_OUTPUT" | jq -r '.repair_context.remaining_attempts // 0' 2>/dev/null)
+
+            if [ "$ATTEMPT" -gt 0 ]; then
+                echo "Repair attempt $ATTEMPT of $MAX_ATTEMPTS"
+                echo "Remaining attempts: $REMAINING"
+                echo ""
+            fi
+
             # Format each finding for Claude's self-repair
             echo "$RESULT_OUTPUT" | jq -r '
                 .findings[] |
                 "\(.severity | ascii_upcase): \(.rule_id) - \(.file_path):\(.line_number // "?")\nDescription: \(.summary)\nSuggestion: \(.remediation_hints[0] // "Review and fix the issue")\n---"
             ' 2>/dev/null
+
+            # Show fix suggestions if available
+            FIX_COUNT=$(echo "$RESULT_OUTPUT" | jq -r '.fix_suggestions | length' 2>/dev/null)
+            if [ "$FIX_COUNT" -gt 0 ]; then
+                echo ""
+                echo "Fix Suggestions:"
+                echo "$RESULT_OUTPUT" | jq -r '
+                    .fix_suggestions[] | select(.action == "auto_available") |
+                    "  - \(.rule_id): \(.description) (confidence: \(.confidence | . * 100 | floor)%)"
+                ' 2>/dev/null
+            fi
 
             # Show summary
             CRITICAL=$(echo "$RESULT_OUTPUT" | jq -r '.summary.critical // 0' 2>/dev/null)
@@ -135,9 +157,35 @@ case $RESULT_EXIT_CODE in
             echo "Found $TOTAL blocking issue(s): $CRITICAL critical, $HIGH high"
             echo "Checked $FILES files in ${TIME}ms"
             echo ""
-            echo "Please fix these issues to proceed."
+
+            # Show instructions
+            INSTRUCTIONS=$(echo "$RESULT_OUTPUT" | jq -r '.instructions // "Please fix these issues to proceed."' 2>/dev/null)
+            echo "$INSTRUCTIONS"
             echo ""
         fi
+        exit 2
+        ;;
+    3)
+        # ESCALATED - Max retries exceeded, notify user
+        if [ -n "$RESULT_OUTPUT" ]; then
+            echo ""
+            echo "=== REPAIR ESCALATED TO USER ==="
+            echo ""
+
+            # Show escalation message
+            ESCALATION_MSG=$(echo "$RESULT_OUTPUT" | jq -r '.escalation.message_for_user // "Maximum repair attempts exceeded."' 2>/dev/null)
+            echo "$ESCALATION_MSG"
+
+            # Show summary
+            ATTEMPT=$(echo "$RESULT_OUTPUT" | jq -r '.repair_context.attempt_number // 0' 2>/dev/null)
+            TOTAL=$(echo "$RESULT_OUTPUT" | jq -r '.summary.total // 0' 2>/dev/null)
+
+            echo ""
+            echo "After $ATTEMPT attempts, $TOTAL issue(s) remain unresolved."
+            echo "Please review and fix these issues manually."
+            echo ""
+        fi
+        # Still exit 2 to block Claude, but message indicates escalation
         exit 2
         ;;
     *)
