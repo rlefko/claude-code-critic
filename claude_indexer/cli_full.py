@@ -4051,6 +4051,196 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 traceback.print_exc()
             sys.exit(1)
 
+    # =========================================================================
+    # Performance Commands (Milestone 6.1)
+    # =========================================================================
+
+    @cli.group()
+    def perf():
+        """Performance metrics and profiling commands.
+
+        View, export, and analyze performance metrics collected during indexing,
+        searching, and other operations.
+
+        Examples:
+            claude-indexer perf show
+            claude-indexer perf export -o metrics.json
+            claude-indexer perf benchmark --operation search -n 10
+        """
+        pass
+
+    @perf.command("show")
+    @click.option(
+        "--format", "output_format",
+        type=click.Choice(["table", "json"]),
+        default="table",
+        help="Output format",
+    )
+    @common_options
+    def perf_show(output_format, verbose, quiet, config):
+        """Display current performance metrics.
+
+        Shows collected performance statistics including operation counts,
+        average durations, and percentiles (p50, p95, p99).
+
+        Examples:
+            claude-indexer perf show
+            claude-indexer perf show --format json
+        """
+        import json as json_module
+        from .performance import PerformanceMetricsCollector
+
+        collector = PerformanceMetricsCollector()
+        stats = collector.get_all_stats()
+
+        if output_format == "json":
+            click.echo(json_module.dumps(stats, indent=2))
+        else:
+            if not stats:
+                click.echo("No performance metrics collected yet.")
+                click.echo("\nMetrics are collected when CLAUDE_INDEXER_PROFILE=1 is set.")
+                return
+
+            click.echo("\n=== Performance Metrics ===\n")
+            click.echo(
+                f"{'Operation':<35} {'Count':>8} {'Avg (ms)':>10} "
+                f"{'P95 (ms)':>10} {'P99 (ms)':>10}"
+            )
+            click.echo("-" * 78)
+
+            for op, data in sorted(stats.items()):
+                if data:
+                    click.echo(
+                        f"{op:<35} {data.get('count', 0):>8.0f} "
+                        f"{data.get('avg_ms', 0):>10.2f} "
+                        f"{data.get('p95_ms', 0):>10.2f} "
+                        f"{data.get('p99_ms', 0):>10.2f}"
+                    )
+
+            click.echo()
+
+    @perf.command("export")
+    @click.option(
+        "--output", "-o",
+        type=click.Path(),
+        default="performance_metrics.json",
+        help="Output file path",
+    )
+    @common_options
+    def perf_export(output, verbose, quiet, config):
+        """Export performance metrics to JSON file.
+
+        Exports all collected metrics with timestamp for analysis
+        or integration with monitoring systems.
+
+        Examples:
+            claude-indexer perf export
+            claude-indexer perf export -o /tmp/metrics.json
+        """
+        import json as json_module
+        import time
+        from .performance import PerformanceMetricsCollector
+
+        collector = PerformanceMetricsCollector()
+        stats = collector.get_all_stats()
+
+        output_path = Path(output)
+        export_data = {
+            "timestamp": time.time(),
+            "metrics": stats,
+        }
+
+        with open(output_path, "w") as f:
+            json_module.dump(export_data, f, indent=2)
+
+        if not quiet:
+            click.echo(f"✅ Metrics exported to {output_path}")
+            click.echo(f"   Operations tracked: {len(stats)}")
+
+    @perf.command("clear")
+    @click.option(
+        "--confirm",
+        is_flag=True,
+        help="Confirm clear without prompting",
+    )
+    @common_options
+    def perf_clear(confirm, verbose, quiet, config):
+        """Clear collected performance metrics.
+
+        Resets all performance metrics. Use with caution.
+
+        Examples:
+            claude-indexer perf clear --confirm
+        """
+        from .performance import PerformanceMetricsCollector
+
+        if not confirm:
+            if not click.confirm("Are you sure you want to clear all performance metrics?"):
+                click.echo("Aborted")
+                return
+
+        collector = PerformanceMetricsCollector()
+        collector.clear()
+
+        if not quiet:
+            click.echo("✅ Performance metrics cleared")
+
+    @perf.command("cache-stats")
+    @click.option(
+        "--project", "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory path",
+    )
+    @click.option(
+        "--collection", "-c",
+        help="Collection name",
+    )
+    @common_options
+    def perf_cache_stats(project, collection, verbose, quiet, config):
+        """Show query cache statistics.
+
+        Displays hit/miss ratios and cache efficiency for query caching
+        if enabled in the storage configuration.
+
+        Examples:
+            claude-indexer perf cache-stats
+            claude-indexer perf cache-stats -c my-collection
+        """
+        import json as json_module
+
+        try:
+            project_path = Path(project).resolve()
+            cfg = load_config(project_path, config)
+            store = create_store_from_config(cfg)
+
+            if hasattr(store, 'get_query_cache_stats'):
+                stats = store.get_query_cache_stats()
+
+                if not stats.get('enabled', False):
+                    click.echo("Query cache is not enabled.")
+                    click.echo("\nTo enable, set enable_query_cache=True in storage configuration.")
+                    return
+
+                click.echo("\n=== Query Cache Statistics ===\n")
+                click.echo(f"Entries:    {stats.get('entries', 0):,}")
+                click.echo(f"Max Size:   {stats.get('max_entries', 0):,}")
+                click.echo(f"TTL:        {stats.get('ttl_seconds', 0):.0f}s")
+                click.echo(f"Hits:       {stats.get('hits', 0):,}")
+                click.echo(f"Misses:     {stats.get('misses', 0):,}")
+                click.echo(f"Hit Ratio:  {stats.get('hit_ratio', 0):.1%}")
+                click.echo(f"Collections: {stats.get('collections', 0)}")
+                click.echo()
+            else:
+                click.echo("Query cache not available for this storage backend.")
+
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            sys.exit(1)
+
     # End of Click-available conditional block
 
 if __name__ == "__main__":

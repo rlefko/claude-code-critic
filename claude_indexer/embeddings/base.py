@@ -473,3 +473,167 @@ class CachingEmbedder(Embedder):
         """Force flush persistent cache to disk."""
         if self._persistent_cache:
             self._persistent_cache.flush()
+
+
+class BatchingEmbedder(Embedder):
+    """Embedder wrapper with intelligent batching using BatchOptimizer.
+
+    Provides adaptive batch sizing based on memory pressure, error rates,
+    and processing history. This wrapper ensures efficient embedding
+    generation by automatically adjusting batch sizes.
+
+    Features:
+        - Memory-aware batch sizing (reduces when approaching threshold)
+        - Error-rate tracking (reduces batch size on high errors)
+        - Success streaks (increases batch size after consecutive successes)
+        - Statistics tracking for performance analysis
+
+    Example:
+        >>> embedder = OpenAIEmbedder()
+        >>> batching = BatchingEmbedder(embedder, initial_batch_size=25)
+        >>> results = batching.embed_batch(texts)
+        >>> print(batching.get_optimizer_stats())
+    """
+
+    def __init__(
+        self,
+        embedder: Embedder,
+        initial_batch_size: int = 25,
+        max_batch_size: int = 100,
+        memory_threshold_mb: int = 2000,
+    ):
+        """Initialize the batching embedder.
+
+        Args:
+            embedder: The underlying embedder to wrap.
+            initial_batch_size: Starting batch size.
+            max_batch_size: Maximum batch size limit.
+            memory_threshold_mb: Memory threshold for batch reduction.
+        """
+        from ..indexing.batch_optimizer import BatchOptimizer
+
+        self.embedder = embedder
+        self.optimizer = BatchOptimizer(
+            initial_size=initial_batch_size,
+            max_size=max_batch_size,
+            memory_threshold_mb=memory_threshold_mb,
+        )
+        self.logger = get_logger()
+
+        # Track total embeddings processed
+        self._total_processed = 0
+        self._total_errors = 0
+
+    def embed_text(self, text: str) -> EmbeddingResult:
+        """Embed a single text (delegates to wrapped embedder).
+
+        Args:
+            text: Text to embed.
+
+        Returns:
+            EmbeddingResult with embedding or error.
+        """
+        result = self.embedder.embed_text(text)
+        self._total_processed += 1
+        if not result.success:
+            self._total_errors += 1
+        return result
+
+    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+        """Embed batch with adaptive sizing based on BatchOptimizer.
+
+        Splits the input into optimally-sized sub-batches based on
+        memory pressure and processing history.
+
+        Args:
+            texts: List of texts to embed.
+            item_type: Type of items being embedded (for wrapped embedder).
+
+        Returns:
+            List of EmbeddingResult objects.
+        """
+        from ..indexing.types import BatchMetrics
+
+        if not texts:
+            return []
+
+        results: list[EmbeddingResult] = []
+        remaining = list(texts)  # Copy to avoid mutating input
+
+        while remaining:
+            # Get current optimal batch size
+            batch_size = self.optimizer.get_batch_size()
+            batch = remaining[:batch_size]
+            remaining = remaining[batch_size:]
+
+            # Process batch
+            start_time = time.perf_counter()
+            try:
+                batch_results = self.embedder.embed_batch(batch, item_type=item_type)
+            except Exception as e:
+                # On exception, create error results for all in batch
+                self.logger.error(f"Batch embedding failed: {e}")
+                batch_results = [
+                    EmbeddingResult(text=t, embedding=[], error=str(e))
+                    for t in batch
+                ]
+
+            processing_time_ms = (time.perf_counter() - start_time) * 1000
+
+            # Count errors
+            error_count = sum(1 for r in batch_results if not r.success)
+            self._total_processed += len(batch_results)
+            self._total_errors += error_count
+
+            # Record metrics for optimizer
+            metrics = BatchMetrics(
+                batch_size=len(batch),
+                processing_time_ms=processing_time_ms,
+                error_count=error_count,
+            )
+            self.optimizer.record_batch(metrics)
+
+            results.extend(batch_results)
+
+        return results
+
+    def get_model_info(self) -> dict[str, Any]:
+        """Get model info with batching stats.
+
+        Returns:
+            Dictionary with model info and batching configuration.
+        """
+        info = self.embedder.get_model_info()
+        info["batching_enabled"] = True
+        info["current_batch_size"] = self.optimizer.current_size
+        info["optimizer_stats"] = self.optimizer.get_statistics()
+        return info
+
+    def get_max_tokens(self) -> int:
+        """Get max tokens from wrapped embedder."""
+        return self.embedder.get_max_tokens()
+
+    def get_optimizer_stats(self) -> dict[str, Any]:
+        """Get comprehensive optimizer statistics.
+
+        Returns:
+            Dictionary with optimizer stats and embedding totals.
+        """
+        stats = self.optimizer.get_statistics()
+        stats["total_embeddings_processed"] = self._total_processed
+        stats["total_embedding_errors"] = self._total_errors
+        stats["overall_error_rate"] = (
+            self._total_errors / self._total_processed
+            if self._total_processed > 0
+            else 0.0
+        )
+        return stats
+
+    def reset_optimizer(self) -> None:
+        """Reset the batch optimizer to initial state."""
+        self.optimizer.reset()
+
+    @property
+    def current_batch_size(self) -> int:
+        """Get current batch size."""
+        return self.optimizer.current_size

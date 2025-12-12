@@ -4,10 +4,14 @@ Rule engine coordinator for executing code quality rules.
 This module provides the RuleEngine class that orchestrates rule
 execution, result aggregation, and provides filtering by trigger,
 category, and language.
+
+Supports parallel rule execution for improved performance using
+ThreadPoolExecutor when multiple rules need to run.
 """
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -326,22 +330,25 @@ class RuleEngine:
         trigger: Trigger = Trigger.ON_STOP,
         rule_ids: list[str] | None = None,
         categories: list[str] | None = None,
+        parallel: bool | None = None,
     ) -> RuleEngineResult:
         """Run rules and collect findings.
+
+        Supports parallel execution for improved performance when running
+        multiple rules. Parallel execution is controlled by the performance
+        config or can be overridden per-call.
 
         Args:
             context: RuleContext with file content, diff info, etc.
             trigger: Trigger type to filter rules
             rule_ids: Optional list of specific rule IDs to run
             categories: Optional list of categories to run
+            parallel: Override parallel execution (None = use config)
 
         Returns:
             RuleEngineResult with findings and execution info
         """
         start_time = time.time()
-        findings: list[Finding] = []
-        errors: list[RuleError] = []
-        rules_executed = 0
         rules_skipped = 0
 
         # Select rules to run
@@ -363,7 +370,41 @@ class RuleEngine:
             rules = [r for r in rules if r.is_fast]
             rules_skipped = original_count - len(rules)
 
-        # Execute rules
+        # Determine execution mode
+        use_parallel = parallel if parallel is not None else self.config.performance.parallel_execution
+
+        # Execute rules (parallel or sequential)
+        if use_parallel and len(rules) > 1:
+            findings, errors, rules_executed = self._execute_rules_parallel(rules, context)
+        else:
+            findings, errors, rules_executed = self._execute_rules_sequential(rules, context)
+
+        return RuleEngineResult(
+            findings=findings,
+            errors=errors,
+            execution_time_ms=(time.time() - start_time) * 1000,
+            rules_executed=rules_executed,
+            rules_skipped=rules_skipped,
+        )
+
+    def _execute_rules_sequential(
+        self,
+        rules: list[BaseRule],
+        context: RuleContext,
+    ) -> tuple[list[Finding], list[RuleError], int]:
+        """Execute rules sequentially.
+
+        Args:
+            rules: List of rules to execute.
+            context: RuleContext for rule execution.
+
+        Returns:
+            Tuple of (findings, errors, rules_executed_count).
+        """
+        findings: list[Finding] = []
+        errors: list[RuleError] = []
+        rules_executed = 0
+
         for rule in rules:
             result = self._execute_rule(rule, context)
             rules_executed += 1
@@ -375,13 +416,80 @@ class RuleEngine:
             else:
                 findings.extend(result.findings)
 
-        return RuleEngineResult(
-            findings=findings,
-            errors=errors,
-            execution_time_ms=(time.time() - start_time) * 1000,
-            rules_executed=rules_executed,
-            rules_skipped=rules_skipped,
+        return findings, errors, rules_executed
+
+    def _execute_rules_parallel(
+        self,
+        rules: list[BaseRule],
+        context: RuleContext,
+    ) -> tuple[list[Finding], list[RuleError], int]:
+        """Execute rules in parallel using ThreadPoolExecutor.
+
+        Uses ThreadPoolExecutor to run multiple rules concurrently,
+        which can significantly reduce total execution time when
+        multiple independent rules need to run.
+
+        Args:
+            rules: List of rules to execute.
+            context: RuleContext for rule execution.
+
+        Returns:
+            Tuple of (findings, errors, rules_executed_count).
+        """
+        findings: list[Finding] = []
+        errors: list[RuleError] = []
+        rules_executed = 0
+
+        max_workers = min(
+            self.config.performance.max_parallel_workers,
+            len(rules),
         )
+        timeout_seconds = self.config.performance.parallel_rule_timeout_ms / 1000.0
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all rules
+            future_to_rule = {
+                executor.submit(self._execute_rule, rule, context): rule
+                for rule in rules
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_rule):
+                rule = future_to_rule[future]
+                rules_executed += 1
+
+                try:
+                    result = future.result(timeout=timeout_seconds)
+
+                    if result.error:
+                        errors.append(result.error)
+                        if not self.config.continue_on_error:
+                            # Cancel remaining futures
+                            for f in future_to_rule:
+                                f.cancel()
+                            break
+                    else:
+                        findings.extend(result.findings)
+
+                except TimeoutError:
+                    error = RuleError(
+                        rule_id=rule.rule_id,
+                        error_message=f"Rule timed out after {timeout_seconds}s",
+                        exception_type="TimeoutError",
+                    )
+                    errors.append(error)
+                    logger.warning(f"Rule {rule.rule_id} timed out in parallel execution")
+
+                except Exception as e:
+                    error = RuleError(
+                        rule_id=rule.rule_id,
+                        error_message=f"Parallel execution failed: {e}",
+                        exception_type=type(e).__name__,
+                    )
+                    errors.append(error)
+                    logger.warning(f"Rule {rule.rule_id} failed in parallel: {e}")
+
+        return findings, errors, rules_executed
 
     def run_fast(self, context: RuleContext) -> RuleEngineResult:
         """Run only fast rules (for on-write checks).

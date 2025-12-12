@@ -1354,12 +1354,40 @@ Session A (Project X)          Session B (Project Y)
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 6.1.1 | Profile end-to-end latency | HIGH | NEW |
-| 6.1.2 | Optimize embedding batching | HIGH | PARTIAL |
-| 6.1.3 | Add query result caching | MEDIUM | NEW |
-| 6.1.4 | Implement parallel rule execution | MEDIUM | NEW |
-| 6.1.5 | Add lazy loading for expensive operations | MEDIUM | PARTIAL |
-| 6.1.6 | Create performance dashboard | LOW | NEW |
+| 6.1.1 | Profile end-to-end latency | HIGH | DONE |
+| 6.1.2 | Optimize embedding batching | HIGH | DONE |
+| 6.1.3 | Add query result caching | MEDIUM | DONE |
+| 6.1.4 | Implement parallel rule execution | MEDIUM | DONE |
+| 6.1.5 | Add lazy loading for expensive operations | MEDIUM | DONE |
+| 6.1.6 | Create performance dashboard | LOW | DONE |
+
+**Implementation Notes (v2.9.17)**:
+- Created `claude_indexer/performance/` package with modular components:
+  - `timing.py`: Existing `@timed` decorator, `PerformanceTimer`, `PerformanceAggregator`
+  - `profiler.py`: `EndToEndProfiler` with nested `section()` support, `ProfileResult`, `ProfilerStack`
+  - `metrics.py`: `PerformanceMetricsCollector` singleton with p50/p95/p99 percentiles, time-windowed stats
+- Created `claude_indexer/storage/query_cache.py`:
+  - `QueryResultCache` LRU cache with TTL expiration (default 60s)
+  - Integrated into `QdrantStore.search_similar()` with `enable_query_cache` option
+  - Automatic invalidation on `delete_collection()`
+- Created `claude_indexer/utils/lazy.py`:
+  - `lazy_property` decorator for thread-safe lazy initialization
+  - `lazy_init` decorator for cached function results with timing callback
+  - `LazyModule` for deferred module imports
+- Modified `claude_indexer/rules/engine.py`:
+  - Added `_execute_rules_parallel()` using `ThreadPoolExecutor`
+  - Configurable `max_parallel_workers` and `parallel_rule_timeout_ms`
+  - Sequential fallback for single rule or disabled config
+- Created `BatchingEmbedder` in `claude_indexer/embeddings/base.py`:
+  - Wraps embedder with `BatchOptimizer` for memory-aware adaptive sizing
+  - Records `BatchMetrics` for optimization feedback
+- Added CLI commands `claude-indexer perf {show,export,clear,cache-stats}`:
+  - `perf show`: Display metrics with optional JSON format
+  - `perf export`: Export metrics to file
+  - `perf clear`: Clear metrics for operation or all
+  - `perf cache-stats`: Show query cache statistics
+- Environment variable `CLAUDE_INDEXER_PROFILE=1` enables profiling
+- Unit tests: 70 tests in `tests/unit/performance/`, `tests/unit/storage/test_query_cache.py`, `tests/unit/utils/test_lazy.py`, `tests/unit/rules/test_parallel_execution.py`
 
 **Performance Targets**:
 | Operation | Target | Current |

@@ -70,6 +70,9 @@ class PerformanceConfig:
 
     fast_rule_timeout_ms: float = 50.0
     total_timeout_ms: float = 5000.0
+    parallel_execution: bool = True
+    max_parallel_workers: int = 4
+    parallel_rule_timeout_ms: float = 30000.0  # 30 seconds per rule in parallel
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PerformanceConfig":
@@ -77,6 +80,9 @@ class PerformanceConfig:
         return cls(
             fast_rule_timeout_ms=data.get("fastRuleTimeoutMs", 50.0),
             total_timeout_ms=data.get("totalTimeoutMs", 5000.0),
+            parallel_execution=data.get("parallelExecution", True),
+            max_parallel_workers=data.get("maxParallelWorkers", 4),
+            parallel_rule_timeout_ms=data.get("parallelRuleTimeoutMs", 30000.0),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -84,6 +90,9 @@ class PerformanceConfig:
         return {
             "fastRuleTimeoutMs": self.fast_rule_timeout_ms,
             "totalTimeoutMs": self.total_timeout_ms,
+            "parallelExecution": self.parallel_execution,
+            "maxParallelWorkers": self.max_parallel_workers,
+            "parallelRuleTimeoutMs": self.parallel_rule_timeout_ms,
         }
 
 
@@ -211,6 +220,9 @@ class RuleEngineConfig:
             performance=PerformanceConfig(
                 fast_rule_timeout_ms=other.performance.fast_rule_timeout_ms,
                 total_timeout_ms=other.performance.total_timeout_ms,
+                parallel_execution=other.performance.parallel_execution,
+                max_parallel_workers=other.performance.max_parallel_workers,
+                parallel_rule_timeout_ms=other.performance.parallel_rule_timeout_ms,
             ),
         )
 

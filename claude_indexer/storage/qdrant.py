@@ -11,6 +11,7 @@ from .base import ManagedVectorStore, StorageResult, VectorPoint, HybridVectorPo
 if TYPE_CHECKING:
     from ..analysis.entities import EntityChunk, Relation, RelationChunk
     from ..chat.parser import ChatChunk
+    from .query_cache import QueryResultCache
 
 logger = get_logger()
 
@@ -94,6 +95,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         api_key: str = None,
         timeout: float = 60.0,
         auto_create_collections: bool = True,
+        enable_query_cache: bool = False,
+        query_cache: "QueryResultCache | None" = None,
+        query_cache_ttl: float = 60.0,
         **kwargs,  # noqa: ARG002
     ):
         if not QDRANT_AVAILABLE:
@@ -116,6 +120,12 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
 
         # Cache for collection sparse vector support
         self._sparse_vector_cache = {}
+
+        # Query result cache for search operations
+        self._query_cache: "QueryResultCache | None" = query_cache
+        if enable_query_cache and query_cache is None:
+            from .query_cache import QueryResultCache
+            self._query_cache = QueryResultCache(ttl_seconds=query_cache_ttl)
 
         # Initialize client
         try:
@@ -266,6 +276,9 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         try:
             self.client.delete_collection(collection_name=collection_name)
 
+            # Invalidate query cache for this collection
+            self.invalidate_query_cache(collection_name)
+
             return StorageResult(
                 success=True,
                 operation="delete_collection",
@@ -280,6 +293,36 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                 processing_time=time.time() - start_time,
                 errors=[f"Failed to delete collection {collection_name}: {e}"],
             )
+
+    def invalidate_query_cache(self, collection_name: str | None = None) -> int:
+        """Invalidate query cache entries.
+
+        Should be called after any write operation to ensure cache consistency.
+        Called automatically by delete_collection.
+
+        Args:
+            collection_name: If provided, only invalidate entries for this collection.
+                           If None, clear all cached entries.
+
+        Returns:
+            Number of entries invalidated.
+        """
+        if self._query_cache is None:
+            return 0
+        return self._query_cache.invalidate(collection_name)
+
+    def get_query_cache_stats(self) -> dict:
+        """Get query cache statistics.
+
+        Returns:
+            Dictionary with cache stats (entries, hits, misses, hit_ratio)
+            or empty dict if cache not enabled.
+        """
+        if self._query_cache is None:
+            return {"enabled": False}
+        stats = self._query_cache.get_stats()
+        stats["enabled"] = True
+        return stats
 
     def recreate_collection_safely(
         self,
@@ -1059,8 +1102,31 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
         score_threshold: float = 0.0,
         filter_conditions: dict[str, Any] = None,
     ) -> StorageResult:
-        """Search for similar vectors."""
+        """Search for similar vectors with optional caching.
+
+        If query caching is enabled, results are cached and subsequent
+        identical queries return cached results until TTL expires.
+
+        Args:
+            collection_name: Name of the collection to search.
+            query_vector: The query embedding vector.
+            limit: Maximum number of results to return.
+            score_threshold: Minimum similarity score threshold.
+            filter_conditions: Optional filter conditions.
+
+        Returns:
+            StorageResult with search results.
+        """
         start_time = time.time()
+
+        # Check cache first (if enabled)
+        if self._query_cache is not None:
+            cached = self._query_cache.get(
+                collection_name, query_vector, limit, filter_conditions, "semantic"
+            )
+            if cached is not None:
+                logger.debug(f"🎯 Cache hit for search_similar in {collection_name}")
+                return cached
 
         try:
             # Build filter if provided
@@ -1095,13 +1161,21 @@ class QdrantStore(ManagedVectorStore, ContentHashMixin):
                     {"id": result.id, "score": result.score, "payload": result.payload}
                 )
 
-            return StorageResult(
+            result = StorageResult(
                 success=True,
                 operation="search",
                 processing_time=time.time() - start_time,
                 results=results,
                 total_found=len(results),
             )
+
+            # Store in cache (if enabled)
+            if self._query_cache is not None:
+                self._query_cache.set(
+                    collection_name, query_vector, limit, filter_conditions, "semantic", result
+                )
+
+            return result
 
         except Exception as e:
             logger.debug(f"❌ search_similar exception: {e}")
