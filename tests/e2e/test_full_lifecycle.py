@@ -163,9 +163,7 @@ class TestFullLifecycle:
             pytest.skip("CLI not available")
 
         # Mock the external dependencies (Qdrant, MCP)
-        with patch(
-            "claude_indexer.storage.qdrant.QdrantClient"
-        ) as mock_qdrant:
+        with patch("claude_indexer.storage.qdrant.QdrantClient") as mock_qdrant:
             mock_qdrant.return_value.get_collections.return_value.collections = []
 
             result = runner.invoke(
@@ -571,7 +569,9 @@ class TestCollectionsManagement:
         if not CLI_AVAILABLE:
             pytest.skip("CLI not available")
 
-        with patch("claude_indexer.init.collection_manager.CollectionManager") as mock_manager_class:
+        with patch(
+            "claude_indexer.init.collection_manager.CollectionManager"
+        ) as mock_manager_class:
             mock_manager = Mock()
             mock_manager.list_all_collections.return_value = [
                 "claude_project_a",
@@ -588,7 +588,9 @@ class TestCollectionsManagement:
         if not CLI_AVAILABLE:
             pytest.skip("CLI not available")
 
-        with patch("claude_indexer.init.collection_manager.CollectionManager") as mock_manager_class:
+        with patch(
+            "claude_indexer.init.collection_manager.CollectionManager"
+        ) as mock_manager_class:
             mock_manager = Mock()
             mock_manager.find_stale_collections.return_value = ["old_collection"]
             mock_manager.cleanup_collections.return_value = 1
