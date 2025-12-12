@@ -6,7 +6,7 @@ import re
 import secrets
 import subprocess
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import ClassVar, List, Optional, Set
 
 from ..indexer_logging import get_logger
 from .types import ProjectType
@@ -16,6 +16,73 @@ logger = get_logger()
 
 class ProjectDetector:
     """Enhanced project type and language detection."""
+
+    # Markers used for project root detection (in priority order)
+    PROJECT_ROOT_MARKERS: ClassVar[List[str]] = [
+        ".claude-indexer",  # Already initialized project (highest priority)
+        ".git",
+        "package.json",
+        "pyproject.toml",
+        "setup.py",
+        "Cargo.toml",
+        "go.mod",
+        "Makefile",
+        ".claude",  # Claude Code config directory
+    ]
+
+    @staticmethod
+    def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
+        """Find project root by walking up from start_path.
+
+        Searches for project markers starting from the given path and
+        walking up the directory tree until a marker is found or the
+        filesystem root is reached.
+
+        This is a static method for convenience - it doesn't require
+        instantiating ProjectDetector.
+
+        Args:
+            start_path: Starting directory (defaults to CWD)
+
+        Returns:
+            Path to project root, or None if not found
+
+        Example:
+            root = ProjectDetector.find_project_root()
+            if root:
+                detector = ProjectDetector(root)
+                project_type = detector.detect_project_type()
+        """
+        current = (start_path or Path.cwd()).resolve()
+
+        # Walk up to root
+        while current != current.parent:
+            for marker in ProjectDetector.PROJECT_ROOT_MARKERS:
+                marker_path = current / marker
+                if marker_path.exists():
+                    return current
+            current = current.parent
+
+        # Check root directory as well
+        for marker in ProjectDetector.PROJECT_ROOT_MARKERS:
+            marker_path = current / marker
+            if marker_path.exists():
+                return current
+
+        return None
+
+    @staticmethod
+    def detect_from_cwd() -> Path:
+        """Find project root from CWD or use CWD as fallback.
+
+        This method never returns None - if no project root is found,
+        it falls back to using the current working directory.
+
+        Returns:
+            Path to project root (never None - uses CWD as fallback)
+        """
+        root = ProjectDetector.find_project_root()
+        return root if root else Path.cwd().resolve()
 
     def __init__(self, project_path: Path):
         self.project_path = Path(project_path).resolve()

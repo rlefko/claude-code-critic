@@ -2139,6 +2139,132 @@ else:
             sys.exit(1)
 
     # =========================================================================
+    # Session Commands - Session isolation management (Milestone 5.2)
+    # =========================================================================
+
+    @cli.group()
+    def session() -> None:
+        """Session isolation management commands."""
+        pass
+
+    @session.command("info")
+    @click.option("--project", "-p", type=click.Path(), help="Project directory")
+    @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+    @common_options
+    def session_info(
+        project: str,
+        json_output: bool,
+        verbose: bool,
+        quiet: bool,
+        config: str,
+    ) -> None:
+        """Show current session information.
+
+        Examples:
+            claude-indexer session info
+            claude-indexer session info -p /path/to/project --json
+        """
+        from .session.manager import SessionManager, get_session_context
+
+        try:
+            project_path = Path(project) if project else None
+            manager = SessionManager(project_path=project_path)
+            context = manager.initialize()
+
+            if json_output:
+                click.echo(json.dumps(context.to_dict(), indent=2))
+            else:
+                click.echo(f"Session ID:    {context.session_id}")
+                click.echo(f"Project:       {context.project_path}")
+                click.echo(f"Collection:    {context.collection_name}")
+                click.echo(f"State Dir:     {context.state_dir}")
+                click.echo(f"Lock File:     {context.lock_file}")
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            sys.exit(1)
+
+    @session.command("clear")
+    @click.option("--project", "-p", type=click.Path(), help="Project directory")
+    @click.option("--force", "-f", is_flag=True, help="Skip confirmation")
+    @common_options
+    def session_clear(
+        project: str,
+        force: bool,
+        verbose: bool,
+        quiet: bool,
+        config: str,
+    ) -> None:
+        """Clear session state for a project.
+
+        This forces a new session to be created on next use.
+
+        Examples:
+            claude-indexer session clear
+            claude-indexer session clear -p /path/to/project --force
+        """
+        from .session.manager import clear_session
+        from .session.detector import ProjectRootDetector
+
+        try:
+            project_path = Path(project) if project else ProjectRootDetector.detect_from_cwd()
+
+            if not force and not quiet:
+                click.confirm(f"Clear session for {project_path}?", abort=True)
+
+            result = clear_session(project=str(project_path))
+
+            if result:
+                if not quiet:
+                    click.echo(f"✅ Session cleared for {project_path}")
+            else:
+                if not quiet:
+                    click.echo(f"No active session found for {project_path}")
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            sys.exit(1)
+
+    @session.command("list")
+    @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+    @common_options
+    def session_list(
+        json_output: bool,
+        verbose: bool,
+        quiet: bool,
+        config: str,
+    ) -> None:
+        """List all known sessions.
+
+        Scans for session files in home directory.
+
+        Examples:
+            claude-indexer session list
+            claude-indexer session list --json
+        """
+        from .session.manager import list_active_sessions
+
+        try:
+            sessions = list_active_sessions()
+
+            if json_output:
+                click.echo(json.dumps(sessions, indent=2))
+            else:
+                if not sessions:
+                    click.echo("No active sessions found.")
+                    return
+
+                for s in sessions:
+                    stale = " (stale)" if s.get("_is_stale") else ""
+                    age = s.get("_age_hours", "?")
+                    click.echo(f"{s.get('session_id', 'unknown')}{stale}")
+                    click.echo(f"  Project:    {s.get('project_path', 'unknown')}")
+                    click.echo(f"  Collection: {s.get('collection_name', 'unknown')}")
+                    click.echo(f"  Age:        {age}h")
+                    click.echo("")
+        except Exception as e:
+            click.echo(f"❌ Error: {e}", err=True)
+            sys.exit(1)
+
+    # =========================================================================
     # Ignore Commands - .claudeignore management
     # =========================================================================
 
