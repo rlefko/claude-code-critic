@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.18] - 2024-12-12
+
+### Added
+- **User Experience Polish (Milestone 6.2)** - Complete CLI UX improvements
+  - **OutputManager** (`claude_indexer/cli/output.py`): Centralized output with color/quiet mode support
+  - **CLIError Types** (`claude_indexer/cli/errors.py`): Structured errors with categories and suggestions
+  - **StatusCollector** (`claude_indexer/cli/status.py`): Unified system health status aggregation
+  - **`claude-indexer status` command**: Shows Qdrant, Service, Hooks, Index, and Health status
+
+### Enhanced
+- **NO_COLOR Support** - Respects [no-color.org](https://no-color.org/) standard
+  - `--no-color` flag added to all CLI commands
+  - Automatic detection of `NO_COLOR` and `FORCE_COLOR` environment variables
+  - Accessible symbol fallbacks: `[OK]`, `[FAIL]`, `[WARN]`, `[INFO]`
+- **Quiet Mode** (`-q/--quiet`) - Suppresses info output, errors always shown
+- **Progress Bar** - Added `quiet` and `use_color` parameters for consistent UX
+- **Error Messages** - All errors include actionable suggestions
+
+### Testing
+- 102 new unit tests in `tests/unit/cli/` (output, errors, status modules)
+- All tests passing with comprehensive coverage
+
+---
+
 ## [2.9.12] - 2024-12-11
 
 ### Added

@@ -3,13 +3,32 @@ Modern persistent progress bar for indexing operations.
 
 This module provides a beautiful, Homebrew-style progress bar that updates
 in place, showing detailed progress information during indexing.
+
+Supports quiet mode (suppress all output) and NO_COLOR mode (disable ANSI codes).
 """
 
+from __future__ import annotations
+
+import os
 import sys
 import time
 import shutil
 from typing import Optional
 from dataclasses import dataclass
+
+
+def _should_use_color() -> bool:
+    """Check if colors should be used based on environment."""
+    # NO_COLOR environment variable (standard convention)
+    if "NO_COLOR" in os.environ:
+        return False
+    # FORCE_COLOR overrides
+    if "FORCE_COLOR" in os.environ:
+        return True
+    # Check if stdout is a TTY
+    if hasattr(sys.stdout, "isatty") and not sys.stdout.isatty():
+        return False
+    return True
 
 
 @dataclass
@@ -30,34 +49,70 @@ class ModernProgressBar:
     """
     A beautiful, persistent progress bar similar to Homebrew's style.
     Updates in place with smooth animations and detailed information.
+
+    Supports:
+    - quiet mode: suppress all visual output
+    - use_color: respect NO_COLOR env var and --no-color flag
     """
 
-    def __init__(self, total_items: int, description: str = "Processing"):
+    def __init__(
+        self,
+        total_items: int,
+        description: str = "Processing",
+        quiet: bool = False,
+        use_color: bool | None = None,
+    ):
         """
         Initialize the progress bar.
 
         Args:
             total_items: Total number of items to process
             description: Description of the operation
+            quiet: Suppress all progress output (for quiet mode)
+            use_color: Use ANSI colors. None = auto-detect from env/TTY
         """
         self.state = ProgressState(
             total=total_items,
             start_time=time.time()
         )
         self.description = description
+        self.quiet = quiet
+
+        # Auto-detect color if not explicitly set
+        if use_color is None:
+            self.use_color = _should_use_color()
+        else:
+            self.use_color = use_color
+
         self.terminal_width = shutil.get_terminal_size(fallback=(80, 20)).columns
         self.last_line_length = 0
         self.spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.spinner_index = 0
 
-        # Color codes
-        self.GREEN = "\033[92m"
-        self.YELLOW = "\033[93m"
-        self.BLUE = "\033[94m"
-        self.CYAN = "\033[96m"
-        self.RESET = "\033[0m"
-        self.BOLD = "\033[1m"
-        self.DIM = "\033[2m"
+        # Color codes (only apply if use_color is True)
+        self._init_colors()
+
+    def _init_colors(self) -> None:
+        """Initialize color codes based on use_color setting."""
+        if self.use_color:
+            self.GREEN = "\033[92m"
+            self.YELLOW = "\033[93m"
+            self.BLUE = "\033[94m"
+            self.CYAN = "\033[96m"
+            self.RED = "\033[91m"
+            self.RESET = "\033[0m"
+            self.BOLD = "\033[1m"
+            self.DIM = "\033[2m"
+        else:
+            # No colors - empty strings
+            self.GREEN = ""
+            self.YELLOW = ""
+            self.BLUE = ""
+            self.CYAN = ""
+            self.RED = ""
+            self.RESET = ""
+            self.BOLD = ""
+            self.DIM = ""
 
     def update(self,
                current: Optional[int] = None,
@@ -94,15 +149,20 @@ class ModernProgressBar:
         # Render the bar
         self._render()
 
-    def complete(self):
+    def complete(self) -> None:
         """Mark the progress bar as complete."""
+        if self.quiet:
+            return
         self.state.current = self.state.total
         self._render()
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-    def _render(self):
+    def _render(self) -> None:
         """Render the progress bar to terminal."""
+        # Skip rendering in quiet mode
+        if self.quiet:
+            return
         # Calculate percentage
         if self.state.total > 0:
             percentage = (self.state.current / self.state.total) * 100
@@ -189,24 +249,29 @@ class ModernProgressBar:
             minutes = int((seconds % 3600) // 60)
             return f"{hours}h {minutes}m"
 
-    def finish(self, success: bool = True):
+    def finish(self, success: bool = True) -> None:
         """
         Finish the progress bar with a final status.
 
         Args:
             success: Whether the operation completed successfully
         """
+        # In quiet mode, only show failure messages
+        if self.quiet and success:
+            return
+
         elapsed = time.time() - self.state.start_time
         elapsed_str = self._format_time(elapsed)
 
-        # Clear the line
-        sys.stdout.write("\r" + " " * self.last_line_length + "\r")
+        # Clear the line (only if we were rendering)
+        if not self.quiet:
+            sys.stdout.write("\r" + " " * self.last_line_length + "\r")
 
         if success:
-            status = f"{self.GREEN}✓{self.RESET}"
+            status = f"{self.GREEN}✓{self.RESET}" if self.use_color else "[OK]"
             message = f"{status} {self.BOLD}{self.description} complete{self.RESET}"
         else:
-            status = f"\033[91m✗{self.RESET}"  # Red X
+            status = f"{self.RED}✗{self.RESET}" if self.use_color else "[FAIL]"
             message = f"{status} {self.BOLD}{self.description} failed{self.RESET}"
 
         # Final statistics
@@ -217,7 +282,8 @@ class ModernProgressBar:
         )
 
         sys.stdout.write(message + "\n")
-        sys.stdout.write(f"{self.DIM}{stats}{self.RESET}\n")
+        if not self.quiet:
+            sys.stdout.write(f"{self.DIM}{stats}{self.RESET}\n")
         sys.stdout.flush()
 
 

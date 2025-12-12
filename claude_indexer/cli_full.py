@@ -64,6 +64,12 @@ else:
             "--quiet", "-q", is_flag=True, help="Suppress non-error output"
         )(f)
         f = click.option(
+            "--no-color",
+            is_flag=True,
+            default=False,
+            help="Disable color output (also respects NO_COLOR env var)",
+        )(f)
+        f = click.option(
             "--config", type=click.Path(exists=True), help="Configuration file path"
         )(f)
         return f
@@ -140,6 +146,7 @@ else:
         collection,
         verbose,
         quiet,
+        no_color,
         config,
         include_tests,
         clear,
@@ -155,6 +162,10 @@ else:
         if quiet and verbose:
             click.echo("Error: --quiet and --verbose are mutually exclusive", err=True)
             sys.exit(1)
+
+        # Determine color usage
+        from .cli.output import should_use_color
+        use_color = should_use_color(explicit_flag=not no_color if no_color else None)
 
         try:
             # Validate project path first
@@ -805,6 +816,97 @@ else:
 
         click.echo(json_module.dumps(result.to_dict(), indent=2))
 
+    # ========================================
+    # Status Command (v2.9.18)
+    # ========================================
+
+    @cli.command()
+    @click.option(
+        "-p",
+        "--project",
+        "project_path",
+        default=None,
+        type=click.Path(exists=True),
+        help="Project directory (optional, uses CWD if not specified)",
+    )
+    @click.option(
+        "-c",
+        "--collection",
+        help="Collection name (optional)",
+    )
+    @click.option(
+        "--json",
+        "json_output",
+        is_flag=True,
+        help="Output as JSON",
+    )
+    @click.option(
+        "-v",
+        "--verbose",
+        is_flag=True,
+        help="Show detailed information",
+    )
+    @click.option(
+        "--no-color",
+        "no_color",
+        is_flag=True,
+        help="Disable color output",
+    )
+    def status(
+        project_path: str | None,
+        collection: str | None,
+        json_output: bool,
+        verbose: bool,
+        no_color: bool,
+    ) -> None:
+        """Show unified system status.
+
+        Displays status of all subsystems:
+        - Qdrant: Vector database connectivity
+        - Service: Background indexing service
+        - Hooks: Claude Code and git hooks
+        - Index: Index freshness and file count
+        - Health: Overall system health summary
+
+        Examples:
+            claude-indexer status
+            claude-indexer status -p /path/to/project -c my-collection
+            claude-indexer status --json
+        """
+        from .cli.status import StatusCollector, format_status_text
+        from .cli.output import should_use_color
+
+        use_color = should_use_color(explicit_flag=not no_color if no_color else None)
+
+        # Resolve project path
+        resolved_path = Path(project_path).resolve() if project_path else Path.cwd()
+
+        # Collect status
+        collector = StatusCollector(
+            project_path=resolved_path,
+            collection_name=collection,
+        )
+        system_status = collector.collect_all()
+
+        # Output
+        if json_output:
+            click.echo(system_status.to_json())
+        else:
+            formatted = format_status_text(
+                system_status,
+                use_color=use_color,
+                verbose=verbose,
+            )
+            click.echo(formatted)
+
+        # Exit codes based on overall status
+        from .cli.status import StatusLevel
+        if system_status.overall_level == StatusLevel.FAIL:
+            sys.exit(2)
+        elif system_status.overall_level == StatusLevel.WARN:
+            sys.exit(1)
+        sys.exit(0)
+
     @cli.command()
     @click.option(
         "-p",
@@ -866,7 +968,7 @@ else:
         help="Output as JSON",
     )
     @common_options
-    def config_show(project_path: str, sources: bool, as_json: bool, verbose, quiet, config) -> None:
+    def config_show(project_path: str, sources: bool, as_json: bool, verbose, quiet, no_color, config) -> None:
         """Show effective configuration with source tracking.
 
         Examples:
@@ -957,7 +1059,7 @@ else:
         help="Project directory path (used if config_path not provided)",
     )
     @common_options
-    def config_validate(config_path: str, project_path: str, verbose, quiet, config) -> None:
+    def config_validate(config_path: str, project_path: str, verbose, quiet, no_color, config) -> None:
         """Validate configuration file.
 
         If CONFIG_PATH is provided, validates that specific file.
@@ -1049,7 +1151,7 @@ else:
         help="Overwrite existing new-format config",
     )
     @common_options
-    def config_migrate(project_path: str, dry_run: bool, no_backup: bool, force: bool, verbose, quiet, config) -> None:
+    def config_migrate(project_path: str, dry_run: bool, no_backup: bool, force: bool, verbose, quiet, no_color, config) -> None:
         """Migrate existing configuration to v3.0 format.
 
         Migrates settings.txt and/or .claude-indexer/config.json to the
@@ -1137,7 +1239,7 @@ else:
         help="Project directory path",
     )
     @common_options
-    def config_backups(project_path: str, verbose, quiet, config) -> None:
+    def config_backups(project_path: str, verbose, quiet, no_color, config) -> None:
         """List available configuration backups.
 
         Examples:
@@ -1176,7 +1278,7 @@ else:
         help="Specific backup timestamp to restore (format: YYYYMMDD_HHMMSS)",
     )
     @common_options
-    def config_restore(project_path: str, timestamp: str, verbose, quiet, config) -> None:
+    def config_restore(project_path: str, timestamp: str, verbose, quiet, no_color, config) -> None:
         """Restore configuration from backup.
 
         If --timestamp is not provided, restores the most recent backup.
@@ -1206,7 +1308,7 @@ else:
     @project_options
     @common_options
     @click.argument("file_path", type=click.Path(exists=True))
-    def file(project, collection, file_path, verbose, quiet, config) -> None:
+    def file(project, collection, file_path, verbose, quiet, no_color, config) -> None:
         """Index a single file."""
 
         try:
@@ -1508,7 +1610,7 @@ else:
     )
     @click.pass_context
     def start(
-        ctx, project, collection, verbose, quiet, config, debounce, clear, clear_all
+        ctx, project, collection, verbose, quiet, no_color, config, debounce, clear, clear_all
     ):
         """Start file watching for real-time indexing."""
 
@@ -1769,7 +1871,7 @@ else:
     @click.option(
         "--config-file", type=click.Path(), help="Service configuration file path"
     )
-    def start_service(verbose, quiet, config, config_file):
+    def start_service(verbose, quiet, no_color, config, config_file):
         """Start the background indexing service."""
 
         try:
@@ -1795,7 +1897,7 @@ else:
     @click.option(
         "--config-file", type=click.Path(), help="Service configuration file path"
     )
-    def add_project(project_path, collection_name, verbose, quiet, config, config_file):
+    def add_project(project_path, collection_name, verbose, quiet, no_color, config, config_file):
         """Add a project to the service watch list."""
 
         try:
@@ -1820,7 +1922,7 @@ else:
     @click.option(
         "--config-file", type=click.Path(), help="Service configuration file path"
     )
-    def service_status(verbose, quiet, config, config_file):
+    def service_status(verbose, quiet, no_color, config, config_file):
         """Show service status."""
 
         try:
@@ -1853,7 +1955,7 @@ else:
     @project_options
     @common_options
     @click.option("--indexer-path", help="Path to indexer executable")
-    def install(project, collection, verbose, quiet, config, indexer_path):
+    def install(project, collection, verbose, quiet, no_color, config, indexer_path):
         """Install git pre-commit hook."""
 
         try:
@@ -1872,7 +1974,7 @@ else:
     @hooks.command()
     @project_options
     @common_options
-    def uninstall(project, collection, verbose, quiet, config):
+    def uninstall(project, collection, verbose, quiet, no_color, config):
         """Uninstall git pre-commit hook."""
 
         try:
@@ -1891,7 +1993,7 @@ else:
     @hooks.command("status")
     @project_options
     @common_options
-    def hooks_status(project, collection, verbose, quiet, config):
+    def hooks_status(project, collection, verbose, quiet, no_color, config):
         """Show git hooks status."""
 
         try:
@@ -2763,7 +2865,7 @@ else:
         help="Filter by result type (default: all)",
     )
     @common_options
-    def search(project, collection, query, limit, result_type, verbose, quiet, config):
+    def search(project, collection, query, limit, result_type, verbose, quiet, no_color, config):
         """Search across code entities, relations, and chat conversations."""
 
         try:
@@ -2858,7 +2960,7 @@ else:
         "--collection", "-c", required=True, help="Collection name for MCP server"
     )
     @common_options
-    def add_mcp(collection, verbose, quiet, config):
+    def add_mcp(collection, verbose, quiet, no_color, config):
         """Add MCP server configuration for a collection."""
 
         try:
@@ -2993,7 +3095,7 @@ else:
         default=1.0,
         help="Consider conversations inactive after N hours",
     )
-    def chat_index(project, collection, verbose, quiet, config, limit, inactive_hours):
+    def chat_index(project, collection, verbose, quiet, no_color, config, limit, inactive_hours):
         """Index Claude Code chat history files for a project."""
         try:
             # Load configuration
@@ -3137,7 +3239,7 @@ else:
         default="markdown",
         help="Output format",
     )
-    def summarize(project, collection, verbose, quiet, config, output_dir, format):
+    def summarize(project, collection, verbose, quiet, no_color, config, output_dir, format):
         """Generate summary files from indexed chat conversations."""
         try:
             # Load configuration
@@ -3276,7 +3378,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
     @click.option(
         "--limit", "-l", type=int, default=10, help="Maximum number of results"
     )
-    def chat_search(project, collection, verbose, quiet, config, query, limit):
+    def chat_search(project, collection, verbose, quiet, no_color, config, query, limit):
         """Search indexed chat conversations by content."""
         try:
             # Load configuration and create components with persistent cache
@@ -3345,7 +3447,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Specific conversation ID to generate report for (uses most recent if not specified)",
     )
     def html_report(
-        project, collection, verbose, quiet, config, output, conversation_id
+        project, collection, verbose, quiet, no_color, config, output, conversation_id
     ):
         """Generate HTML report with GPT analysis and full conversation display."""
         try:
@@ -3628,7 +3730,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Project directory path",
     )
     @common_options
-    def manage_baseline(action, project, verbose, quiet, config):
+    def manage_baseline(action, project, verbose, quiet, no_color, config):
         """Manage UI quality baseline.
 
         Actions:
@@ -3714,7 +3816,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Output format",
     )
     @common_options
-    def show_metrics(project, output_format, verbose, quiet, config):
+    def show_metrics(project, output_format, verbose, quiet, no_color, config):
         """Display current metrics and target status.
 
         Shows UI quality metrics including token drift reduction,
@@ -3871,7 +3973,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Output format",
     )
     @common_options
-    def history_metrics(project, days, metric, output_format, verbose, quiet, config):
+    def history_metrics(project, days, metric, output_format, verbose, quiet, no_color, config):
         """Show metrics history and trends.
 
         Examples:
@@ -3954,7 +4056,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Number of days to export (for CSV)",
     )
     @common_options
-    def export_metrics(project, output, output_format, days, verbose, quiet, config):
+    def export_metrics(project, output, output_format, days, verbose, quiet, no_color, config):
         """Export metrics for CI dashboards.
 
         Examples:
@@ -4016,7 +4118,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Confirm reset without prompting",
     )
     @common_options
-    def reset_metrics(project, confirm, verbose, quiet, config):
+    def reset_metrics(project, confirm, verbose, quiet, no_color, config):
         """Reset metrics history (start fresh baseline).
 
         This clears all historical metrics data. Use with caution.
@@ -4077,7 +4179,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Output format",
     )
     @common_options
-    def perf_show(output_format, verbose, quiet, config):
+    def perf_show(output_format, verbose, quiet, no_color, config):
         """Display current performance metrics.
 
         Shows collected performance statistics including operation counts,
@@ -4127,7 +4229,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Output file path",
     )
     @common_options
-    def perf_export(output, verbose, quiet, config):
+    def perf_export(output, verbose, quiet, no_color, config):
         """Export performance metrics to JSON file.
 
         Exports all collected metrics with timestamp for analysis
@@ -4164,7 +4266,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Confirm clear without prompting",
     )
     @common_options
-    def perf_clear(confirm, verbose, quiet, config):
+    def perf_clear(confirm, verbose, quiet, no_color, config):
         """Clear collected performance metrics.
 
         Resets all performance metrics. Use with caution.
@@ -4197,7 +4299,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Collection name",
     )
     @common_options
-    def perf_cache_stats(project, collection, verbose, quiet, config):
+    def perf_cache_stats(project, collection, verbose, quiet, no_color, config):
         """Show query cache statistics.
 
         Displays hit/miss ratios and cache efficiency for query caching

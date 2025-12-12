@@ -43,6 +43,8 @@ class PipelineProgress:
         logger: Logger | None = None,
         enable_terminal: bool = True,
         description: str = "Indexing",
+        quiet: bool = False,
+        use_color: bool | None = None,
     ):
         """Initialize progress reporter.
 
@@ -50,10 +52,14 @@ class PipelineProgress:
             logger: Optional logger instance
             enable_terminal: Whether to show terminal progress bar
             description: Description for progress bar
+            quiet: Suppress progress output (for quiet mode)
+            use_color: Use ANSI colors. None = auto-detect from env/TTY
         """
         self.logger = logger or get_logger()
-        self.enable_terminal = enable_terminal
+        self.enable_terminal = enable_terminal and not quiet
         self.description = description
+        self.quiet = quiet
+        self.use_color = use_color
 
         # Progress state
         self._state = ProgressState(
@@ -111,7 +117,10 @@ class PipelineProgress:
         # Initialize terminal progress bar
         if self.enable_terminal and total_files > 0:
             self._progress_bar = BatchProgressBar(
-                total_files, self.description
+                total_files,
+                self.description,
+                quiet=self.quiet,
+                use_color=self.use_color,
             )
 
         self._perf.reset()
