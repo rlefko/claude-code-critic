@@ -1405,6 +1405,83 @@ else:
 
         _sys.exit(exit_code)
 
+    @cli.command("session-start")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory (default: current directory)",
+    )
+    @click.option(
+        "--collection",
+        "-c",
+        required=True,
+        help="Collection name for memory",
+    )
+    @click.option(
+        "--json",
+        "output_json",
+        is_flag=True,
+        help="Output results as JSON",
+    )
+    @click.option(
+        "--timeout",
+        type=int,
+        default=2000,
+        help="Timeout in milliseconds (default: 2000)",
+    )
+    @click.option(
+        "-v",
+        "--verbose",
+        is_flag=True,
+        help="Show detailed information",
+    )
+    def session_start(
+        project: str,
+        collection: str,
+        output_json: bool,
+        timeout: int,
+        verbose: bool,
+    ) -> None:
+        """Initialize session with health check and context.
+
+        Runs at session start to verify system health and display context:
+        - Verifies Qdrant connectivity
+        - Checks index freshness (suggests re-index if stale)
+        - Shows git context (branch, uncommitted changes)
+        - Displays memory-first workflow reminder
+
+        Exit codes:
+            0 = All healthy
+            1 = Warnings present (index stale, etc.)
+
+        Never blocks - this is informational only.
+
+        Examples:
+            claude-indexer session-start -c my-project
+            claude-indexer session-start -p /path/to/project -c collection
+            claude-indexer session-start -c my-project --json
+        """
+        import sys as _sys
+
+        from .hooks.session_start import run_session_start
+
+        project_path = Path(project).resolve()
+        result, exit_code = run_session_start(
+            project_path=project_path,
+            collection_name=collection,
+            timeout_ms=timeout,
+            json_output=output_json,
+        )
+
+        if output_json:
+            click.echo(result.to_json(indent=2))
+        else:
+            click.echo(result.format_welcome_message(collection))
+
+        _sys.exit(exit_code)
+
     @cli.group()
     def watch() -> None:
         """File watching commands."""
