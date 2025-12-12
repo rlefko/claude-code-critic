@@ -44,6 +44,7 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **Tech Debt Rules (11)** | ✅ Complete | All 11 rules implemented (v2.9.5) |
 | **Core PRD Rules (6)** | ✅ Complete | Token drift, duplication, unsafe (v2.9.5) |
 | **PostToolUse Hook** | ✅ Complete | Fast rules (<30ms), async indexing queue (v2.9.7) |
+| **Stop Hook (End of Turn)** | ✅ Complete | Comprehensive checks (<5s), diff-aware, exit code 2 blocking (v2.9.8) |
 | One-Command Init | ❌ Missing | Core gap |
 | All 27 Rules | ✅ Complete | 27+ rules implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
@@ -789,12 +790,28 @@ class TokenDriftRule(BaseRule):
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 3.2.1 | Create `end-of-turn-check.sh` hook script | HIGH | PARTIAL |
-| 3.2.2 | Implement full rule engine execution | HIGH | PARTIAL |
-| 3.2.3 | Add diff-based context (only check changes) | HIGH | PARTIAL |
+| 3.2.1 | Create `end-of-turn-check.sh` hook script | HIGH | DONE |
+| 3.2.2 | Implement full rule engine execution | HIGH | DONE |
+| 3.2.3 | Add diff-based context (only check changes) | HIGH | DONE |
 | 3.2.4 | Implement exit code 2 blocking | HIGH | DONE |
-| 3.2.5 | Create structured error messages for Claude | HIGH | PARTIAL |
-| 3.2.6 | Add performance budgeting (<5s total) | MEDIUM | NEW |
+| 3.2.5 | Create structured error messages for Claude | HIGH | DONE |
+| 3.2.6 | Add performance budgeting (<5s total) | MEDIUM | DONE |
+
+**Implementation Notes (v2.9.8)**:
+- Created `claude_indexer/hooks/stop_check.py`:
+  - `StopCheckResult` dataclass with should_block, findings, timing
+  - `StopCheckExecutor` singleton for rule engine pre-loading
+  - `format_findings_for_claude()` for self-repair error messages
+  - Git integration via subprocess for collecting uncommitted changes
+  - Diff context population with `changed_lines` and `is_new_file`
+- Added `claude-indexer stop-check` CLI command:
+  - Options: `--project`, `--json`, `--timeout`, `--threshold`
+  - Exit codes: 0=clean, 1=warnings, 2=BLOCKS
+- Created `hooks/end-of-turn-check.sh`:
+  - Shell script for Stop hook integration
+  - Formats findings for Claude self-repair
+  - Exit code 2 triggers blocking
+- Unit tests: 30+ tests in `tests/unit/hooks/test_stop_check.py`
 
 **Error Message Format**:
 ```
@@ -808,18 +825,18 @@ Suggestion: Use existing `normalize_string()` or refactor both to shared helper.
 ```
 
 **Testing Requirements**:
-- [ ] Test with various violation types
-- [ ] Verify Claude receives and acts on errors
-- [ ] Benchmark total execution time
+- [x] Test with various violation types
+- [x] Verify Claude receives and acts on errors
+- [x] Benchmark total execution time
 
 **Documentation**:
-- [ ] Stop hook behavior documentation
-- [ ] Error message format specification
+- [x] Stop hook behavior documentation (in CLAUDE.md)
+- [x] Error message format specification
 
 **Success Criteria**:
-- <5s total execution
-- Claude successfully auto-fixes flagged issues
-- Clear, actionable error messages
+- [x] <5s total execution
+- [x] Claude successfully auto-fixes flagged issues
+- [x] Clear, actionable error messages
 
 ---
 

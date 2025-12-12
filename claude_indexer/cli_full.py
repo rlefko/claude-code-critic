@@ -1101,6 +1101,71 @@ else:
 
         _sys.exit(exit_code)
 
+    @cli.command("stop-check")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(exists=True),
+        default=".",
+        help="Project directory (default: current directory)",
+    )
+    @click.option(
+        "--json",
+        "output_json",
+        is_flag=True,
+        help="Output results as JSON",
+    )
+    @click.option(
+        "--timeout",
+        type=int,
+        default=5000,
+        help="Timeout in milliseconds (default: 5000)",
+    )
+    @click.option(
+        "--threshold",
+        type=click.Choice(["critical", "high", "medium", "low"]),
+        default="high",
+        help="Severity threshold for blocking (default: high)",
+    )
+    @common_options
+    def stop_check(
+        project: str,
+        output_json: bool,
+        timeout: int,
+        threshold: str,
+        verbose: bool,
+        quiet: bool,
+        config: str,
+    ) -> None:
+        """Run comprehensive quality checks at end of turn.
+
+        Analyzes all uncommitted changes and blocks if critical issues found.
+        Unlike post-write, this runs all ON_STOP rules (not just fast ones)
+        and checks ALL uncommitted files.
+
+        Exit codes:
+            0 = Clean (no blocking issues)
+            1 = Warnings found (non-blocking)
+            2 = Critical/High issues (BLOCKS Claude)
+
+        Examples:
+            claude-indexer stop-check
+            claude-indexer stop-check -p /path/to/project --json
+            claude-indexer stop-check --threshold critical
+        """
+        from .hooks.stop_check import run_stop_check
+        import sys as _sys
+
+        # Run the check and get exit code
+        exit_code = run_stop_check(
+            project=project,
+            output_json=output_json,
+            timeout_ms=timeout,
+            threshold=threshold,
+        )
+
+        _sys.exit(exit_code)
+
     @cli.group()
     def watch() -> None:
         """File watching commands."""
