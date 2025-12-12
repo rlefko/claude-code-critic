@@ -2787,6 +2787,7 @@ else:
         project: str,
         verbose: bool,
         quiet: bool,
+        no_color: bool,
         config: str,
     ) -> None:
         """Add a pattern to .claudeignore file.
@@ -2863,6 +2864,7 @@ else:
         show_all: bool,
         verbose: bool,
         quiet: bool,
+        no_color: bool,
         config: str,
     ) -> None:
         """List active ignore patterns with their sources.
@@ -2928,7 +2930,7 @@ else:
     )
     @common_options
     def ignore_test(
-        path: str, project: str, verbose: bool, quiet: bool, config: str
+        path: str, project: str, verbose: bool, quiet: bool, no_color: bool, config: str
     ) -> None:
         """Test if a path would be ignored.
 
@@ -2975,6 +2977,7 @@ else:
         global_: bool,
         verbose: bool,
         quiet: bool,
+        no_color: bool,
         config: str,
     ) -> None:
         """Initialize .claudeignore from template.
