@@ -1,6 +1,6 @@
 # Claude Code Memory - Transform Claude into a 10x Senior Architect
 
-> **v2.8** | Semantic code memory for Claude Code with hybrid search, Memory Guard v4.3, and intelligent hooks
+> **v2.9** | Semantic code memory for Claude Code with hybrid search, Memory Guard v4.3, and intelligent hooks
 
 ```mermaid
 graph LR
@@ -19,6 +19,21 @@ graph LR
 ```
 
 **[Architecture](ARCHITECTURE.md)** | **[Changelog](CHANGELOG.md)** | **[CLI Reference](docs/CLI_REFERENCE.md)** | **[Memory Guard](docs/MEMORY_GUARD.md)** | **[UI Consistency](docs/UI_CONSISTENCY_GUIDE.md)**
+
+---
+
+## Quick Start (30 seconds)
+
+```bash
+# Clone and setup
+git clone https://github.com/Durafen/Claude-code-memory.git
+cd Claude-code-memory
+./setup.sh -p /path/to/your/project -c my-project
+
+# Done! Claude now has memory of your codebase.
+```
+
+See [Installation Guide](docs/installation.md) for detailed platform-specific instructions.
 
 ---
 
@@ -592,7 +607,7 @@ claude --version   # Claude Code CLI
 - [CLAUDE.md](CLAUDE.md) - Comprehensive setup and architecture details
 - [Installation Guide](docs/installation.md) - Platform-specific setup
 - [Memory Functions](docs/memory-functions.md) - Advanced memory usage
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [UI Consistency Guide](docs/UI_CONSISTENCY_GUIDE.md) - Design system enforcement
 - [UI CI Setup](docs/UI_CI_SETUP.md) - CI integration for UI quality
 
