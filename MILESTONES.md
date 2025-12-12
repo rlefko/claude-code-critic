@@ -46,7 +46,7 @@ Create a "magical" developer experience where Claude Code acts as an expert pair
 | **PostToolUse Hook** | ✅ Complete | Fast rules (<30ms), async indexing queue (v2.9.7) |
 | **Stop Hook (End of Turn)** | ✅ Complete | Comprehensive checks (<5s), diff-aware, exit code 2 blocking (v2.9.8) |
 | **Claude Self-Repair Loop** | ✅ Complete | Retry tracking, escalation, fix suggestions (v2.9.9) |
-| One-Command Init | ❌ Missing | Core gap |
+| **One-Command Init** | ✅ Complete | Full `claude-indexer init` with all components (v2.9.10) |
 | All 27 Rules | ✅ Complete | 27+ rules implemented |
 | Multi-Repo Isolation | 🔄 Partial | Framework exists |
 
@@ -939,16 +939,16 @@ Suggestion: Use existing `normalize_string()` or refactor both to shared helper.
 
 | ID | Task | Priority | Status |
 |----|------|----------|--------|
-| 4.1.1 | Design init command flow | HIGH | NEW |
-| 4.1.2 | Implement project type detection | HIGH | NEW |
-| 4.1.3 | Generate `.claudeignore` from templates | HIGH | NEW |
-| 4.1.4 | Generate `.claude/settings.json` with hooks | HIGH | NEW |
-| 4.1.5 | Generate `guard.config.json` with defaults | HIGH | NEW |
-| 4.1.6 | Create Qdrant collection for project | HIGH | NEW |
-| 4.1.7 | Trigger initial indexing | HIGH | NEW |
-| 4.1.8 | Install git pre-commit hook | HIGH | NEW |
-| 4.1.9 | Configure MCP server connection | HIGH | NEW |
-| 4.1.10 | Display summary and next steps | MEDIUM | NEW |
+| 4.1.1 | Design init command flow | HIGH | DONE |
+| 4.1.2 | Implement project type detection | HIGH | DONE |
+| 4.1.3 | Generate `.claudeignore` from templates | HIGH | DONE |
+| 4.1.4 | Generate `.claude/settings.json` with hooks | HIGH | DONE |
+| 4.1.5 | Generate `guard.config.json` with defaults | HIGH | DONE |
+| 4.1.6 | Create Qdrant collection for project | HIGH | DONE |
+| 4.1.7 | Trigger initial indexing | HIGH | DONE |
+| 4.1.8 | Install git pre-commit hook | HIGH | DONE |
+| 4.1.9 | Configure MCP server connection | HIGH | DONE |
+| 4.1.10 | Display summary and next steps | MEDIUM | DONE |
 
 **Init Command Interface**:
 ```bash
@@ -978,11 +978,11 @@ Options:
 ```
 
 **Testing Requirements**:
-- [ ] Test on clean repository
-- [ ] Test on existing Claude-enabled project
-- [ ] Test each project type (Python, JS, TS, etc.)
-- [ ] Test with --force flag
-- [ ] Test partial failures and recovery
+- [x] Test on clean repository
+- [x] Test on existing Claude-enabled project
+- [x] Test each project type (Python, JS, TS, etc.)
+- [x] Test with --force flag
+- [x] Test partial failures and recovery
 
 **Documentation**:
 - [ ] Quick start guide
@@ -993,6 +993,21 @@ Options:
 - <5 minutes from clone to fully configured
 - Works for all supported project types
 - Clear feedback at each step
+
+**Implementation Notes (v2.9.10)**:
+- Created `claude_indexer/init/` package with modular components:
+  - `types.py`: InitOptions, InitResult, InitStepResult, ProjectType
+  - `project_detector.py`: ProjectDetector for language/framework detection
+  - `templates.py`: TemplateManager for variable substitution
+  - `generators.py`: FileGenerator for config file creation
+  - `hooks_installer.py`: HooksInstaller for Claude Code and git hooks
+  - `collection_manager.py`: CollectionManager for Qdrant integration
+  - `mcp_configurator.py`: MCPConfigurator for MCP server setup
+  - `manager.py`: InitManager orchestrator
+- Enhanced CLI with 8 options: --project, --collection, --project-type, --no-index, --no-hooks, --force, --verbose, --quiet
+- Graceful degradation: continues if Qdrant unavailable or MCP not built
+- Idempotent design: safe to run multiple times
+- Unit tests: 49 tests in `tests/unit/init/` (all passing)
 
 ---
 

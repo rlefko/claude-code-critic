@@ -550,39 +550,131 @@ else:
         "-p",
         "--project",
         "project_path",
-        required=True,
+        default=".",
         type=click.Path(exists=True),
-        help="Project directory path",
+        help="Project directory path (default: current directory)",
     )
-    @click.option("-c", "--collection", required=True, help="Collection name")
-    @click.option("--force", is_flag=True, help="Overwrite existing config")
-    def init(project_path: str, collection: str, force: bool) -> None:
-        """Initialize project configuration."""
-        from .config.project_config import ProjectConfigManager
+    @click.option(
+        "-c",
+        "--collection",
+        help="Collection name (default: derived from project name)",
+    )
+    @click.option(
+        "--project-type",
+        type=click.Choice(
+            ["python", "javascript", "typescript", "react", "nextjs", "vue", "generic"]
+        ),
+        help="Override auto-detection of project type",
+    )
+    @click.option("--no-index", is_flag=True, help="Skip initial indexing")
+    @click.option("--no-hooks", is_flag=True, help="Skip hook installation")
+    @click.option("--force", is_flag=True, help="Overwrite existing configuration")
+    @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
+    @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
+    def init(
+        project_path: str,
+        collection: str,
+        project_type: str,
+        no_index: bool,
+        no_hooks: bool,
+        force: bool,
+        verbose: bool,
+        quiet: bool,
+    ) -> None:
+        """Initialize project with Claude Code Memory.
 
-        manager = ProjectConfigManager(Path(project_path))
+        Sets up:
+        - .claudeignore file
+        - .claude/settings.local.json (hooks configuration)
+        - .claude/guard.config.json (quality rules)
+        - .claude-indexer/config.json (indexing settings)
+        - Qdrant collection (if available)
+        - Git pre-commit hook (if git repo)
+        - MCP server configuration
 
-        # Derive project name from path
-        name = Path(project_path).name
+        Examples:
+            claude-indexer init
+            claude-indexer init -p /path/to/project -c my-project
+            claude-indexer init --project-type python --no-index
+            claude-indexer init --force --verbose
+        """
+        from .init.manager import InitManager
+        from .init.types import InitOptions, ProjectType
 
-        # Check if already exists
-        if manager.exists and not force:
-            click.echo(f"❌ Project config already exists at {manager.config_path}")
-            click.echo("Use --force to overwrite")
+        # Parse project type if provided
+        parsed_project_type = None
+        if project_type:
+            parsed_project_type = ProjectType(project_type)
+
+        options = InitOptions(
+            project_path=Path(project_path).resolve(),
+            collection_name=collection,
+            project_type=parsed_project_type,
+            no_index=no_index,
+            no_hooks=no_hooks,
+            force=force,
+            verbose=verbose,
+            quiet=quiet,
+        )
+
+        manager = InitManager(options)
+        result = manager.run()
+
+        # Display results
+        _display_init_result(result, verbose, quiet)
+
+        sys.exit(0 if result.success else 1)
+
+    def _display_init_result(result, verbose: bool, quiet: bool) -> None:
+        """Display initialization results to user."""
+        if quiet and result.success:
+            click.echo(f"Initialized {result.collection_name}")
             return
 
-        # Create default config
-        config = manager.create_default(name, collection)
+        click.echo()
+        if result.success:
+            click.echo(click.style("Project initialized successfully!", fg="green", bold=True))
+        else:
+            click.echo(
+                click.style("Initialization completed with errors", fg="yellow", bold=True)
+            )
 
-        # Save it
-        manager.save(config)
+        click.echo()
+        click.echo(f"Project: {result.project_path}")
+        click.echo(f"Collection: {result.collection_name}")
+        click.echo(f"Type: {result.project_type.value}")
+        click.echo()
 
-        click.echo(f"✅ Created project config at {manager.config_path}")
-        click.echo(f"📁 Project: {name}")
-        click.echo(f"🗄️  Collection: {collection}")
-        click.echo(
-            f"📝 Include patterns: {', '.join(config.indexing.file_patterns.include)}"
-        )
+        for step in result.steps:
+            if step.skipped:
+                icon = click.style("○", fg="yellow")
+                status = "skipped"
+            elif step.success:
+                icon = click.style("✓", fg="green")
+                status = ""
+            else:
+                icon = click.style("✗", fg="red")
+                status = "FAILED"
+
+            msg = f"{icon} {step.step_name}: {step.message}"
+            if status:
+                msg += f" ({status})"
+            click.echo(msg)
+
+            if step.warning and verbose:
+                click.echo(click.style(f"   Warning: {step.warning}", fg="yellow"))
+
+        if result.warnings and not quiet:
+            click.echo()
+            click.echo(click.style("Warnings:", fg="yellow"))
+            for warning in result.warnings:
+                click.echo(f"  - {warning}")
+
+        click.echo()
+        click.echo("Next steps:")
+        click.echo("  1. Restart Claude Code to load the MCP server")
+        server_name = result.collection_name.replace("-", "_")
+        click.echo(f"  2. Use: mcp__{server_name}_memory__search_similar('query')")
 
     @cli.command()
     @click.option(
