@@ -685,7 +685,9 @@ def wait_for_eventual_consistency(
                     for i, result in enumerate(results[:3]):  # Show first 3 results
                         if hasattr(result, "payload"):
                             name = result.payload.get("name", "Unknown")
-                            file_path = get_file_path_from_payload(result.payload) or "Unknown"
+                            file_path = (
+                                get_file_path_from_payload(result.payload) or "Unknown"
+                            )
                             print(f"  Still found #{i + 1}: {name} in {file_path}")
                         else:
                             print(f"  Still found #{i + 1}: {result}")

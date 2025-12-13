@@ -758,7 +758,10 @@ def helper_function():
         ), f"Expected relation count to decrease from {initial_relation_count} to {len(final_relations)}"
 
         # Wait for eventual consistency and verify entities from deleted file are gone
-        from tests.conftest import get_file_path_from_payload, wait_for_eventual_consistency
+        from tests.conftest import (
+            get_file_path_from_payload,
+            wait_for_eventual_consistency,
+        )
 
         def search_helpers_entities():
             search_embedding = dummy_embedder.embed_single("helper_function")
