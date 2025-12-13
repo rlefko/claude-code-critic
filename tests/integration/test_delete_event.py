@@ -152,10 +152,7 @@ def extra_function_{i}():
         initial_count = qdrant_store.count(collection_name)
 
         # Verify extra files are indexed using payload query (deterministic)
-        from tests.conftest import (
-            get_entities_by_file_path,
-            verify_entities_exist_by_path,
-        )
+        from tests.conftest import verify_entities_exist_by_path
 
         for i in range(3):
             entity_found = verify_entities_exist_by_path(
