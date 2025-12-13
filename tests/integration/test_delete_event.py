@@ -41,7 +41,7 @@ class TestDeleteEventHandling:
         result1 = indexer.index_project(collection_name, include_tests=True)
         assert result1.success
 
-        # Wait for eventual consistency before checking count (CI may have delays)
+        # Wait for consistency before checking count (CI may have delays)
         import time
 
         max_wait = 15.0
@@ -53,10 +53,14 @@ class TestDeleteEventHandling:
                 break
             time.sleep(0.5)
 
-        assert initial_count >= 3, f"Should have at least 3 points indexed, got {initial_count}"
+        err = f"At least 3 points expected, got {initial_count}"
+        assert initial_count >= 3, err
 
-        # Verify we can find content from foo.py with retry for eventual consistency
-        from tests.conftest import get_file_path_from_payload, verify_entity_searchable
+        # Verify we can find content from foo.py with retry
+        from tests.conftest import (
+            get_file_path_from_payload,
+            verify_entity_searchable,
+        )
 
         # Use Calculator which is a unique entity name in foo.py
         found = verify_entity_searchable(
