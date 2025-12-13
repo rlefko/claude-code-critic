@@ -14,19 +14,14 @@ import json
 import os
 import re
 import sys
-from typing import Optional
 
 # Intent patterns (compiled for performance)
 PATTERNS = {
-    "search": re.compile(
-        r"\b(find|search|look for|where is|locate|show me)\b", re.I
-    ),
+    "search": re.compile(r"\b(find|search|look for|where is|locate|show me)\b", re.I),
     "debug": re.compile(
         r"\b(error|bug|fix|issue|problem|broken|failing|crash)\b", re.I
     ),
-    "implement": re.compile(
-        r"\b(add|create|implement|build|write|make)\b", re.I
-    ),
+    "implement": re.compile(r"\b(add|create|implement|build|write|make)\b", re.I),
     "refactor": re.compile(
         r"\b(refactor|improve|clean up|optimize|restructure)\b", re.I
     ),
@@ -93,7 +88,7 @@ def build_context(intents: list, collection: str) -> str:
     return "\n".join(suggestions) if suggestions else ""
 
 
-def check_sensitive(prompt: str) -> Optional[str]:
+def check_sensitive(prompt: str) -> str | None:
     """Check for sensitive content in prompt."""
     if SENSITIVE_PATTERNS.search(prompt):
         return "Warning: Prompt may contain sensitive data. Avoid sharing credentials."

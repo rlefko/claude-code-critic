@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from claude_indexer.doctor.types import (
     CheckCategory,
     CheckResult,
@@ -118,7 +116,9 @@ class TestDoctorResult:
         result = DoctorResult()
         result.add_check(CheckResult("a", CheckCategory.PYTHON, CheckStatus.PASS, "ok"))
         result.add_check(CheckResult("b", CheckCategory.PYTHON, CheckStatus.PASS, "ok"))
-        result.add_check(CheckResult("c", CheckCategory.PYTHON, CheckStatus.WARN, "warn"))
+        result.add_check(
+            CheckResult("c", CheckCategory.PYTHON, CheckStatus.WARN, "warn")
+        )
         assert result.passed == 2
 
     def test_warnings_count(self):
@@ -191,9 +191,15 @@ class TestDoctorResult:
         """Test with mixed results."""
         result = DoctorResult()
         result.add_check(CheckResult("a", CheckCategory.PYTHON, CheckStatus.PASS, "ok"))
-        result.add_check(CheckResult("b", CheckCategory.SERVICES, CheckStatus.WARN, "warn"))
-        result.add_check(CheckResult("c", CheckCategory.API_KEYS, CheckStatus.FAIL, "fail"))
-        result.add_check(CheckResult("d", CheckCategory.PROJECT, CheckStatus.SKIP, "skip"))
+        result.add_check(
+            CheckResult("b", CheckCategory.SERVICES, CheckStatus.WARN, "warn")
+        )
+        result.add_check(
+            CheckResult("c", CheckCategory.API_KEYS, CheckStatus.FAIL, "fail")
+        )
+        result.add_check(
+            CheckResult("d", CheckCategory.PROJECT, CheckStatus.SKIP, "skip")
+        )
 
         assert result.passed == 1
         assert result.warnings == 1

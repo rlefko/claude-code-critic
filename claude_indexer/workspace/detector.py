@@ -7,7 +7,7 @@ for marker files and parsing their contents to identify workspace members.
 
 import json
 from pathlib import Path
-from typing import ClassVar, List, Optional, Tuple
+from typing import ClassVar
 
 from ..indexer_logging import get_logger
 from .types import CollectionStrategy, WorkspaceConfig, WorkspaceMember, WorkspaceType
@@ -41,7 +41,7 @@ class WorkspaceDetector:
 
     # Markers in detection priority order
     # Format: (pattern, WorkspaceType)
-    WORKSPACE_MARKERS: ClassVar[List[Tuple[str, WorkspaceType]]] = [
+    WORKSPACE_MARKERS: ClassVar[list[tuple[str, WorkspaceType]]] = [
         ("*.code-workspace", WorkspaceType.VSCODE_MULTI_ROOT),
         ("pnpm-workspace.yaml", WorkspaceType.PNPM),
         ("nx.json", WorkspaceType.NX),
@@ -51,7 +51,7 @@ class WorkspaceDetector:
     ]
 
     @classmethod
-    def detect(cls, start_path: Optional[Path] = None) -> WorkspaceConfig:
+    def detect(cls, start_path: Path | None = None) -> WorkspaceConfig:
         """Detect workspace from path.
 
         Walks up the directory tree from start_path looking for
@@ -77,7 +77,9 @@ class WorkspaceDetector:
         workspace_root = workspace_file.parent if workspace_file else path
 
         # Parse workspace configuration
-        members = cls._parse_workspace_members(workspace_type, workspace_file, workspace_root)
+        members = cls._parse_workspace_members(
+            workspace_type, workspace_file, workspace_root
+        )
 
         # Determine collection strategy
         strategy = cls._determine_collection_strategy(workspace_type)
@@ -93,7 +95,7 @@ class WorkspaceDetector:
     @classmethod
     def _find_workspace_marker(
         cls, start_path: Path
-    ) -> Tuple[WorkspaceType, Optional[Path]]:
+    ) -> tuple[WorkspaceType, Path | None]:
         """Walk up directory tree to find workspace marker.
 
         Searches for workspace markers starting from start_path and
@@ -168,9 +170,9 @@ class WorkspaceDetector:
     def _parse_workspace_members(
         cls,
         ws_type: WorkspaceType,
-        ws_file: Optional[Path],
+        ws_file: Path | None,
         root_path: Path,
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse workspace members based on workspace type.
 
         Delegates to type-specific parsing methods.
@@ -202,7 +204,7 @@ class WorkspaceDetector:
         return []
 
     @classmethod
-    def _parse_vscode_workspace(cls, ws_file: Path) -> List[WorkspaceMember]:
+    def _parse_vscode_workspace(cls, ws_file: Path) -> list[WorkspaceMember]:
         """Parse VS Code .code-workspace file.
 
         Args:
@@ -243,7 +245,7 @@ class WorkspaceDetector:
     @classmethod
     def _parse_pnpm_workspace(
         cls, ws_file: Path, root_path: Path
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse pnpm-workspace.yaml.
 
         Args:
@@ -271,7 +273,7 @@ class WorkspaceDetector:
             return []
 
     @classmethod
-    def _parse_simple_yaml_list(cls, file_path: Path, key: str) -> List[str]:
+    def _parse_simple_yaml_list(cls, file_path: Path, key: str) -> list[str]:
         """Basic YAML list parsing for simple cases.
 
         Handles basic pnpm-workspace.yaml format:
@@ -314,7 +316,7 @@ class WorkspaceDetector:
     @classmethod
     def _parse_npm_workspaces(
         cls, package_json: Path, root_path: Path
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse package.json workspaces field.
 
         Handles both array format and object format with packages key.
@@ -342,8 +344,8 @@ class WorkspaceDetector:
 
     @classmethod
     def _expand_glob_patterns(
-        cls, patterns: List[str], root_path: Path
-    ) -> List[WorkspaceMember]:
+        cls, patterns: list[str], root_path: Path
+    ) -> list[WorkspaceMember]:
         """Expand glob patterns to actual directories.
 
         Handles patterns like 'packages/*', 'apps/**', etc.
@@ -400,7 +402,7 @@ class WorkspaceDetector:
         return members
 
     @classmethod
-    def _get_package_name(cls, path: Path) -> Optional[str]:
+    def _get_package_name(cls, path: Path) -> str | None:
         """Get package name from package.json if it exists.
 
         Args:
@@ -422,7 +424,7 @@ class WorkspaceDetector:
     @classmethod
     def _parse_nx_workspace(
         cls, ws_file: Path, root_path: Path
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse nx.json and scan for projects.
 
         Nx projects can be defined in workspace.json or detected via project.json files.
@@ -487,7 +489,7 @@ class WorkspaceDetector:
     @classmethod
     def _parse_lerna_workspace(
         cls, ws_file: Path, root_path: Path
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse lerna.json.
 
         Args:
@@ -510,7 +512,7 @@ class WorkspaceDetector:
     @classmethod
     def _parse_turbo_workspace(
         cls, ws_file: Path, root_path: Path
-    ) -> List[WorkspaceMember]:
+    ) -> list[WorkspaceMember]:
         """Parse turbo.json (uses package.json workspaces).
 
         Turborepo relies on package.json workspaces for package discovery.
@@ -529,7 +531,9 @@ class WorkspaceDetector:
         return []
 
     @classmethod
-    def _determine_collection_strategy(cls, ws_type: WorkspaceType) -> CollectionStrategy:
+    def _determine_collection_strategy(
+        cls, ws_type: WorkspaceType
+    ) -> CollectionStrategy:
         """Determine collection strategy based on workspace type.
 
         VS Code multi-root gets MULTIPLE (isolated collections).

@@ -19,23 +19,23 @@ class SensitiveExposureRule(BaseRule):
 
     # Sensitive data keywords to detect
     SENSITIVE_KEYWORDS = [
-        r'password',
-        r'passwd',
-        r'secret',
-        r'api[_-]?key',
-        r'apikey',
-        r'auth[_-]?token',
-        r'access[_-]?token',
-        r'refresh[_-]?token',
-        r'bearer',
-        r'credential',
-        r'private[_-]?key',
-        r'ssn',
-        r'social[_-]?security',
-        r'credit[_-]?card',
-        r'card[_-]?number',
-        r'cvv',
-        r'pin\b',
+        r"password",
+        r"passwd",
+        r"secret",
+        r"api[_-]?key",
+        r"apikey",
+        r"auth[_-]?token",
+        r"access[_-]?token",
+        r"refresh[_-]?token",
+        r"bearer",
+        r"credential",
+        r"private[_-]?key",
+        r"ssn",
+        r"social[_-]?security",
+        r"credit[_-]?card",
+        r"card[_-]?number",
+        r"cvv",
+        r"pin\b",
     ]
 
     # Language-specific patterns for sensitive data exposure
@@ -44,19 +44,19 @@ class SensitiveExposureRule(BaseRule):
         "python": [
             # Logging sensitive data
             (
-                r'(logger|logging)\.(info|debug|warning|error|critical)\s*\([^)]*({keywords})',
+                r"(logger|logging)\.(info|debug|warning|error|critical)\s*\([^)]*({keywords})",
                 "Logging {match} (sensitive data exposure)",
                 0.90,
             ),
             # Print sensitive data
             (
-                r'print\s*\([^)]*({keywords})',
+                r"print\s*\([^)]*({keywords})",
                 "Printing {match} (sensitive data exposure)",
                 0.85,
             ),
             # Exception messages with sensitive data
             (
-                r'raise\s+\w+\s*\([^)]*({keywords})',
+                r"raise\s+\w+\s*\([^)]*({keywords})",
                 "Exception message contains {match}",
                 0.85,
             ),
@@ -70,25 +70,25 @@ class SensitiveExposureRule(BaseRule):
         "javascript": [
             # Console logging sensitive data
             (
-                r'console\.(log|info|debug|warn|error)\s*\([^)]*({keywords})',
+                r"console\.(log|info|debug|warn|error)\s*\([^)]*({keywords})",
                 "console.log with {match} (sensitive data exposure)",
                 0.90,
             ),
             # JSON.stringify of sensitive objects
             (
-                r'JSON\.stringify\s*\([^)]*({keywords})',
+                r"JSON\.stringify\s*\([^)]*({keywords})",
                 "JSON.stringify contains {match}",
                 0.80,
             ),
             # Alert with sensitive data
             (
-                r'alert\s*\([^)]*({keywords})',
+                r"alert\s*\([^)]*({keywords})",
                 "alert() with {match}",
                 0.90,
             ),
             # Response with sensitive data
             (
-                r'res\.(send|json)\s*\([^)]*({keywords})',
+                r"res\.(send|json)\s*\([^)]*({keywords})",
                 "Response contains {match}",
                 0.80,
             ),
@@ -96,12 +96,12 @@ class SensitiveExposureRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'console\.(log|info|debug|warn|error)\s*\([^)]*({keywords})',
+                r"console\.(log|info|debug|warn|error)\s*\([^)]*({keywords})",
                 "console.log with {match} (sensitive data exposure)",
                 0.90,
             ),
             (
-                r'JSON\.stringify\s*\([^)]*({keywords})',
+                r"JSON\.stringify\s*\([^)]*({keywords})",
                 "JSON.stringify contains {match}",
                 0.80,
             ),
@@ -109,19 +109,19 @@ class SensitiveExposureRule(BaseRule):
         "java": [
             # Logger with sensitive data
             (
-                r'(logger|LOG)\.(info|debug|warn|error|trace)\s*\([^)]*({keywords})',
+                r"(logger|LOG)\.(info|debug|warn|error|trace)\s*\([^)]*({keywords})",
                 "Logger with {match} (sensitive data exposure)",
                 0.90,
             ),
             # System.out with sensitive data
             (
-                r'System\.(out|err)\.print(ln)?\s*\([^)]*({keywords})',
+                r"System\.(out|err)\.print(ln)?\s*\([^)]*({keywords})",
                 "System.out with {match}",
                 0.85,
             ),
             # Exception with sensitive data
             (
-                r'throw\s+new\s+\w+\s*\([^)]*({keywords})',
+                r"throw\s+new\s+\w+\s*\([^)]*({keywords})",
                 "Exception message contains {match}",
                 0.85,
             ),
@@ -129,19 +129,19 @@ class SensitiveExposureRule(BaseRule):
         "php": [
             # echo/print sensitive data
             (
-                r'(echo|print)\s+.*\$({keywords})',
+                r"(echo|print)\s+.*\$({keywords})",
                 "Outputting {match} (sensitive data exposure)",
                 0.85,
             ),
             # error_log with sensitive data
             (
-                r'error_log\s*\([^)]*\$({keywords})',
+                r"error_log\s*\([^)]*\$({keywords})",
                 "error_log with {match}",
                 0.90,
             ),
             # var_dump/print_r sensitive data
             (
-                r'(var_dump|print_r)\s*\([^)]*\$({keywords})',
+                r"(var_dump|print_r)\s*\([^)]*\$({keywords})",
                 "Debug output with {match}",
                 0.85,
             ),
@@ -149,13 +149,13 @@ class SensitiveExposureRule(BaseRule):
         "go": [
             # fmt.Print/log with sensitive data
             (
-                r'(fmt|log)\.(Print|Println|Printf|Fprint)\s*\([^)]*({keywords})',
+                r"(fmt|log)\.(Print|Println|Printf|Fprint)\s*\([^)]*({keywords})",
                 "Logging {match} (sensitive data exposure)",
                 0.90,
             ),
             # Error messages with sensitive data
             (
-                r'errors\.(New|Errorf)\s*\([^)]*({keywords})',
+                r"errors\.(New|Errorf)\s*\([^)]*({keywords})",
                 "Error message contains {match}",
                 0.85,
             ),
@@ -163,19 +163,19 @@ class SensitiveExposureRule(BaseRule):
         "ruby": [
             # puts/print sensitive data
             (
-                r'(puts|print|p)\s+.*({keywords})',
+                r"(puts|print|p)\s+.*({keywords})",
                 "Outputting {match} (sensitive data exposure)",
                 0.85,
             ),
             # Rails logger with sensitive data
             (
-                r'(Rails\.)?logger\.(info|debug|warn|error)\s+.*({keywords})',
+                r"(Rails\.)?logger\.(info|debug|warn|error)\s+.*({keywords})",
                 "Logger with {match}",
                 0.90,
             ),
             # Exception with sensitive data
             (
-                r'raise\s+.*({keywords})',
+                r"raise\s+.*({keywords})",
                 "Exception message contains {match}",
                 0.85,
             ),
@@ -234,17 +234,17 @@ class SensitiveExposureRule(BaseRule):
     def _is_redacted(self, line: str) -> bool:
         """Check if the sensitive data appears to be redacted."""
         redaction_patterns = [
-            r'\*+',
-            r'\[REDACTED\]',
-            r'\[HIDDEN\]',
-            r'\[MASKED\]',
-            r'<redacted>',
-            r'xxx+',
-            r'\.{3,}',
-            r'mask',
-            r'redact',
-            r'hide',
-            r'filter',
+            r"\*+",
+            r"\[REDACTED\]",
+            r"\[HIDDEN\]",
+            r"\[MASKED\]",
+            r"<redacted>",
+            r"xxx+",
+            r"\.{3,}",
+            r"mask",
+            r"redact",
+            r"hide",
+            r"filter",
         ]
         for pattern in redaction_patterns:
             if re.search(pattern, line, re.IGNORECASE):
@@ -301,7 +301,9 @@ class SensitiveExposureRule(BaseRule):
                 if re.search(pattern, line, re.IGNORECASE):
                     # Get the specific keyword that matched
                     matched_keyword = self._get_matched_keyword(line)
-                    description = desc_template.replace("{match}", matched_keyword or "sensitive data")
+                    description = desc_template.replace(
+                        "{match}", matched_keyword or "sensitive data"
+                    )
 
                     if is_test_file:
                         confidence = base_confidence * 0.5
@@ -343,7 +345,7 @@ class SensitiveExposureRule(BaseRule):
                     rf'({keyword}\s*[=:]\s*)["\'][^"\']+["\']',
                     r'\1"[REDACTED]"',
                     line,
-                    flags=re.IGNORECASE
+                    flags=re.IGNORECASE,
                 )
         return line
 

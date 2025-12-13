@@ -14,25 +14,24 @@ exclude patterns, ensuring build artifacts and generated files are never indexed
 """
 
 from pathlib import Path
-from typing import List
 
 # Import from new exclusion_manager for backward compatibility
 try:
     from .exclusion_manager import (
+        ExclusionManager,
         GitignoreParser,
         get_patterns_for_project,
-        ExclusionManager,
     )
 except ImportError:
     # When run as script, use absolute import
     from exclusion_manager import (
+        ExclusionManager,
         GitignoreParser,
         get_patterns_for_project,
-        ExclusionManager,
     )
 
 # Re-export for backward compatibility
-__all__ = ['GitignoreParser', 'get_patterns_for_project', 'ExclusionManager']
+__all__ = ["GitignoreParser", "get_patterns_for_project", "ExclusionManager"]
 
 
 if __name__ == "__main__":

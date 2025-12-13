@@ -161,7 +161,7 @@ class UITextRepresentationGenerator:
 
         return [
             self.generate_component_text(fp, name)
-            for fp, name in zip(fingerprints, names)
+            for fp, name in zip(fingerprints, names, strict=False)
         ]
 
     def _extract_structure_tokens(self, structure_hash: str) -> list[str]:

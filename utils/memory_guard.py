@@ -31,7 +31,7 @@ import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 try:
     from utils.code_analyzer import CodeAnalyzer
@@ -58,14 +58,13 @@ MAX_LATENCY_MS = int(os.getenv("MEMORY_GUARD_MAX_LATENCY_MS", "300"))
 class BypassManager:
     """Manages Memory Guard bypass state with simple on/off commands."""
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         self.project_root = project_root or Path.cwd()
         self.state_file = self.project_root / ".claude" / "guard_state.json"
         self.lock = threading.Lock()
 
         # Ensure .claude directory exists
         self.state_file.parent.mkdir(exist_ok=True)
-
 
     def set_global_state(self, disabled: bool) -> str:
         """Enable or disable Memory Guard globally."""
@@ -155,7 +154,9 @@ class MemoryGuard:
     - FULL mode: All tiers including Tier 3 - for pre-commit validation
     """
 
-    def __init__(self, hook_data: Optional[dict[str, Any]] = None, mode: str = DEFAULT_MODE):
+    def __init__(
+        self, hook_data: dict[str, Any] | None = None, mode: str = DEFAULT_MODE
+    ):
         """Initialize Memory Guard.
 
         Args:
@@ -171,7 +172,9 @@ class MemoryGuard:
         self.project_name = "unknown"
         self.mcp_collection = "mcp__project-memory__"
         self.bypass_manager = None
-        self.current_debug_log = None  # Selected once per hook execution for proper rotation
+        self.current_debug_log = (
+            None  # Selected once per hook execution for proper rotation
+        )
         self.tier2_detector = None  # Lazy-loaded Tier 2 fast duplicate detector
         self._guard_cache = None  # Lazy-loaded cache
 
@@ -182,28 +185,28 @@ class MemoryGuard:
         if DEBUG_ENABLED:
             self._ensure_debug_files_exist()
 
-    def _early_project_detection(self, hook_data: Optional[dict[str, Any]] = None) -> None:
+    def _early_project_detection(self, hook_data: dict[str, Any] | None = None) -> None:
         """Attempt early project detection from hook data or current directory."""
         try:
             file_path = None
-            
+
             # Try to get file path from hook data
             if hook_data:
                 tool_input = hook_data.get("tool_input", {})
                 file_path = tool_input.get("file_path", "")
-                
+
                 # Also try working directory from hook data
                 if not file_path:
                     file_path = hook_data.get("cwd", "")
-            
+
             # Detect project root
             detected_root = self._detect_project_root(file_path if file_path else None)
-            
+
             if detected_root:
                 self.project_root = detected_root
                 self.project_name = detected_root.name
                 self.mcp_collection = self._detect_mcp_collection()
-                
+
                 # Initialize bypass manager early
                 self.bypass_manager = BypassManager(self.project_root)
             else:
@@ -213,47 +216,47 @@ class MemoryGuard:
                     self.project_name = self.project_root.name
                     self.mcp_collection = self._detect_mcp_collection()
                     self.bypass_manager = BypassManager(self.project_root)
-                    
+
         except Exception:
             # If detection fails, we'll retry later in process_hook
             pass
 
-    def _detect_project_root(self, file_path: Optional[str] = None) -> Optional[Path]:
+    def _detect_project_root(self, file_path: str | None = None) -> Path | None:
         """Detect the project root directory using Claude-first weighted scoring."""
         try:
             marker_weights = {
-                "CLAUDE.md": 100,      # Strongest: Claude project marker
-                ".claude": 90,         # Second: Claude config directory  
-                ".git": 80,            # Third: Git repository
+                "CLAUDE.md": 100,  # Strongest: Claude project marker
+                ".claude": 90,  # Second: Claude config directory
+                ".git": 80,  # Third: Git repository
                 "pyproject.toml": 70,  # Python project
-                "package.json": 60,    # Node.js project
-                "setup.py": 50,        # Legacy Python
-                "Cargo.toml": 40,      # Rust project
-                "go.mod": 30,          # Go project
+                "package.json": 60,  # Node.js project
+                "setup.py": 50,  # Legacy Python
+                "Cargo.toml": 40,  # Rust project
+                "go.mod": 30,  # Go project
             }
-            
+
             # Start from target file's directory if provided, otherwise current working directory
-            if file_path:
-                current = Path(file_path).resolve().parent
-            else:
-                current = Path.cwd()
-            
+            current = Path(file_path).resolve().parent if file_path else Path.cwd()
+
             best_score = 0
             best_path = None
-            
+
             # Traverse upward, score each directory
             while current != current.parent:
-                score = sum(weight for marker, weight in marker_weights.items() 
-                           if (current / marker).exists())
-                
+                score = sum(
+                    weight
+                    for marker, weight in marker_weights.items()
+                    if (current / marker).exists()
+                )
+
                 if score > best_score:
                     best_score = score
                     best_path = current
-                    
+
                 current = current.parent
-            
+
             return best_path or Path.cwd()
-            
+
         except Exception:
             return None
 
@@ -288,7 +291,7 @@ class MemoryGuard:
         #         f.write(f"SAVE_DEBUG_INFO CALLED: mode={mode}, content_len={len(content)}, project_root={self.project_root}\n")
         # except:
         #     pass
-            
+
         if not DEBUG_ENABLED:
             return
         try:
@@ -313,11 +316,13 @@ class MemoryGuard:
                 error_log.parent.mkdir(exist_ok=True)
                 with open(error_log, "a") as f:
                     f.write(f"ERROR: {e}\nPATH: {current_log}\nROOT: {base_dir}\n\n")
-            except:
+            except Exception:
                 try:
                     with open("/tmp/memory_guard_error.log", "a") as f:
-                        f.write(f"ERROR: {e}\nPATH: {current_log}\nROOT: {base_dir}\n\n")
-                except:
+                        f.write(
+                            f"ERROR: {e}\nPATH: {current_log}\nROOT: {base_dir}\n\n"
+                        )
+                except Exception:
                     pass
 
     def _get_current_debug_log(self, base_dir: Path, is_new_run: bool) -> Path:
@@ -379,11 +384,14 @@ class MemoryGuard:
             # Silently fail if we can't create files (permissions issue, etc.)
             pass
 
-    def should_process(self, hook_data: dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def should_process(self, hook_data: dict[str, Any]) -> tuple[bool, str | None]:
         """Determine if this hook event should be processed."""
         # Check global bypass state first
         if self.bypass_manager.is_global_disabled():
-            return False, "🔴 Memory Guard bypass active globally (use 'dups on' to re-enable)"
+            return (
+                False,
+                "🔴 Memory Guard bypass active globally (use 'dups on' to re-enable)",
+            )
 
         tool_name = hook_data.get("tool_name", "")
         hook_event = hook_data.get("hook_event_name", "")
@@ -463,7 +471,7 @@ class MemoryGuard:
         analysis = self.code_analyzer.analyze_code(code_info)
         return analysis["has_definitions"]
 
-    def _get_qdrant_collection_name(self) -> Optional[str]:
+    def _get_qdrant_collection_name(self) -> str | None:
         """Extract Qdrant collection name from MCP collection prefix.
 
         The MCP collection is formatted as 'mcp__collection-name-memory__'.
@@ -478,7 +486,7 @@ class MemoryGuard:
 
     def _run_tier2_check(
         self, tool_name: str, tool_input: dict[str, Any], code_info: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Run Tier 2 fast duplicate detection. Returns result or None to escalate.
 
         Tier 2 uses direct Qdrant search to bypass Claude CLI for clear-cut cases:
@@ -499,7 +507,9 @@ class MemoryGuard:
             from utils.fast_duplicate_detector import FastDuplicateDetectorRegistry
 
             # Extract entities from the operation
-            entities = self.extractor.extract_entities_from_operation(tool_name, tool_input)
+            entities = self.extractor.extract_entities_from_operation(
+                tool_name, tool_input
+            )
             if not entities:
                 return None  # No entities to check - escalate to Tier 3
 
@@ -598,12 +608,12 @@ class MemoryGuard:
         self, file_path: str, tool_name: str, code_info: str
     ) -> str:
         """Build the prompt for comprehensive code quality analysis."""
-        
+
         return f"""You are a comprehensive code quality gate with access to MCP memory tools.
 
 🚨 ERROR REPORTING: If you cannot access MCP memory tools ({self.mcp_collection}*), report in detail:
 - Which exact MCP tool you tried to call (e.g., "{self.mcp_collection}search_similar")
-- What parameters you used (query, entityTypes, limit) 
+- What parameters you used (query, entityTypes, limit)
 - What error message you received (timeout, not found, access denied, etc.)
 - Include this in your debug field with prefix "MCP_ERROR:"
 
@@ -775,11 +785,7 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
         """Call Claude CLI for comprehensive code quality analysis."""
         try:
             # Use project root so Claude CLI can find .mcp.json config
-            work_dir = (
-                self.project_root
-                if self.project_root
-                else Path.cwd()
-            )
+            work_dir = self.project_root if self.project_root else Path.cwd()
 
             # Allow specific MCP memory tools plus read-only analysis tools
             allowed_tools = f"Read,LS,Bash(ls:*),Glob,Grep,WebFetch,WebSearch,{self.mcp_collection}search_similar,{self.mcp_collection}read_graph,{self.mcp_collection}get_implementation,mcp__github__*"
@@ -812,7 +818,15 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
                 crash_info += f"STDOUT: {result.stdout}\n"
                 crash_info += f"Error: {error_msg}\n"
                 self.save_debug_info(crash_info)
-                return False, error_msg, {"error": "cli_failed", "returncode": result.returncode, "stderr": result.stderr}
+                return (
+                    False,
+                    error_msg,
+                    {
+                        "error": "cli_failed",
+                        "returncode": result.returncode,
+                        "stderr": result.stderr,
+                    },
+                )
 
             # Log debug info IMMEDIATELY after successful CLI execution (before parsing)
             debug_content = f"\n{'=' * 60}\nQUERY SENT TO CLAUDE:\n{prompt}\n\n"
@@ -827,9 +841,13 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             except Exception as parse_error:
                 # Log parsing failure with details
                 parse_crash_info = f"\n{'=' * 60}\nCRASH DETECTED - PARSE FAILURE:\n"
-                parse_crash_info += f"Parse error: {type(parse_error).__name__}: {str(parse_error)}\n"
+                parse_crash_info += (
+                    f"Parse error: {type(parse_error).__name__}: {str(parse_error)}\n"
+                )
                 parse_crash_info += f"Raw stdout length: {len(result.stdout)} chars\n"
-                parse_crash_info += f"RESULT: Graceful degradation - approving operation\n"
+                parse_crash_info += (
+                    "RESULT: Graceful degradation - approving operation\n"
+                )
                 self.save_debug_info(parse_crash_info)
                 raise  # Re-raise to be caught by outer exception handler
 
@@ -848,9 +866,18 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             crash_info += f"Exception message: {str(e)}\n"
             crash_info += f"Error: {error_msg}\n"
             import traceback
+
             crash_info += f"Traceback:\n{traceback.format_exc()}\n"
             self.save_debug_info(crash_info)
-            return False, error_msg, {"error": "exception", "exception_type": type(e).__name__, "message": str(e)}
+            return (
+                False,
+                error_msg,
+                {
+                    "error": "exception",
+                    "exception_type": type(e).__name__,
+                    "message": str(e),
+                },
+            )
 
     def parse_claude_response(self, stdout: str) -> tuple[bool, str, dict[str, Any]]:
         """Parse Claude's response to extract duplicate detection result."""
@@ -969,7 +996,7 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
         #         f.write(f"PROCESS_HOOK CALLED: project_root={self.project_root}, tool={hook_data.get('tool_name')}\n")
         # except:
         #     pass
-            
+
         # Default result
         result = {"suppressOutput": False}
 
@@ -977,18 +1004,18 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             # Get file path from tool input to detect correct project
             tool_input = hook_data.get("tool_input", {})
             file_path = tool_input.get("file_path", "")
-            
+
             # Detect project root and MCP collection based on target file
             if file_path:
                 self.project_root = self._detect_project_root(file_path)
                 if self.project_root:
                     self.project_name = self.project_root.name
                     self.mcp_collection = self._detect_mcp_collection()
-                    
+
                     # Initialize bypass manager for the detected project
                     if not self.bypass_manager:
                         self.bypass_manager = BypassManager(self.project_root)
-                    
+
                     # Log the project detection (consolidated to prevent duplication)
                     project_info = f"\n🎯 PROJECT DETECTED:\n- Project: {self.project_name}\n- Root: {self.project_root}\n- MCP Collection: {self.mcp_collection}\n"
                     self.save_debug_info(project_info)
@@ -1007,9 +1034,7 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             tool_name = hook_data.get("tool_name", "")
 
             # Extract entities (not used but required for analysis flow)
-            _ = self.extractor.extract_entities_from_operation(
-                tool_name, tool_input
-            )
+            _ = self.extractor.extract_entities_from_operation(tool_name, tool_input)
 
             # Get code information
             code_info = self.get_code_info(tool_name, tool_input)
@@ -1028,7 +1053,9 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             is_trivial, trivial_reason = self.is_trivial_operation(code_info)
             if is_trivial:
                 result["reason"] = f"🟢 {trivial_reason}"
-                self.save_debug_info(f"\nTIER 1 TRIVIAL OPERATION SKIPPED: {trivial_reason}\n")
+                self.save_debug_info(
+                    f"\nTIER 1 TRIVIAL OPERATION SKIPPED: {trivial_reason}\n"
+                )
                 return result
 
             # Tier 2: Fast duplicate detection (bypasses Claude CLI for clear-cut cases)
@@ -1038,9 +1065,11 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
 
             # In FAST mode, stop here - Tier 3 only runs in FULL mode (pre-commit)
             if self.mode == "fast":
-                result["reason"] = "✅ FAST MODE: Passed Tier 0-2 checks (Tier 3 deferred to pre-commit)"
+                result["reason"] = (
+                    "✅ FAST MODE: Passed Tier 0-2 checks (Tier 3 deferred to pre-commit)"
+                )
                 self.save_debug_info(
-                    f"\nFAST MODE: Skipping Tier 3 - deferred to pre-commit validation\n"
+                    "\nFAST MODE: Skipping Tier 3 - deferred to pre-commit validation\n"
                 )
                 return result
 
@@ -1065,7 +1094,9 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
             decision_info += f"- Should Block: {should_block}\n"
             decision_info += f"- Decision: {result.get('decision', 'approve')}\n"
             decision_info += f"- Reason: {reason}\n"
-            decision_info += f"- Claude Response:\n{json.dumps(claude_response, indent=2)}\n"
+            decision_info += (
+                f"- Claude Response:\n{json.dumps(claude_response, indent=2)}\n"
+            )
             self.save_debug_info(decision_info)
 
         except Exception as e:
@@ -1074,12 +1105,15 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text."""
 
             # Log comprehensive crash info
             import traceback
+
             crash_info = f"\n{'=' * 60}\nCRASH DETECTED - PROCESS_HOOK FAILURE:\n"
             crash_info += f"Exception type: {type(e).__name__}\n"
             crash_info += f"Exception message: {str(e)}\n"
             crash_info += f"Project: {self.project_name}\n"
             crash_info += f"Tool: {hook_data.get('tool_name', 'unknown')}\n"
-            crash_info += f"File: {hook_data.get('tool_input', {}).get('file_path', 'unknown')}\n"
+            crash_info += (
+                f"File: {hook_data.get('tool_input', {}).get('file_path', 'unknown')}\n"
+            )
             crash_info += f"Traceback:\n{traceback.format_exc()}\n"
             crash_info += f"Hook data: {json.dumps(hook_data, indent=2)}\n"
             crash_info += "RESULT: Graceful degradation - approving operation\n"
@@ -1160,7 +1194,9 @@ def run_hook_mode(mode: str) -> None:
         guard = MemoryGuard(hook_data, mode=mode)
 
         # Clear debug file at start and save initial info with timestamp
-        debug_info = f"HOOK CALLED (mode={mode}):\n{json.dumps(hook_data, indent=2)}\n\n"
+        debug_info = (
+            f"HOOK CALLED (mode={mode}):\n{json.dumps(hook_data, indent=2)}\n\n"
+        )
         debug_info += "PROJECT INFO:\n"
         debug_info += f"- Root: {guard.project_root}\n"
         debug_info += f"- Name: {guard.project_name}\n"

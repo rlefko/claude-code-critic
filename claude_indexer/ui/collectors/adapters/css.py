@@ -119,13 +119,12 @@ class CSSAdapter(BaseSourceAdapter):
         """
         rule_sets = []
         lines = content.split("\n")
-        line_count = len(lines)
+        len(lines)
 
         # Simple regex to find rule sets: selector { declarations }
         # This handles most cases but may miss complex nested SCSS
         pattern = r"([^{}]+)\{([^{}]*)\}"
 
-        pos = 0
         for match in re.finditer(pattern, content):
             selector = match.group(1).strip()
             declarations = match.group(2).strip()

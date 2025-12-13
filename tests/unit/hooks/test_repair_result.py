@@ -2,7 +2,6 @@
 
 import json
 import time
-from pathlib import Path
 
 import pytest
 
@@ -261,7 +260,9 @@ class TestRepairCheckResult:
         assert "=== REPAIR ESCALATED TO USER ===" in output
         assert "unable to fix" in output
 
-    def test_format_for_claude_with_auto_fix(self, base_result, session, sample_findings):
+    def test_format_for_claude_with_auto_fix(
+        self, base_result, session, sample_findings
+    ):
         """Test format_for_claude includes auto-fix info."""
         auto_fix = AutoFix(
             finding=sample_findings[0],
@@ -317,9 +318,7 @@ class TestRepairCheckResult:
         assert "TEST.HIGH" in message
         assert "manual attention" in message
 
-    def test_get_suggestion_for_finding(
-        self, base_result, session, sample_findings
-    ):
+    def test_get_suggestion_for_finding(self, base_result, session, sample_findings):
         """Test getting suggestion for specific finding."""
         suggestion = FixSuggestion(
             finding=sample_findings[0],

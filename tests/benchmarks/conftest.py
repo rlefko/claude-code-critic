@@ -3,9 +3,8 @@ Pytest fixtures for benchmark tests.
 """
 
 import shutil
-import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -112,7 +111,7 @@ def medium_codebase(tmp_path: Path, fixture_path: Path) -> Generator[Path, None,
 @pytest.fixture
 def single_file_content() -> str:
     """Return content of a typical component file for single-file benchmarks."""
-    return '''
+    return """
 import React from 'react';
 
 interface ButtonProps {
@@ -145,7 +144,7 @@ export const Button: React.FC<ButtonProps> = ({
     </button>
   );
 };
-'''
+"""
 
 
 @pytest.fixture

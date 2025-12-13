@@ -73,7 +73,9 @@ def get_qdrant_files(
         for point in all_points:
             if hasattr(point, "payload") and point.payload:
                 # Handle both old and new chunk formats
-                entity_type = point.payload.get("entity_type") or point.payload.get("metadata", {}).get("entity_type", "unknown")
+                entity_type = point.payload.get("entity_type") or point.payload.get(
+                    "metadata", {}
+                ).get("entity_type", "unknown")
                 entity_stats[entity_type] += 1
 
                 if entity_type == "file":
@@ -228,6 +230,7 @@ def print_comparison_results(comparison: dict[str, list[str]]) -> None:
 def main() -> int:
     """Main function to find missing files."""
     import sys
+
     collection_name = sys.argv[1] if len(sys.argv) > 1 else "claude-memory-test"
 
     try:

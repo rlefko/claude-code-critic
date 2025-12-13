@@ -23,13 +23,13 @@ class InsecureRandomRule(BaseRule):
         "python": [
             # random module for security-sensitive operations
             (
-                r'random\.(random|randint|choice|randrange|sample|shuffle)\s*\(',
+                r"random\.(random|randint|choice|randrange|sample|shuffle)\s*\(",
                 "random module is not cryptographically secure",
                 0.60,
             ),
             # Math.random equivalents
             (
-                r'import\s+random\b',
+                r"import\s+random\b",
                 "random module imported (not secure for cryptographic use)",
                 0.40,
             ),
@@ -37,7 +37,7 @@ class InsecureRandomRule(BaseRule):
         "javascript": [
             # Math.random
             (
-                r'Math\.random\s*\(\)',
+                r"Math\.random\s*\(\)",
                 "Math.random() is not cryptographically secure",
                 0.60,
             ),
@@ -45,7 +45,7 @@ class InsecureRandomRule(BaseRule):
         "typescript": [
             # Math.random
             (
-                r'Math\.random\s*\(\)',
+                r"Math\.random\s*\(\)",
                 "Math.random() is not cryptographically secure",
                 0.60,
             ),
@@ -53,12 +53,12 @@ class InsecureRandomRule(BaseRule):
         "java": [
             # java.util.Random
             (
-                r'new\s+Random\s*\(',
+                r"new\s+Random\s*\(",
                 "java.util.Random is not cryptographically secure",
                 0.60,
             ),
             (
-                r'Math\.random\s*\(\)',
+                r"Math\.random\s*\(\)",
                 "Math.random() is not cryptographically secure",
                 0.60,
             ),
@@ -66,7 +66,7 @@ class InsecureRandomRule(BaseRule):
         "go": [
             # math/rand
             (
-                r'rand\.(Int|Float|Intn|Read)\s*\(',
+                r"rand\.(Int|Float|Intn|Read)\s*\(",
                 "math/rand is not cryptographically secure",
                 0.60,
             ),
@@ -74,7 +74,7 @@ class InsecureRandomRule(BaseRule):
         "ruby": [
             # rand/Random
             (
-                r'\brand\s*\(|Random\.rand',
+                r"\brand\s*\(|Random\.rand",
                 "rand is not cryptographically secure",
                 0.60,
             ),
@@ -82,7 +82,7 @@ class InsecureRandomRule(BaseRule):
         "php": [
             # rand, mt_rand
             (
-                r'\b(rand|mt_rand|array_rand)\s*\(',
+                r"\b(rand|mt_rand|array_rand)\s*\(",
                 "rand/mt_rand are not cryptographically secure",
                 0.60,
             ),
@@ -91,21 +91,21 @@ class InsecureRandomRule(BaseRule):
 
     # Security-sensitive context patterns (increases confidence)
     SECURITY_CONTEXT_PATTERNS = [
-        r'token',
-        r'password',
-        r'secret',
-        r'key',
-        r'salt',
-        r'nonce',
-        r'iv\b',
-        r'auth',
-        r'session',
-        r'csrf',
-        r'reset',
-        r'verify',
-        r'otp',
-        r'pin\b',
-        r'code\b',
+        r"token",
+        r"password",
+        r"secret",
+        r"key",
+        r"salt",
+        r"nonce",
+        r"iv\b",
+        r"auth",
+        r"session",
+        r"csrf",
+        r"reset",
+        r"verify",
+        r"otp",
+        r"pin\b",
+        r"code\b",
     ]
 
     @property
@@ -274,7 +274,10 @@ class InsecureRandomRule(BaseRule):
                 "Use openssl_random_pseudo_bytes() for secure random bytes",
             ],
         }
-        return hints.get(language, [
-            "Use a cryptographically secure random number generator",
-            "Consult your language's documentation for secure alternatives",
-        ])
+        return hints.get(
+            language,
+            [
+                "Use a cryptographically secure random number generator",
+                "Consult your language's documentation for secure alternatives",
+            ],
+        )

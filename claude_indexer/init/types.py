@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ProjectType(Enum):
@@ -23,8 +23,8 @@ class InitOptions:
     """Configuration options for the init command."""
 
     project_path: Path
-    collection_name: Optional[str] = None  # Auto-derived if not provided
-    project_type: Optional[ProjectType] = None  # Auto-detected if not provided
+    collection_name: str | None = None  # Auto-derived if not provided
+    project_type: ProjectType | None = None  # Auto-detected if not provided
     no_index: bool = False
     no_hooks: bool = False
     force: bool = False
@@ -40,8 +40,8 @@ class InitStepResult:
     success: bool
     message: str
     skipped: bool = False
-    warning: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
+    warning: str | None = None
+    details: dict[str, Any] | None = None
 
 
 @dataclass
@@ -52,9 +52,9 @@ class InitResult:
     project_path: Path
     collection_name: str
     project_type: ProjectType
-    steps: List[InitStepResult] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    steps: list[InitStepResult] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     def add_step(self, step: InitStepResult) -> None:
         """Add a step result and track warnings."""

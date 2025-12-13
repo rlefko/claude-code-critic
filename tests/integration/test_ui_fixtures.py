@@ -9,39 +9,38 @@ These tests validate that the UI consistency checker correctly identifies:
 - Baseline vs new issue separation
 """
 
-import os
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 # Import UI modules
 try:
+    from claude_indexer.ui.collectors.source import SourceCollector  # noqa: F401
     from claude_indexer.ui.config import UIQualityConfig
-    from claude_indexer.ui.models import Finding, Severity
-    from claude_indexer.ui.rules.engine import RuleEngine
-    from claude_indexer.ui.rules.token_drift import (
-        ColorNonTokenRule,
-        SpacingOffScaleRule,
-        RadiusOffScaleRule,
-        TypographyOffScaleRule,
-    )
-    from claude_indexer.ui.rules.duplication import (
+    from claude_indexer.ui.models import Finding, Severity  # noqa: F401
+    from claude_indexer.ui.normalizers.style import StyleNormalizer
+    from claude_indexer.ui.normalizers.token_resolver import TokenResolver
+    from claude_indexer.ui.rules.diff_filter import DiffAwareFilter  # noqa: F401
+    from claude_indexer.ui.rules.duplication import (  # noqa: F401
+        ComponentDuplicateClusterRule,
         StyleDuplicateSetRule,
         StyleNearDuplicateSetRule,
-        ComponentDuplicateClusterRule,
+    )
+    from claude_indexer.ui.rules.engine import RuleEngine
+    from claude_indexer.ui.rules.inconsistency import (  # noqa: F401
+        FocusRingInconsistentRule,
     )
     from claude_indexer.ui.rules.smells import (
         CSSSpecificityEscalationRule,
         ImportantNewUsageRule,
     )
-    from claude_indexer.ui.rules.inconsistency import (
-        FocusRingInconsistentRule,
+    from claude_indexer.ui.rules.token_drift import (  # noqa: F401
+        ColorNonTokenRule,
+        RadiusOffScaleRule,
+        SpacingOffScaleRule,
+        TypographyOffScaleRule,
     )
-    from claude_indexer.ui.rules.diff_filter import DiffAwareFilter
-    from claude_indexer.ui.collectors.source import SourceCollector
-    from claude_indexer.ui.normalizers.style import StyleNormalizer
-    from claude_indexer.ui.normalizers.token_resolver import TokenResolver
+
     UI_MODULES_AVAILABLE = True
 except ImportError as e:
     UI_MODULES_AVAILABLE = False
@@ -55,7 +54,7 @@ FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "ui_repo"
 # Skip all tests if UI modules are not available
 pytestmark = pytest.mark.skipif(
     not UI_MODULES_AVAILABLE,
-    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}"
+    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}",
 )
 
 
@@ -89,7 +88,9 @@ def style_normalizer() -> StyleNormalizer:
 
 
 @pytest.fixture
-def rule_engine(ui_config: UIQualityConfig, token_resolver: TokenResolver) -> RuleEngine:
+def rule_engine(
+    ui_config: UIQualityConfig, token_resolver: TokenResolver
+) -> "RuleEngine":
     """Create a rule engine with all rules enabled."""
     return RuleEngine(config=ui_config, token_resolver=token_resolver)
 
@@ -109,14 +110,18 @@ class TestTokenDriftDetection:
         # Should contain hardcoded colors
         hardcoded_colors = ["#1f2937", "#ef4444", "#d1d5db", "#111827", "#ffffff"]
         for color in hardcoded_colors:
-            assert color in content, f"Expected hardcoded color {color} in InputLegacy.tsx"
+            assert (
+                color in content
+            ), f"Expected hardcoded color {color} in InputLegacy.tsx"
 
         # Run token drift detection
         rule = ColorNonTokenRule(token_resolver=token_resolver)
         findings = rule.check_file(file_path, content)
 
         # Should detect multiple violations
-        assert len(findings) >= 5, f"Expected at least 5 color violations, got {len(findings)}"
+        assert (
+            len(findings) >= 5
+        ), f"Expected at least 5 color violations, got {len(findings)}"
         assert all(f.severity == Severity.FAIL for f in findings)
 
     def test_detects_off_scale_spacing_in_legacy_input(
@@ -127,12 +132,16 @@ class TestTokenDriftDetection:
         content = file_path.read_text()
 
         # Should contain hardcoded spacing values
-        assert "padding: '8px 12px'" in content or "padding: 8px 12px" in content.lower()
+        assert (
+            "padding: '8px 12px'" in content or "padding: 8px 12px" in content.lower()
+        )
 
         rule = SpacingOffScaleRule(token_resolver=token_resolver)
         findings = rule.check_file(file_path, content)
 
-        assert len(findings) >= 2, f"Expected at least 2 spacing violations, got {len(findings)}"
+        assert (
+            len(findings) >= 2
+        ), f"Expected at least 2 spacing violations, got {len(findings)}"
 
     def test_canonical_input_uses_tokens(
         self, fixture_path: Path, token_resolver: TokenResolver
@@ -151,7 +160,9 @@ class TestTokenDriftDetection:
         findings = rule.check_file(file_path, content)
 
         # Should have zero or minimal violations
-        assert len(findings) <= 2, f"Canonical Input.tsx should have minimal color violations"
+        assert (
+            len(findings) <= 2
+        ), "Canonical Input.tsx should have minimal color violations"
 
     def test_svelte_input_has_token_drift(
         self, fixture_path: Path, token_resolver: TokenResolver
@@ -166,7 +177,9 @@ class TestTokenDriftDetection:
         rule = ColorNonTokenRule(token_resolver=token_resolver)
         findings = rule.check_file(file_path, content)
 
-        assert len(findings) >= 3, f"Expected at least 3 color violations in Svelte, got {len(findings)}"
+        assert (
+            len(findings) >= 3
+        ), f"Expected at least 3 color violations in Svelte, got {len(findings)}"
 
 
 class TestDuplicateDetection:
@@ -183,8 +196,14 @@ class TestDuplicateDetection:
         card_alt_content = card_alt_path.read_text()
 
         # Both should have the same variant styles structure
-        assert "boxShadow: 'var(--shadow-sm)'" in card_content or "boxShadow: var(--shadow-sm)" in card_content
-        assert "boxShadow: 'var(--shadow-sm)'" in card_alt_content or "boxShadow: var(--shadow-sm)" in card_alt_content
+        assert (
+            "boxShadow: 'var(--shadow-sm)'" in card_content
+            or "boxShadow: var(--shadow-sm)" in card_content
+        )
+        assert (
+            "boxShadow: 'var(--shadow-sm)'" in card_alt_content
+            or "boxShadow: var(--shadow-sm)" in card_alt_content
+        )
 
         # Extract and normalize styles
         card_styles = style_normalizer.extract_styles(card_content)
@@ -192,13 +211,17 @@ class TestDuplicateDetection:
 
         # Check for duplicates using hash comparison
         rule = StyleDuplicateSetRule()
-        findings = rule.check_styles([
-            {"file": str(card_path), "styles": card_styles},
-            {"file": str(card_alt_path), "styles": card_alt_styles},
-        ])
+        findings = rule.check_styles(
+            [
+                {"file": str(card_path), "styles": card_styles},
+                {"file": str(card_alt_path), "styles": card_alt_styles},
+            ]
+        )
 
         # Should detect duplicate style sets
-        assert len(findings) >= 1, "Expected to detect style duplicates between Card and CardAlt"
+        assert (
+            len(findings) >= 1
+        ), "Expected to detect style duplicates between Card and CardAlt"
 
     def test_detects_button_near_duplicates(
         self, fixture_path: Path, style_normalizer: StyleNormalizer
@@ -214,7 +237,7 @@ class TestDuplicateDetection:
         assert "variant" in button_content.lower()
         assert "kind" in variant_content.lower()  # Different prop name
 
-        rule = StyleNearDuplicateSetRule()
+        StyleNearDuplicateSetRule()
         # Near-duplicate detection would involve structural comparison
         # This is a simplified check
         assert button_path.exists()
@@ -234,31 +257,34 @@ class TestDuplicateDetection:
 
         # All three should have identical styles
         btn_blue_count = content.count("background-color: #3b82f6")
-        assert btn_blue_count >= 3, "Expected 3+ identical button background definitions"
+        assert (
+            btn_blue_count >= 3
+        ), "Expected 3+ identical button background definitions"
 
 
 class TestCSSSmellDetection:
     """Test CSS smell detection (specificity, !important, etc.)."""
 
-    def test_detects_specificity_escalation_in_overrides(
-        self, fixture_path: Path
-    ):
+    def test_detects_specificity_escalation_in_overrides(self, fixture_path: Path):
         """overrides.css should have specificity escalation issues."""
         overrides_path = fixture_path / "styles" / "overrides.css"
         content = overrides_path.read_text()
 
         # Should contain deep selector chains
-        assert ".app-container .main-content .sidebar .nav-list .nav-item .nav-link" in content
+        assert (
+            ".app-container .main-content .sidebar .nav-list .nav-item .nav-link"
+            in content
+        )
 
         rule = CSSSpecificityEscalationRule(max_specificity=100)
         findings = rule.check_file(overrides_path, content)
 
-        assert len(findings) >= 5, f"Expected at least 5 specificity issues, got {len(findings)}"
+        assert (
+            len(findings) >= 5
+        ), f"Expected at least 5 specificity issues, got {len(findings)}"
         assert all(f.severity in [Severity.WARN, Severity.FAIL] for f in findings)
 
-    def test_detects_important_usage_in_modal(
-        self, fixture_path: Path
-    ):
+    def test_detects_important_usage_in_modal(self, fixture_path: Path):
         """Modal.tsx should have !important usage detected."""
         modal_path = fixture_path / "components" / "Modal.tsx"
         content = modal_path.read_text()
@@ -271,23 +297,21 @@ class TestCSSSmellDetection:
 
         assert len(findings) >= 1, "Expected to detect !important usage in Modal.tsx"
 
-    def test_detects_important_in_overrides(
-        self, fixture_path: Path
-    ):
+    def test_detects_important_in_overrides(self, fixture_path: Path):
         """overrides.css should have multiple !important declarations."""
         overrides_path = fixture_path / "styles" / "overrides.css"
         content = overrides_path.read_text()
 
         important_count = content.count("!important")
-        assert important_count >= 8, f"Expected 8+ !important declarations, got {important_count}"
+        assert (
+            important_count >= 8
+        ), f"Expected 8+ !important declarations, got {important_count}"
 
 
 class TestCrossFrameworkDetection:
     """Test detection of duplicates across React, Vue, and Svelte."""
 
-    def test_vue_button_matches_react_button(
-        self, fixture_path: Path
-    ):
+    def test_vue_button_matches_react_button(self, fixture_path: Path):
         """VueButton.vue should be identified as cross-framework duplicate of Button.tsx."""
         button_path = fixture_path / "components" / "Button.tsx"
         vue_button_path = fixture_path / "components" / "VueButton.vue"
@@ -305,9 +329,7 @@ class TestCrossFrameworkDetection:
             assert size in button_content
             assert size in vue_content
 
-    def test_vue_card_matches_react_card(
-        self, fixture_path: Path
-    ):
+    def test_vue_card_matches_react_card(self, fixture_path: Path):
         """VueCard.vue should be identified as cross-framework duplicate of Card.tsx."""
         card_path = fixture_path / "components" / "Card.tsx"
         vue_card_path = fixture_path / "components" / "VueCard.vue"
@@ -325,9 +347,7 @@ class TestCrossFrameworkDetection:
 class TestInconsistencyDetection:
     """Test detection of styling inconsistencies."""
 
-    def test_detects_inconsistent_focus_ring_in_toast(
-        self, fixture_path: Path
-    ):
+    def test_detects_inconsistent_focus_ring_in_toast(self, fixture_path: Path):
         """Toast.tsx should have inconsistent focus ring styling detected."""
         toast_path = fixture_path / "components" / "Toast.tsx"
         content = toast_path.read_text()

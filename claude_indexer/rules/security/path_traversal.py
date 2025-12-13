@@ -23,49 +23,49 @@ class PathTraversalRule(BaseRule):
         "python": [
             # open() with user input indicators
             (
-                r'open\s*\([^)]*[\+\{%]',
+                r"open\s*\([^)]*[\+\{%]",
                 "open() with dynamic path",
                 0.80,
             ),
             # open with request data
             (
-                r'open\s*\([^)]*request\.',
+                r"open\s*\([^)]*request\.",
                 "open() with request data",
                 0.90,
             ),
             # os.path.join with request
             (
-                r'os\.path\.join\s*\([^)]*request\.',
+                r"os\.path\.join\s*\([^)]*request\.",
                 "os.path.join with request data",
                 0.85,
             ),
             # Path() with user input
             (
-                r'Path\s*\([^)]*request\.',
+                r"Path\s*\([^)]*request\.",
                 "Path() with request data",
                 0.85,
             ),
             # send_file with user input
             (
-                r'send_file\s*\([^)]*request\.',
+                r"send_file\s*\([^)]*request\.",
                 "send_file() with request data",
                 0.90,
             ),
             # send_from_directory without validation
             (
-                r'send_from_directory\s*\([^)]*[\+\{]',
+                r"send_from_directory\s*\([^)]*[\+\{]",
                 "send_from_directory with dynamic input",
                 0.80,
             ),
             # shutil operations with user input
             (
-                r'shutil\.(copy|move|rmtree)\s*\([^)]*request\.',
+                r"shutil\.(copy|move|rmtree)\s*\([^)]*request\.",
                 "shutil operation with request data",
                 0.90,
             ),
             # os.remove/unlink with user input
             (
-                r'os\.(remove|unlink)\s*\([^)]*[\+\{%]',
+                r"os\.(remove|unlink)\s*\([^)]*[\+\{%]",
                 "file deletion with dynamic path",
                 0.85,
             ),
@@ -79,37 +79,37 @@ class PathTraversalRule(BaseRule):
         "javascript": [
             # fs operations with dynamic input
             (
-                r'fs\.(readFile|writeFile|unlink|rmdir|readdir)\s*\([^)]*[\+\`]',
+                r"fs\.(readFile|writeFile|unlink|rmdir|readdir)\s*\([^)]*[\+\`]",
                 "fs operation with dynamic path",
                 0.85,
             ),
             # fs operations with req
             (
-                r'fs\.\w+\s*\([^)]*req\.(body|params|query)',
+                r"fs\.\w+\s*\([^)]*req\.(body|params|query)",
                 "fs operation with request data",
                 0.90,
             ),
             # path.join with request data
             (
-                r'path\.join\s*\([^)]*req\.(body|params|query)',
+                r"path\.join\s*\([^)]*req\.(body|params|query)",
                 "path.join with request data",
                 0.90,
             ),
             # sendFile/download with user input
             (
-                r'(sendFile|download)\s*\([^)]*req\.',
+                r"(sendFile|download)\s*\([^)]*req\.",
                 "file send with request data",
                 0.90,
             ),
             # res.sendFile with dynamic path
             (
-                r'res\.sendFile\s*\([^)]*[\+\`]',
+                r"res\.sendFile\s*\([^)]*[\+\`]",
                 "sendFile with dynamic path",
                 0.85,
             ),
             # __dirname + user input
             (
-                r'__dirname\s*\+\s*req\.',
+                r"__dirname\s*\+\s*req\.",
                 "__dirname concatenated with user input",
                 0.90,
             ),
@@ -123,22 +123,22 @@ class PathTraversalRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'fs\.(readFile|writeFile|unlink|rmdir|readdir)\s*\([^)]*[\+\`]',
+                r"fs\.(readFile|writeFile|unlink|rmdir|readdir)\s*\([^)]*[\+\`]",
                 "fs operation with dynamic path",
                 0.85,
             ),
             (
-                r'fs\.\w+\s*\([^)]*req\.(body|params|query)',
+                r"fs\.\w+\s*\([^)]*req\.(body|params|query)",
                 "fs operation with request data",
                 0.90,
             ),
             (
-                r'path\.join\s*\([^)]*req\.(body|params|query)',
+                r"path\.join\s*\([^)]*req\.(body|params|query)",
                 "path.join with request data",
                 0.90,
             ),
             (
-                r'(sendFile|download)\s*\([^)]*req\.',
+                r"(sendFile|download)\s*\([^)]*req\.",
                 "file send with request data",
                 0.90,
             ),
@@ -146,25 +146,25 @@ class PathTraversalRule(BaseRule):
         "java": [
             # File constructor with user input
             (
-                r'new\s+File\s*\([^)]*\+',
+                r"new\s+File\s*\([^)]*\+",
                 "File constructor with dynamic path",
                 0.80,
             ),
             # Paths.get with user input
             (
-                r'Paths\.get\s*\([^)]*\+',
+                r"Paths\.get\s*\([^)]*\+",
                 "Paths.get with dynamic input",
                 0.80,
             ),
             # FileInputStream with user input
             (
-                r'new\s+FileInputStream\s*\([^)]*\+',
+                r"new\s+FileInputStream\s*\([^)]*\+",
                 "FileInputStream with dynamic path",
                 0.85,
             ),
             # Request parameter in path
             (
-                r'(getParameter|getAttribute)\s*\([^)]*\).*File',
+                r"(getParameter|getAttribute)\s*\([^)]*\).*File",
                 "Request parameter used in file path",
                 0.85,
             ),
@@ -172,31 +172,31 @@ class PathTraversalRule(BaseRule):
         "php": [
             # include/require with user input
             (
-                r'(include|require)(_once)?\s*\([^)]*\$_(GET|POST|REQUEST)',
+                r"(include|require)(_once)?\s*\([^)]*\$_(GET|POST|REQUEST)",
                 "include with user input (LFI/RFI)",
                 0.95,
             ),
             # file_get_contents with user input
             (
-                r'file_get_contents\s*\([^)]*\$_(GET|POST|REQUEST)',
+                r"file_get_contents\s*\([^)]*\$_(GET|POST|REQUEST)",
                 "file_get_contents with user input",
                 0.90,
             ),
             # fopen with user input
             (
-                r'fopen\s*\([^)]*\$_(GET|POST|REQUEST)',
+                r"fopen\s*\([^)]*\$_(GET|POST|REQUEST)",
                 "fopen with user input",
                 0.90,
             ),
             # unlink with user input
             (
-                r'unlink\s*\([^)]*\$',
+                r"unlink\s*\([^)]*\$",
                 "unlink with variable path",
                 0.80,
             ),
             # readfile with user input
             (
-                r'readfile\s*\([^)]*\$_(GET|POST|REQUEST)',
+                r"readfile\s*\([^)]*\$_(GET|POST|REQUEST)",
                 "readfile with user input",
                 0.90,
             ),
@@ -204,25 +204,25 @@ class PathTraversalRule(BaseRule):
         "go": [
             # os.Open with user input
             (
-                r'os\.(Open|Create|Remove)\s*\([^)]*\+',
+                r"os\.(Open|Create|Remove)\s*\([^)]*\+",
                 "os file operation with dynamic path",
                 0.85,
             ),
             # ioutil.ReadFile with user input
             (
-                r'ioutil\.(ReadFile|WriteFile)\s*\([^)]*\+',
+                r"ioutil\.(ReadFile|WriteFile)\s*\([^)]*\+",
                 "ioutil with dynamic path",
                 0.85,
             ),
             # filepath.Join with user input
             (
-                r'filepath\.Join\s*\([^)]*r\.FormValue',
+                r"filepath\.Join\s*\([^)]*r\.FormValue",
                 "filepath.Join with form data",
                 0.90,
             ),
             # http.ServeFile with user input
             (
-                r'http\.ServeFile\s*\([^)]*r\.URL',
+                r"http\.ServeFile\s*\([^)]*r\.URL",
                 "ServeFile with URL path",
                 0.85,
             ),
@@ -230,25 +230,25 @@ class PathTraversalRule(BaseRule):
         "ruby": [
             # File.open with user input
             (
-                r'File\.(open|read|write)\s*\([^)]*params\[',
+                r"File\.(open|read|write)\s*\([^)]*params\[",
                 "File operation with params",
                 0.90,
             ),
             # send_file with user input
             (
-                r'send_file\s*\([^)]*params\[',
+                r"send_file\s*\([^)]*params\[",
                 "send_file with params",
                 0.90,
             ),
             # IO operations with interpolation
             (
-                r'(File|IO)\.\w+\s*\([^)]*#\{',
+                r"(File|IO)\.\w+\s*\([^)]*#\{",
                 "File/IO with string interpolation",
                 0.80,
             ),
             # Pathname with user input
             (
-                r'Pathname\.(new|glob)\s*\([^)]*params\[',
+                r"Pathname\.(new|glob)\s*\([^)]*params\[",
                 "Pathname with params",
                 0.85,
             ),
@@ -293,21 +293,21 @@ class PathTraversalRule(BaseRule):
     def _has_path_validation(self, surrounding_lines: list[str]) -> bool:
         """Check if path validation is present nearby."""
         validation_patterns = [
-            r'realpath',
-            r'abspath',
-            r'normpath',
-            r'canonicalize',
-            r'startswith.*base',
-            r'startswith.*root',
-            r'startswith.*allowed',
-            r'path\.resolve',
-            r'\.startsWith\s*\(',
-            r'allowlist|whitelist',
-            r'\.includes\s*\(',
-            r'indexOf.*-1',
-            r'sanitize.*path',
-            r'secure.*filename',
-            r'\.\..*reject',
+            r"realpath",
+            r"abspath",
+            r"normpath",
+            r"canonicalize",
+            r"startswith.*base",
+            r"startswith.*root",
+            r"startswith.*allowed",
+            r"path\.resolve",
+            r"\.startsWith\s*\(",
+            r"allowlist|whitelist",
+            r"\.includes\s*\(",
+            r"indexOf.*-1",
+            r"sanitize.*path",
+            r"secure.*filename",
+            r"\.\..*reject",
             r'contains\s*\(\s*["\']\.\.["\']\s*\)',
         ]
         text = " ".join(surrounding_lines)
@@ -365,9 +365,7 @@ class PathTraversalRule(BaseRule):
                     surrounding = lines[start:end]
 
                     # Lower confidence if validation is present
-                    if self._has_path_validation(surrounding):
-                        confidence = base_confidence * 0.5
-                    elif is_test_file:
+                    if self._has_path_validation(surrounding) or is_test_file:
                         confidence = base_confidence * 0.5
                     else:
                         confidence = base_confidence
@@ -439,8 +437,11 @@ class PathTraversalRule(BaseRule):
                 "Implement Rails' send_file with proper path validation",
             ],
         }
-        return hints.get(language, [
-            "Canonicalize paths and verify they're within allowed directories",
-            "Use allowlists for valid filenames/paths when possible",
-            "Reject any path containing '..' or absolute path prefixes",
-        ])
+        return hints.get(
+            language,
+            [
+                "Canonicalize paths and verify they're within allowed directories",
+                "Use allowlists for valid filenames/paths when possible",
+                "Reject any path containing '..' or absolute path prefixes",
+            ],
+        )

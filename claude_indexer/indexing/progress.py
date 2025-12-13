@@ -175,7 +175,6 @@ class PipelineProgress:
         self._state.memory_mb = self._get_memory_mb()
 
         # Format tier info for progress bar
-        tier_info = ""
         if tier_stats:
             parts = []
             if tier_stats.get("light", 0) > 0:
@@ -183,7 +182,7 @@ class PipelineProgress:
             if tier_stats.get("deep", 0) > 0:
                 parts.append(f"{tier_stats['deep']} deep")
             if parts:
-                tier_info = f"({', '.join(parts)})"
+                f"({', '.join(parts)})"
 
         # Update terminal progress bar
         if self._progress_bar:

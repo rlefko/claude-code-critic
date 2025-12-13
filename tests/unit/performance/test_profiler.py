@@ -125,9 +125,8 @@ class TestEndToEndProfiler:
         """Test error tracking in metadata."""
         profiler = EndToEndProfiler("test", enabled=True)
 
-        with pytest.raises(ValueError):
-            with profiler:
-                raise ValueError("test error")
+        with pytest.raises(ValueError), profiler:
+            raise ValueError("test error")
 
         result = profiler.result()
         assert result.metadata["success"] is False

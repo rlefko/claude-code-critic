@@ -83,7 +83,7 @@ class LRUCache:
             self._hits += 1
             return True, entry.value
 
-    def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Set a value in cache.
 
         Args:
@@ -190,9 +190,11 @@ class GuardCache:
             max_embeddings: Max embedding entries to cache
             max_analyses: Max analysis entries to cache
         """
-        self.embedding_cache = LRUCache(max_size=max_embeddings, default_ttl=embedding_ttl)
+        self.embedding_cache = LRUCache(
+            max_size=max_embeddings, default_ttl=embedding_ttl
+        )
         self.analysis_cache = LRUCache(max_size=max_analyses, default_ttl=analysis_ttl)
-        self._persistence_path: Optional[Path] = None
+        self._persistence_path: Path | None = None
 
     @classmethod
     def get_instance(cls) -> "GuardCache":
@@ -214,7 +216,7 @@ class GuardCache:
         """
         return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
-    def get_cached_embedding(self, content: str) -> tuple[bool, Optional[list[float]]]:
+    def get_cached_embedding(self, content: str) -> tuple[bool, list[float] | None]:
         """Get cached embedding for content.
 
         Args:
@@ -238,7 +240,7 @@ class GuardCache:
 
     def get_cached_analysis(
         self, file_path: str, content: str
-    ) -> tuple[bool, Optional[dict[str, Any]]]:
+    ) -> tuple[bool, dict[str, Any] | None]:
         """Get cached Tier 3 analysis result.
 
         Args:
@@ -276,7 +278,7 @@ class GuardCache:
         with self.analysis_cache._lock:
             keys_to_remove = [
                 key
-                for key in self.analysis_cache._cache.keys()
+                for key in self.analysis_cache._cache
                 if key.startswith(f"{file_path}:")
             ]
             for key in keys_to_remove:
@@ -369,7 +371,9 @@ class GuardCache:
                 remaining_ttl = entry_data["ttl"] - age
 
                 if remaining_ttl > 0:
-                    self.embedding_cache.set(key, entry_data["value"], ttl=remaining_ttl)
+                    self.embedding_cache.set(
+                        key, entry_data["value"], ttl=remaining_ttl
+                    )
 
             # Load analyses
             for key, entry_data in data.get("analyses", {}).items():

@@ -1,7 +1,5 @@
 """Qdrant collection management for initialization."""
 
-from typing import List, Optional
-
 from ..config.config_loader import ConfigLoader
 from ..indexer_logging import get_logger
 from .types import InitStepResult
@@ -15,7 +13,7 @@ class CollectionManager:
     # Default vector size for voyage-3.5-lite embeddings
     DEFAULT_VECTOR_SIZE = 1024
 
-    def __init__(self, config_loader: Optional[ConfigLoader] = None):
+    def __init__(self, config_loader: ConfigLoader | None = None):
         """Initialize collection manager.
 
         Args:
@@ -172,7 +170,9 @@ class CollectionManager:
                     message=f"Created collection '{collection_name}' ({vector_size}D vectors)",
                 )
             else:
-                error_msg = ", ".join(result.errors) if result.errors else "Unknown error"
+                error_msg = (
+                    ", ".join(result.errors) if result.errors else "Unknown error"
+                )
                 return InitStepResult(
                     step_name="qdrant_collection",
                     success=False,
@@ -219,9 +219,11 @@ class CollectionManager:
             return InitStepResult(
                 step_name="delete_collection",
                 success=result.success,
-                message=f"Deleted collection '{collection_name}'"
-                if result.success
-                else f"Failed to delete: {result.errors}",
+                message=(
+                    f"Deleted collection '{collection_name}'"
+                    if result.success
+                    else f"Failed to delete: {result.errors}"
+                ),
             )
 
         except Exception as e:
@@ -262,7 +264,7 @@ class CollectionManager:
 
         return info
 
-    def list_all_collections(self) -> List[str]:
+    def list_all_collections(self) -> list[str]:
         """List all collections from Qdrant.
 
         Returns:
@@ -278,7 +280,7 @@ class CollectionManager:
             logger.debug(f"Error listing collections: {e}")
             return []
 
-    def list_collections_with_prefix(self, prefix: str) -> List[str]:
+    def list_collections_with_prefix(self, prefix: str) -> list[str]:
         """List collections matching a prefix.
 
         Args:
@@ -294,8 +296,8 @@ class CollectionManager:
     def find_stale_collections(
         self,
         prefix: str = "claude",
-        known_project_hashes: Optional[List[str]] = None,
-    ) -> List[dict]:
+        known_project_hashes: list[str] | None = None,
+    ) -> list[dict]:
         """Find stale collections that may be orphaned.
 
         A collection is considered stale if:
@@ -323,17 +325,19 @@ class CollectionManager:
 
             # Check if hash is known
             if known_project_hashes and collection_hash not in known_project_hashes:
-                stale.append({
-                    "name": collection_name,
-                    "reason": "Unknown project hash - may be orphaned",
-                    "hash": collection_hash,
-                })
+                stale.append(
+                    {
+                        "name": collection_name,
+                        "reason": "Unknown project hash - may be orphaned",
+                        "hash": collection_hash,
+                    }
+                )
 
         return stale
 
     def cleanup_collections(
         self,
-        collections_to_delete: List[str],
+        collections_to_delete: list[str],
         dry_run: bool = True,
     ) -> InitStepResult:
         """Remove specified collections.

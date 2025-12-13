@@ -1,17 +1,15 @@
 """Unit tests for claude_indexer.rules.engine module."""
 
-import pytest
 from pathlib import Path
 
 from claude_indexer.rules.base import (
     BaseRule,
-    Evidence,
     Finding,
     RuleContext,
     Severity,
     Trigger,
 )
-from claude_indexer.rules.config import RuleEngineConfig
+from claude_indexer.rules.config import PerformanceConfig, RuleEngineConfig
 from claude_indexer.rules.engine import (
     RuleEngine,
     RuleEngineResult,
@@ -453,9 +451,7 @@ class TestRuleEngine:
 
     def test_engine_handles_rule_error(self):
         """Test engine handling of rule errors."""
-        engine = RuleEngine(
-            config=RuleEngineConfig(continue_on_error=True)
-        )
+        engine = RuleEngine(config=RuleEngineConfig(continue_on_error=True))
         engine.register(FailingRule())
         engine.register(MockRule())
 
@@ -471,10 +467,13 @@ class TestRuleEngine:
         assert result.errors[0].rule_id == "TEST.FAILING"
 
     def test_engine_stop_on_error(self):
-        """Test engine stopping on first error."""
-        engine = RuleEngine(
-            config=RuleEngineConfig(continue_on_error=False)
+        """Test engine stopping on first error (sequential execution)."""
+        # Disable parallel execution to test sequential stop-on-error behavior
+        config = RuleEngineConfig(
+            continue_on_error=False,
+            performance=PerformanceConfig(parallel_execution=False),
         )
+        engine = RuleEngine(config=config)
         engine.register(FailingRule())
         engine.register(MockRule(rule_id="TEST.AFTER"))
 
@@ -484,7 +483,7 @@ class TestRuleEngine:
             language="python",
         )
         result = engine.run(context)
-        # Should stop after first error
+        # Should stop after first error in sequential mode
         assert result.rules_executed == 1
         assert len(result.errors) == 1
 

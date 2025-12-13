@@ -6,10 +6,10 @@ within UI element roles (buttons, inputs, cards, etc.).
 
 from abc import abstractmethod
 from collections import Counter, defaultdict
-from statistics import mean, median, stdev
+from statistics import median
 from typing import Any
 
-from ..models import Finding, Severity, SymbolRef
+from ..models import Finding, Severity
 from .base import BaseRule, RuleContext
 
 
@@ -375,7 +375,9 @@ class FocusRingInconsistentRule(BaseRule):
                 evidence = []
 
                 for style, comps in list(style_groups.items())[:3]:
-                    ref = comps[0].source_ref if hasattr(comps[0], "source_ref") else None
+                    ref = (
+                        comps[0].source_ref if hasattr(comps[0], "source_ref") else None
+                    )
                     evidence.append(
                         self._create_static_evidence(
                             description=f"{len(comps)} elements with focus style: {style}",

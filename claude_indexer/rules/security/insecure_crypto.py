@@ -23,52 +23,52 @@ class InsecureCryptoRule(BaseRule):
         "python": [
             # MD5
             (
-                r'hashlib\.md5\s*\(',
+                r"hashlib\.md5\s*\(",
                 "MD5 is cryptographically broken",
                 0.85,
             ),
             (
-                r'from\s+hashlib\s+import.*\bmd5\b',
+                r"from\s+hashlib\s+import.*\bmd5\b",
                 "MD5 import (weak hash algorithm)",
                 0.80,
             ),
             # SHA1
             (
-                r'hashlib\.sha1\s*\(',
+                r"hashlib\.sha1\s*\(",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
             (
-                r'from\s+hashlib\s+import.*\bsha1\b',
+                r"from\s+hashlib\s+import.*\bsha1\b",
                 "SHA1 import (deprecated for security)",
                 0.75,
             ),
             # DES encryption
             (
-                r'DES\.(new|MODE_)',
+                r"DES\.(new|MODE_)",
                 "DES is insecure due to small key size",
                 0.95,
             ),
             (
-                r'from\s+Crypto\.Cipher\s+import\s+DES',
+                r"from\s+Crypto\.Cipher\s+import\s+DES",
                 "DES import (insecure cipher)",
                 0.90,
             ),
             # ECB mode
             (
-                r'MODE_ECB|AES\.MODE_ECB',
+                r"MODE_ECB|AES\.MODE_ECB",
                 "ECB mode is insecure (reveals patterns)",
                 0.95,
             ),
             # RC4
             (
-                r'ARC4|RC4',
+                r"ARC4|RC4",
                 "RC4 is cryptographically broken",
                 0.95,
             ),
             # Blowfish (deprecated)
             (
-                r'Blowfish\.(new|MODE_)',
+                r"Blowfish\.(new|MODE_)",
                 "Blowfish is deprecated for new applications",
                 0.70,
             ),
@@ -88,7 +88,7 @@ class InsecureCryptoRule(BaseRule):
         "javascript": [
             # MD5
             (
-                r'(crypto|CryptoJS)\..*MD5',
+                r"(crypto|CryptoJS)\..*MD5",
                 "MD5 is cryptographically broken",
                 0.85,
             ),
@@ -99,7 +99,7 @@ class InsecureCryptoRule(BaseRule):
             ),
             # SHA1
             (
-                r'(crypto|CryptoJS)\..*SHA1',
+                r"(crypto|CryptoJS)\..*SHA1",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
@@ -110,7 +110,7 @@ class InsecureCryptoRule(BaseRule):
             ),
             # createCipher (deprecated)
             (
-                r'createCipher\s*\(',
+                r"createCipher\s*\(",
                 "createCipher is deprecated, use createCipheriv",
                 0.90,
             ),
@@ -136,7 +136,7 @@ class InsecureCryptoRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'(crypto|CryptoJS)\..*MD5',
+                r"(crypto|CryptoJS)\..*MD5",
                 "MD5 is cryptographically broken",
                 0.85,
             ),
@@ -146,12 +146,12 @@ class InsecureCryptoRule(BaseRule):
                 0.85,
             ),
             (
-                r'(crypto|CryptoJS)\..*SHA1',
+                r"(crypto|CryptoJS)\..*SHA1",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
             (
-                r'createCipher\s*\(',
+                r"createCipher\s*\(",
                 "createCipher is deprecated, use createCipheriv",
                 0.90,
             ),
@@ -177,7 +177,7 @@ class InsecureCryptoRule(BaseRule):
             ),
             # ECB mode
             (
-                r'/ECB/',
+                r"/ECB/",
                 "ECB mode is insecure (reveals patterns)",
                 0.95,
             ),
@@ -191,7 +191,7 @@ class InsecureCryptoRule(BaseRule):
         "go": [
             # MD5
             (
-                r'md5\.New\s*\(\)|md5\.Sum\s*\(',
+                r"md5\.New\s*\(\)|md5\.Sum\s*\(",
                 "MD5 is cryptographically broken",
                 0.85,
             ),
@@ -202,19 +202,19 @@ class InsecureCryptoRule(BaseRule):
             ),
             # SHA1
             (
-                r'sha1\.New\s*\(\)|sha1\.Sum\s*\(',
+                r"sha1\.New\s*\(\)|sha1\.Sum\s*\(",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
             # DES
             (
-                r'des\.NewCipher\s*\(',
+                r"des\.NewCipher\s*\(",
                 "DES is insecure due to small key size",
                 0.95,
             ),
             # RC4
             (
-                r'rc4\.NewCipher\s*\(',
+                r"rc4\.NewCipher\s*\(",
                 "RC4 is cryptographically broken",
                 0.95,
             ),
@@ -222,25 +222,25 @@ class InsecureCryptoRule(BaseRule):
         "php": [
             # MD5
             (
-                r'\bmd5\s*\(',
+                r"\bmd5\s*\(",
                 "MD5 is cryptographically broken (use password_hash)",
                 0.85,
             ),
             # SHA1
             (
-                r'\bsha1\s*\(',
+                r"\bsha1\s*\(",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
             # DES
             (
-                r'MCRYPT_DES|des-ecb|des-cbc',
+                r"MCRYPT_DES|des-ecb|des-cbc",
                 "DES is insecure due to small key size",
                 0.95,
             ),
             # ECB mode
             (
-                r'MCRYPT_MODE_ECB|-ecb',
+                r"MCRYPT_MODE_ECB|-ecb",
                 "ECB mode is insecure (reveals patterns)",
                 0.95,
             ),
@@ -248,19 +248,19 @@ class InsecureCryptoRule(BaseRule):
         "ruby": [
             # MD5
             (
-                r'Digest::MD5|MD5\.new',
+                r"Digest::MD5|MD5\.new",
                 "MD5 is cryptographically broken",
                 0.85,
             ),
             # SHA1
             (
-                r'Digest::SHA1|SHA1\.new',
+                r"Digest::SHA1|SHA1\.new",
                 "SHA1 is deprecated for security purposes",
                 0.80,
             ),
             # DES
             (
-                r'OpenSSL::Cipher.*DES',
+                r"OpenSSL::Cipher.*DES",
                 "DES is insecure due to small key size",
                 0.95,
             ),
@@ -305,13 +305,13 @@ class InsecureCryptoRule(BaseRule):
     def _is_checksum_context(self, line: str, surrounding_lines: list[str]) -> bool:
         """Check if MD5/SHA1 is used for non-security purposes (checksums)."""
         checksum_indicators = [
-            r'checksum',
-            r'hash.*file',
-            r'file.*hash',
-            r'etag',
-            r'cache[_-]?key',
-            r'fingerprint',
-            r'digest.*content',
+            r"checksum",
+            r"hash.*file",
+            r"file.*hash",
+            r"etag",
+            r"cache[_-]?key",
+            r"fingerprint",
+            r"digest.*content",
         ]
         text_to_check = line + " " + " ".join(surrounding_lines)
         for pattern in checksum_indicators:

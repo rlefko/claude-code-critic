@@ -1,7 +1,5 @@
 """Unit tests for UI consistency data models."""
 
-import pytest
-
 from claude_indexer.ui.models import (
     Evidence,
     EvidenceType,

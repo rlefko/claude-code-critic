@@ -3,7 +3,7 @@
 Discovers UI elements by role with stable selector generation.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -129,7 +129,7 @@ ROLE_SELECTORS: dict[UIRole, list[str]] = {
         '[class*="Switch"]',
     ],
     UIRole.LINK: [
-        'a[href]',
+        "a[href]",
         '[role="link"]',
     ],
     UIRole.HEADING: [
@@ -303,7 +303,10 @@ class ElementTargetingStrategy:
                     seen_selectors.add(elem.selector)
                     all_elements.append(elem)
 
-                    if len([e for e in all_elements if e.role == role]) >= self.max_elements_per_role:
+                    if (
+                        len([e for e in all_elements if e.role == role])
+                        >= self.max_elements_per_role
+                    ):
                         break
 
         # Discover custom selectors
@@ -311,7 +314,9 @@ class ElementTargetingStrategy:
             try:
                 elements = await page.query_selector_all(selector)
                 for elem in elements:
-                    stable_selector = await self._generate_stable_selector(elem, page, selector)
+                    stable_selector = await self._generate_stable_selector(
+                        elem, page, selector
+                    )
                     if stable_selector and stable_selector not in seen_selectors:
                         seen_selectors.add(stable_selector)
                         all_elements.append(
@@ -365,7 +370,9 @@ class ElementTargetingStrategy:
 
                         # Get additional info
                         aria_label = await match.get_attribute("aria-label")
-                        tag_name = await match.evaluate("el => el.tagName.toLowerCase()")
+                        tag_name = await match.evaluate(
+                            "el => el.tagName.toLowerCase()"
+                        )
                         component_name = await self._get_component_name(match)
 
                         elements.append(
@@ -506,7 +513,7 @@ class ElementTargetingStrategy:
             groups[key].append(elem)
 
         # Mark groups with 3+ similar elements as repeated
-        for key, group in groups.items():
+        for _key, group in groups.items():
             if len(group) >= 3:
                 for elem in group:
                     elem.is_repeated = True

@@ -7,7 +7,13 @@ not using design system tokens.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.normalizers.token_resolver import TokenResolver
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.token_drift import (
@@ -16,7 +22,13 @@ from claude_indexer.ui.rules.token_drift import (
     SpacingOffScaleRule,
     TypographyOffScaleRule,
 )
-from claude_indexer.ui.tokens import ColorToken, RadiusToken, SpacingToken, TokenSet, TypographyToken
+from claude_indexer.ui.tokens import (
+    ColorToken,
+    RadiusToken,
+    SpacingToken,
+    TokenSet,
+    TypographyToken,
+)
 
 
 @pytest.fixture

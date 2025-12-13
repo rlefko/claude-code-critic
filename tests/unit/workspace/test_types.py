@@ -1,6 +1,5 @@
 """Unit tests for workspace types module."""
 
-import pytest
 from pathlib import Path
 
 from claude_indexer.workspace.types import (

@@ -266,7 +266,9 @@ class TestSARIFExporter:
         result = UIAnalysisResult(findings=[finding])
         sarif = exporter.export(result)
 
-        region = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"]
+        region = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"][
+            "region"
+        ]
 
         # Should only have startLine when start == end
         assert region["startLine"] == 10
@@ -460,9 +462,15 @@ class TestSARIFExporter:
     def test_rule_index_assignment(self, exporter):
         """Test rule index is correctly assigned."""
         findings = [
-            Finding("RULE_A", Severity.FAIL, 0.9, "A", [Evidence(EvidenceType.STATIC, "")]),
-            Finding("RULE_B", Severity.WARN, 0.8, "B", [Evidence(EvidenceType.STATIC, "")]),
-            Finding("RULE_A", Severity.FAIL, 0.9, "A2", [Evidence(EvidenceType.STATIC, "")]),
+            Finding(
+                "RULE_A", Severity.FAIL, 0.9, "A", [Evidence(EvidenceType.STATIC, "")]
+            ),
+            Finding(
+                "RULE_B", Severity.WARN, 0.8, "B", [Evidence(EvidenceType.STATIC, "")]
+            ),
+            Finding(
+                "RULE_A", Severity.FAIL, 0.9, "A2", [Evidence(EvidenceType.STATIC, "")]
+            ),
         ]
 
         result = UIAnalysisResult(findings=findings)

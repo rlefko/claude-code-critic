@@ -33,19 +33,19 @@ class HardcodedSecretsRule(BaseRule):
         ),
         # GitHub Tokens
         (
-            r'gh[pousr]_[A-Za-z0-9_]{36,}',
+            r"gh[pousr]_[A-Za-z0-9_]{36,}",
             "GitHub personal access token",
             0.98,
         ),
         # Slack Tokens
         (
-            r'xox[baprs]-[0-9]{10,}-[a-zA-Z0-9]{10,}',
+            r"xox[baprs]-[0-9]{10,}-[a-zA-Z0-9]{10,}",
             "Slack token",
             0.98,
         ),
         # Private Keys
         (
-            r'-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----',
+            r"-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
             "Private key in source code",
             0.98,
         ),
@@ -63,13 +63,13 @@ class HardcodedSecretsRule(BaseRule):
         ),
         # JWT Tokens
         (
-            r'eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*',
+            r"eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*",
             "JWT token in source code",
             0.90,
         ),
         # Database Connection Strings with credentials
         (
-            r'(?i)(mongodb|postgres|mysql|redis|postgresql)://[^:]+:[^@]+@',
+            r"(?i)(mongodb|postgres|mysql|redis|postgresql)://[^:]+:[^@]+@",
             "Database connection string with credentials",
             0.95,
         ),
@@ -87,18 +87,18 @@ class HardcodedSecretsRule(BaseRule):
         ),
         # Stripe Keys
         (
-            r'sk_live_[a-zA-Z0-9]{24,}',
+            r"sk_live_[a-zA-Z0-9]{24,}",
             "Stripe live secret key",
             0.98,
         ),
         (
-            r'pk_live_[a-zA-Z0-9]{24,}',
+            r"pk_live_[a-zA-Z0-9]{24,}",
             "Stripe live publishable key",
             0.95,
         ),
         # SendGrid API Key
         (
-            r'SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}',
+            r"SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}",
             "SendGrid API key",
             0.98,
         ),
@@ -110,7 +110,7 @@ class HardcodedSecretsRule(BaseRule):
         ),
         # Google API Key
         (
-            r'AIza[0-9A-Za-z_-]{35}',
+            r"AIza[0-9A-Za-z_-]{35}",
             "Google API key",
             0.95,
         ),
@@ -122,7 +122,7 @@ class HardcodedSecretsRule(BaseRule):
         ),
         # OpenAI API Key
         (
-            r'sk-[a-zA-Z0-9]{48,}',
+            r"sk-[a-zA-Z0-9]{48,}",
             "OpenAI API key",
             0.95,
         ),
@@ -130,28 +130,28 @@ class HardcodedSecretsRule(BaseRule):
 
     # Placeholder values to ignore (false positives)
     PLACEHOLDER_PATTERNS = [
-        r'(?i)xxx+',
-        r'(?i)your[_-].*[_-]here',
-        r'(?i)change[_-]?me',
-        r'(?i)placeholder',
-        r'(?i)example',
-        r'(?i)sample',
-        r'(?i)dummy',
-        r'(?i)test[_-]?key',
-        r'(?i)fake[_-]?',
-        r'(?i)mock[_-]?',
-        r'(?i)<.*>',  # Template placeholders like <API_KEY>
-        r'(?i)\$\{.*\}',  # Variable placeholders like ${API_KEY}
-        r'(?i)TODO',
-        r'(?i)FIXME',
+        r"(?i)xxx+",
+        r"(?i)your[_-].*[_-]here",
+        r"(?i)change[_-]?me",
+        r"(?i)placeholder",
+        r"(?i)example",
+        r"(?i)sample",
+        r"(?i)dummy",
+        r"(?i)test[_-]?key",
+        r"(?i)fake[_-]?",
+        r"(?i)mock[_-]?",
+        r"(?i)<.*>",  # Template placeholders like <API_KEY>
+        r"(?i)\$\{.*\}",  # Variable placeholders like ${API_KEY}
+        r"(?i)TODO",
+        r"(?i)FIXME",
     ]
 
     # File patterns to skip or lower confidence
     SKIP_FILE_PATTERNS = [
-        r'\.example$',
-        r'\.sample$',
-        r'\.template$',
-        r'\.dist$',
+        r"\.example$",
+        r"\.sample$",
+        r"\.template$",
+        r"\.dist$",
     ]
 
     @property
@@ -192,32 +192,23 @@ class HardcodedSecretsRule(BaseRule):
 
     def _is_placeholder(self, value: str) -> bool:
         """Check if a detected value is a placeholder."""
-        for pattern in self.PLACEHOLDER_PATTERNS:
-            if re.search(pattern, value):
-                return True
-        return False
+        return any(re.search(pattern, value) for pattern in self.PLACEHOLDER_PATTERNS)
 
     def _is_skip_file(self, file_path: str) -> bool:
         """Check if file should be skipped based on name pattern."""
-        for pattern in self.SKIP_FILE_PATTERNS:
-            if re.search(pattern, file_path):
-                return True
-        return False
+        return any(re.search(pattern, file_path) for pattern in self.SKIP_FILE_PATTERNS)
 
     def _is_env_reference(self, line: str) -> bool:
         """Check if the line references environment variables."""
         env_patterns = [
-            r'os\.environ',
-            r'os\.getenv',
-            r'process\.env',
-            r'ENV\[',
-            r'getenv\(',
-            r'\$\{[A-Z_]+\}',  # Shell variable substitution
+            r"os\.environ",
+            r"os\.getenv",
+            r"process\.env",
+            r"ENV\[",
+            r"getenv\(",
+            r"\$\{[A-Z_]+\}",  # Shell variable substitution
         ]
-        for pattern in env_patterns:
-            if re.search(pattern, line):
-                return True
-        return False
+        return any(re.search(pattern, line) for pattern in env_patterns)
 
     def check(self, context: RuleContext) -> list[Finding]:
         """Check for hardcoded secrets in the file.
@@ -271,7 +262,9 @@ class HardcodedSecretsRule(BaseRule):
                         continue
 
                     # Adjust confidence for test files
-                    confidence = base_confidence * 0.7 if is_test_file else base_confidence
+                    confidence = (
+                        base_confidence * 0.7 if is_test_file else base_confidence
+                    )
 
                     findings.append(
                         self._create_finding(
@@ -304,15 +297,7 @@ class HardcodedSecretsRule(BaseRule):
     def _redact_secret(self, line: str) -> str:
         """Redact secret values in the line for safe display."""
         # Redact anything that looks like a secret value
-        redacted = re.sub(
-            r'["\'][a-zA-Z0-9_\-\.+=/]{20,}["\']',
-            '"[REDACTED]"',
-            line
-        )
+        redacted = re.sub(r'["\'][a-zA-Z0-9_\-\.+=/]{20,}["\']', '"[REDACTED]"', line)
         # Redact private key content
-        redacted = re.sub(
-            r'-----BEGIN.*-----',
-            '-----BEGIN [REDACTED]-----',
-            redacted
-        )
+        redacted = re.sub(r"-----BEGIN.*-----", "-----BEGIN [REDACTED]-----", redacted)
         return redacted

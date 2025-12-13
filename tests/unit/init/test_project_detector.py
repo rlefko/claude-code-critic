@@ -1,7 +1,6 @@
 """Tests for project detector functionality."""
 
 import json
-import pytest
 from pathlib import Path
 
 from claude_indexer.init.project_detector import ProjectDetector
@@ -293,7 +292,7 @@ class TestCollectionNaming:
             mock_result.returncode = 0
             mock_result.stdout = f"{url}\n"
 
-            monkeypatch.setattr(subprocess, "run", lambda *a, **k: mock_result)
+            monkeypatch.setattr(subprocess, "run", lambda *a, mr=mock_result, **k: mr)
             hashes.append(detector.get_collection_hash())
 
         # All normalized URLs should produce the same hash

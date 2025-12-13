@@ -7,7 +7,14 @@ near-duplicate styles and components.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StaticComponentFingerprint, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StaticComponentFingerprint,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.duplication import (
     ComponentDuplicateClusterRule,
@@ -152,11 +159,13 @@ class TestStyleNearDuplicateSetRule:
         # Create styles that differ by only one property
         styles = [
             create_style("a.css", {"color": "red", "padding": "10px", "margin": "5px"}),
-            create_style("b.css", {"color": "blue", "padding": "10px", "margin": "5px"}),
+            create_style(
+                "b.css", {"color": "blue", "padding": "10px", "margin": "5px"}
+            ),
         ]
 
         context = RuleContext(config=config, styles=styles)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Should detect near-duplicates
         # Note: actual detection depends on SimHash implementation
@@ -171,7 +180,7 @@ class TestStyleNearDuplicateSetRule:
         ]
 
         context = RuleContext(config=config, styles=styles)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Very different styles should not be near-duplicates
 
@@ -230,7 +239,7 @@ class TestUtilityDuplicateSequenceRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Each sequence appears only once, so should not be reported
 
@@ -264,7 +273,7 @@ class TestUtilityDuplicateSequenceRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Sequence too short to report (only 2 classes, need 3)
 
@@ -353,7 +362,7 @@ class TestComponentDuplicateClusterRule:
             similarity_engine=similarity_engine,
         )
 
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # May or may not find clusters depending on implementation
 

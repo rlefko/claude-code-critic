@@ -1,8 +1,6 @@
 """Unit tests for the index_queue module."""
 
 import json
-import tempfile
-import threading
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -185,6 +183,7 @@ class TestIndexQueue:
 
         # Set modification time to past
         import os
+
         old_time = time.time() - (25 * 3600)  # 25 hours ago
         os.utime(old_file, (old_time, old_time))
 
@@ -299,7 +298,7 @@ class TestIndexQueueProcessing:
         queue.DEBOUNCE_DELAY = 0.2  # 200ms
 
         # Rapid changes to same file
-        for i in range(10):
+        for _i in range(10):
             queue.enqueue(
                 file_path=Path("/project/main.py"),
                 project_path=Path("/project"),

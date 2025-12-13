@@ -188,12 +188,18 @@ class ChatSummarizer:
         if config is None:
             loaded_config = load_config()
             # Convert IndexerConfig to dict for compatibility
-            config = loaded_config.__dict__ if hasattr(loaded_config, '__dict__') else {}
+            config = (
+                loaded_config.__dict__ if hasattr(loaded_config, "__dict__") else {}
+            )
 
         self.config = config
 
         # Initialize OpenAI client
-        api_key = self.config.get('openai_api_key') if isinstance(self.config, dict) else getattr(self.config, 'openai_api_key', None)
+        api_key = (
+            self.config.get("openai_api_key")
+            if isinstance(self.config, dict)
+            else getattr(self.config, "openai_api_key", None)
+        )
         if not api_key:
             raise ValueError("OpenAI API key not found in configuration")
 

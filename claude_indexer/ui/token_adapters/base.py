@@ -52,7 +52,9 @@ class TokenAdapter(ABC):
         """
         ...
 
-    def extract_from_content(self, content: str, source_name: str = "inline") -> TokenSet:
+    def extract_from_content(
+        self, content: str, source_name: str = "inline"
+    ) -> TokenSet:
         """Extract tokens from content string (for testing or inline configs).
 
         Args:

@@ -92,7 +92,9 @@ class QueryResultCache:
         self.max_entries = max_entries
         self.ttl_seconds = ttl_seconds
         self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
-        self._collection_keys: dict[str, set[str]] = {}  # collection -> set of cache keys
+        self._collection_keys: dict[str, set[str]] = (
+            {}
+        )  # collection -> set of cache keys
         self._lock = Lock()
 
         # Statistics
@@ -133,10 +135,16 @@ class QueryResultCache:
             "c": collection_name,
             "v": vector_sig,
             "l": limit,
-            "f": json.dumps(filter_conditions, sort_keys=True) if filter_conditions else None,
+            "f": (
+                json.dumps(filter_conditions, sort_keys=True)
+                if filter_conditions
+                else None
+            ),
             "m": search_mode,
         }
-        return hashlib.sha256(json.dumps(key_data, sort_keys=True).encode()).hexdigest()[:16]
+        return hashlib.sha256(
+            json.dumps(key_data, sort_keys=True).encode()
+        ).hexdigest()[:16]
 
     def get(
         self,
@@ -164,7 +172,9 @@ class QueryResultCache:
         Returns:
             Cached result or None if not found/expired.
         """
-        key = self._compute_key(collection_name, query_vector, limit, filter_conditions, search_mode)
+        key = self._compute_key(
+            collection_name, query_vector, limit, filter_conditions, search_mode
+        )
 
         with self._lock:
             entry = self._cache.get(key)
@@ -207,7 +217,9 @@ class QueryResultCache:
             search_mode: Search mode (semantic, keyword, hybrid).
             result: The search result to cache.
         """
-        key = self._compute_key(collection_name, query_vector, limit, filter_conditions, search_mode)
+        key = self._compute_key(
+            collection_name, query_vector, limit, filter_conditions, search_mode
+        )
 
         with self._lock:
             # Evict oldest if at capacity

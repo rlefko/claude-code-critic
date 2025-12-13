@@ -18,10 +18,9 @@ if TYPE_CHECKING:
         StaticComponentFingerprint,
         StyleFingerprint,
     )
-    from ..rules.base import RuleContext
     from ..rules.engine import RuleEngine
 
-from ..models import Severity, UIAnalysisResult
+from ..models import Severity
 from .baseline import BaselineManager, CleanupMap
 from .cache import CacheManager
 from .cross_file_analyzer import CrossFileAnalyzer, CrossFileClusterResult
@@ -104,13 +103,9 @@ class CIAuditResult:
             "new_findings": [f.to_dict() for f in self.new_findings],
             "baseline_findings": [f.to_dict() for f in self.baseline_findings],
             "cross_file_clusters": (
-                self.cross_file_clusters.to_dict()
-                if self.cross_file_clusters
-                else None
+                self.cross_file_clusters.to_dict() if self.cross_file_clusters else None
             ),
-            "cleanup_map": (
-                self.cleanup_map.to_dict() if self.cleanup_map else None
-            ),
+            "cleanup_map": (self.cleanup_map.to_dict() if self.cleanup_map else None),
             "analysis_time_ms": self.analysis_time_ms,
             "files_analyzed": self.files_analyzed,
             "cache_hit_rate": self.cache_hit_rate,
@@ -162,11 +157,11 @@ class CIAuditRunner:
         # Lazy-load config if not provided
         self._config = config
         self._cache_manager: CacheManager | None = None
-        self._source_collector: "SourceCollector | None" = None
+        self._source_collector: SourceCollector | None = None
         self._cross_file_analyzer: CrossFileAnalyzer | None = None
         self._baseline_manager: BaselineManager | None = None
-        self._rule_engine: "RuleEngine | None" = None
-        self._diff_collector: "GitDiffCollector | None" = None
+        self._rule_engine: RuleEngine | None = None
+        self._diff_collector: GitDiffCollector | None = None
 
     @property
     def config(self) -> "UIQualityConfig":
@@ -315,7 +310,8 @@ class CIAuditRunner:
         if changed_files is None:
             diff_result = self.diff_collector.collect()
             changed_files = [
-                Path(fc.file_path) for fc in diff_result.changed_files
+                Path(fc.file_path)
+                for fc in diff_result.changed_files
                 if self._is_ui_file(Path(fc.file_path))
             ]
 
@@ -335,9 +331,7 @@ class CIAuditRunner:
         )
 
         # Run rules on changed fingerprints
-        all_findings = self._run_rule_engine(
-            changed_styles, changed_components, None
-        )
+        all_findings = self._run_rule_engine(changed_styles, changed_components, None)
 
         # Separate findings
         new_findings, baseline_findings = self.baseline_manager.separate_findings(
@@ -381,7 +375,8 @@ class CIAuditRunner:
         # Filter out node_modules, dist, etc.
         excluded_dirs = {"node_modules", "dist", "build", ".git", "__pycache__"}
         ui_files = [
-            f for f in ui_files
+            f
+            for f in ui_files
             if not any(excluded in f.parts for excluded in excluded_dirs)
         ]
 
@@ -411,8 +406,8 @@ class CIAuditRunner:
         Returns:
             Tuple of (all_styles, all_components).
         """
-        all_styles: list["StyleFingerprint"] = []
-        all_components: list["StaticComponentFingerprint"] = []
+        all_styles: list[StyleFingerprint] = []
+        all_components: list[StaticComponentFingerprint] = []
 
         if self.audit_config.enable_caching:
             self.cache_manager.initialize()
@@ -459,10 +454,11 @@ class CIAuditRunner:
             List of (styles, components) tuples.
         """
         results = []
-        with ThreadPoolExecutor(max_workers=self.audit_config.parallel_workers) as executor:
+        with ThreadPoolExecutor(
+            max_workers=self.audit_config.parallel_workers
+        ) as executor:
             futures = {
-                executor.submit(self._extract_from_file, fp): fp
-                for fp in ui_files
+                executor.submit(self._extract_from_file, fp): fp for fp in ui_files
             }
 
             for future in as_completed(futures):
@@ -540,8 +536,8 @@ class CIAuditRunner:
         Returns:
             Tuple of (styles, components).
         """
-        all_styles: list["StyleFingerprint"] = []
-        all_components: list["StaticComponentFingerprint"] = []
+        all_styles: list[StyleFingerprint] = []
+        all_components: list[StaticComponentFingerprint] = []
 
         for file_path in files:
             styles, components = self._extract_from_file(file_path)
@@ -564,9 +560,7 @@ class CIAuditRunner:
         Returns:
             CrossFileClusterResult with analysis data.
         """
-        return self.cross_file_analyzer.run_full_analysis(
-            all_styles, all_components
-        )
+        return self.cross_file_analyzer.run_full_analysis(all_styles, all_components)
 
     def _run_rule_engine(
         self,

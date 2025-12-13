@@ -8,9 +8,9 @@ Tests the critique engine orchestration including:
 - Full critique generation
 """
 
-import pytest
-from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from claude_indexer.ui.critique.engine import (
     CritiqueEngine,
@@ -25,11 +25,9 @@ from claude_indexer.ui.models import (
     LayoutBox,
     RuntimeElementFingerprint,
     Severity,
-    SymbolRef,
     SymbolKind,
-    Visibility,
+    SymbolRef,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -440,7 +438,7 @@ class TestCritiqueEngineInit:
         assert "tap_targets" in hints
 
         # Each should have at least one hint
-        for key, hint_list in hints.items():
+        for _key, hint_list in hints.items():
             assert len(hint_list) > 0
 
     def test_stores_config(self, critique_engine, mock_ui_config):
@@ -469,7 +467,9 @@ class TestCritiqueIdGeneration:
 
     def test_id_format_matches_pattern(self, critique_engine):
         """Test that ID format is correct."""
-        critique_id = critique_engine._generate_critique_id("consistency", "token_adherence")
+        critique_id = critique_engine._generate_critique_id(
+            "consistency", "token_adherence"
+        )
 
         # Should be uppercase CATEGORY-SUBCATEGORY-NNNN
         assert critique_id.startswith("CONSISTENCY-TOKEN_ADHERENCE-")
@@ -712,19 +712,23 @@ class TestGenerateCritique:
 
     def test_calls_all_analyzers(self, critique_engine, sample_fingerprints):
         """Test that all analyzers are called during critique generation."""
-        with patch.object(
-            critique_engine.consistency_analyzer,
-            "generate_consistency_critiques",
-            return_value=[],
-        ) as mock_consistency, patch.object(
-            critique_engine.hierarchy_analyzer,
-            "generate_hierarchy_critiques",
-            return_value=[],
-        ) as mock_hierarchy, patch.object(
-            critique_engine.affordance_analyzer,
-            "generate_affordance_critiques",
-            return_value=[],
-        ) as mock_affordance:
+        with (
+            patch.object(
+                critique_engine.consistency_analyzer,
+                "generate_consistency_critiques",
+                return_value=[],
+            ) as mock_consistency,
+            patch.object(
+                critique_engine.hierarchy_analyzer,
+                "generate_hierarchy_critiques",
+                return_value=[],
+            ) as mock_hierarchy,
+            patch.object(
+                critique_engine.affordance_analyzer,
+                "generate_affordance_critiques",
+                return_value=[],
+            ) as mock_affordance,
+        ):
             critique_engine.generate_critique(sample_fingerprints)
 
             mock_consistency.assert_called_once()
@@ -734,41 +738,45 @@ class TestGenerateCritique:
     def test_sorts_critiques_by_severity(self, critique_engine, sample_fingerprints):
         """Test that critiques are sorted by severity (FAIL first)."""
         # Mock analyzers to return critiques in wrong order
-        with patch.object(
-            critique_engine.consistency_analyzer,
-            "generate_consistency_critiques",
-            return_value=[
-                {
-                    "category": "consistency",
-                    "subcategory": "test",
-                    "severity": Severity.INFO,
-                    "title": "Info",
-                    "description": "",
-                },
-                {
-                    "category": "consistency",
-                    "subcategory": "test",
-                    "severity": Severity.FAIL,
-                    "title": "Fail",
-                    "description": "",
-                },
-            ],
-        ), patch.object(
-            critique_engine.hierarchy_analyzer,
-            "generate_hierarchy_critiques",
-            return_value=[
-                {
-                    "category": "hierarchy",
-                    "subcategory": "test",
-                    "severity": Severity.WARN,
-                    "title": "Warn",
-                    "description": "",
-                },
-            ],
-        ), patch.object(
-            critique_engine.affordance_analyzer,
-            "generate_affordance_critiques",
-            return_value=[],
+        with (
+            patch.object(
+                critique_engine.consistency_analyzer,
+                "generate_consistency_critiques",
+                return_value=[
+                    {
+                        "category": "consistency",
+                        "subcategory": "test",
+                        "severity": Severity.INFO,
+                        "title": "Info",
+                        "description": "",
+                    },
+                    {
+                        "category": "consistency",
+                        "subcategory": "test",
+                        "severity": Severity.FAIL,
+                        "title": "Fail",
+                        "description": "",
+                    },
+                ],
+            ),
+            patch.object(
+                critique_engine.hierarchy_analyzer,
+                "generate_hierarchy_critiques",
+                return_value=[
+                    {
+                        "category": "hierarchy",
+                        "subcategory": "test",
+                        "severity": Severity.WARN,
+                        "title": "Warn",
+                        "description": "",
+                    },
+                ],
+            ),
+            patch.object(
+                critique_engine.affordance_analyzer,
+                "generate_affordance_critiques",
+                return_value=[],
+            ),
         ):
             report = critique_engine.generate_critique(sample_fingerprints)
 
@@ -779,7 +787,9 @@ class TestGenerateCritique:
             # Then INFO
             assert report.critiques[2].severity == Severity.INFO
 
-    def test_includes_ci_findings_as_evidence(self, critique_engine, sample_fingerprints):
+    def test_includes_ci_findings_as_evidence(
+        self, critique_engine, sample_fingerprints
+    ):
         """Test that CI findings are included when provided."""
         # Create mock CI result
         mock_ci_result = MagicMock()
@@ -796,18 +806,22 @@ class TestGenerateCritique:
         mock_finding.remediation_hints = ["Use design token"]
         mock_ci_result.new_findings = [mock_finding]
 
-        with patch.object(
-            critique_engine.consistency_analyzer,
-            "generate_consistency_critiques",
-            return_value=[],
-        ), patch.object(
-            critique_engine.hierarchy_analyzer,
-            "generate_hierarchy_critiques",
-            return_value=[],
-        ), patch.object(
-            critique_engine.affordance_analyzer,
-            "generate_affordance_critiques",
-            return_value=[],
+        with (
+            patch.object(
+                critique_engine.consistency_analyzer,
+                "generate_consistency_critiques",
+                return_value=[],
+            ),
+            patch.object(
+                critique_engine.hierarchy_analyzer,
+                "generate_hierarchy_critiques",
+                return_value=[],
+            ),
+            patch.object(
+                critique_engine.affordance_analyzer,
+                "generate_affordance_critiques",
+                return_value=[],
+            ),
         ):
             report = critique_engine.generate_critique(
                 sample_fingerprints,
@@ -835,18 +849,22 @@ class TestGenerateCritique:
         mock_visual_clusters = MagicMock()
         mock_visual_clusters.clusters = [{"id": "cluster1"}, {"id": "cluster2"}]
 
-        with patch.object(
-            critique_engine.consistency_analyzer,
-            "generate_consistency_critiques",
-            return_value=[],
-        ), patch.object(
-            critique_engine.hierarchy_analyzer,
-            "generate_hierarchy_critiques",
-            return_value=[],
-        ), patch.object(
-            critique_engine.affordance_analyzer,
-            "generate_affordance_critiques",
-            return_value=[],
+        with (
+            patch.object(
+                critique_engine.consistency_analyzer,
+                "generate_consistency_critiques",
+                return_value=[],
+            ),
+            patch.object(
+                critique_engine.hierarchy_analyzer,
+                "generate_hierarchy_critiques",
+                return_value=[],
+            ),
+            patch.object(
+                critique_engine.affordance_analyzer,
+                "generate_affordance_critiques",
+                return_value=[],
+            ),
         ):
             report = critique_engine.generate_critique(
                 sample_fingerprints,

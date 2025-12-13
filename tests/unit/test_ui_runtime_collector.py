@@ -4,8 +4,6 @@ Tests RuntimeCollector, CrawlTarget, and CrawlResult with comprehensive
 mocking of Playwright dependencies.
 """
 
-import asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,7 +15,6 @@ from claude_indexer.ui.collectors.runtime import (
 )
 from claude_indexer.ui.config import UIQualityConfig, ViewportConfig
 from claude_indexer.ui.models import LayoutBox, RuntimeElementFingerprint
-
 
 # ==============================================================================
 # Fixtures
@@ -126,12 +123,14 @@ def mock_playwright_objects():
 
     # Setup page methods
     page.goto = AsyncMock()
-    page.evaluate = AsyncMock(return_value={
-        "scrollHeight": 1000,
-        "scrollWidth": 800,
-        "bodyHeight": 1000,
-        "bodyWidth": 800,
-    })
+    page.evaluate = AsyncMock(
+        return_value={
+            "scrollHeight": 1000,
+            "scrollWidth": 800,
+            "bodyHeight": 1000,
+            "bodyWidth": 800,
+        }
+    )
     page.add_style_tag = AsyncMock()
     page.locator = MagicMock()
 
@@ -372,9 +371,7 @@ class TestRuntimeCollectorInit:
 
     def test_init_without_playwright_raises(self, mock_ui_config, tmp_path):
         """Test that initialization fails when Playwright is not available."""
-        with patch(
-            "claude_indexer.ui.collectors.runtime.PLAYWRIGHT_AVAILABLE", False
-        ):
+        with patch("claude_indexer.ui.collectors.runtime.PLAYWRIGHT_AVAILABLE", False):
             # Need to reload the module to get the new check
             from claude_indexer.ui.collectors import runtime
 
@@ -400,7 +397,7 @@ class TestRuntimeCollectorInit:
         project_path = tmp_path / "project"
         project_path.mkdir()
 
-        collector = RuntimeCollector(
+        RuntimeCollector(
             config=mock_ui_config,
             project_path=project_path,
         )
@@ -539,7 +536,7 @@ class TestBuildTargetList:
 
         targets = collector.build_target_list()
 
-        viewport_names = set(t.viewport.name for t in targets)
+        viewport_names = {t.viewport.name for t in targets}
         assert "mobile" in viewport_names
         assert "tablet" in viewport_names
         assert "desktop" in viewport_names
@@ -599,9 +596,7 @@ class TestServerManagement:
             )
             mock_aiohttp.ClientTimeout = MagicMock()
 
-            result = await collector.wait_for_server(
-                "http://localhost:6006", timeout=1
-            )
+            result = await collector.wait_for_server("http://localhost:6006", timeout=1)
             assert result is False
 
     @pytest.mark.skipif(not PLAYWRIGHT_AVAILABLE, reason="Playwright not installed")
@@ -635,9 +630,7 @@ class TestServerManagement:
             )
             mock_aiohttp.ClientTimeout = MagicMock()
 
-            result = await collector.wait_for_server(
-                "http://localhost:6006", timeout=5
-            )
+            result = await collector.wait_for_server("http://localhost:6006", timeout=5)
             # First response is 500 (>= 500), so it keeps waiting
             # Eventually times out since our mock doesn't change
             # For this test, we'll verify timeout behavior with 500
@@ -853,15 +846,9 @@ class TestCrawlSingleTarget:
                 patch(
                     "claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"
                 ) as mock_targeting_cls,
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ComputedStyleCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.PseudoStateCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ScreenshotCapture"
-                ),
+                patch("claude_indexer.ui.collectors.runtime.ComputedStyleCapture"),
+                patch("claude_indexer.ui.collectors.runtime.PseudoStateCapture"),
+                patch("claude_indexer.ui.collectors.runtime.ScreenshotCapture"),
             ):
                 mock_targeting = MagicMock()
                 mock_targeting.discover_elements = AsyncMock(return_value=[])
@@ -909,15 +896,9 @@ class TestCrawlSingleTarget:
                 patch(
                     "claude_indexer.ui.collectors.runtime.ElementTargetingStrategy"
                 ) as mock_targeting_cls,
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ComputedStyleCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.PseudoStateCapture"
-                ),
-                patch(
-                    "claude_indexer.ui.collectors.runtime.ScreenshotCapture"
-                ),
+                patch("claude_indexer.ui.collectors.runtime.ComputedStyleCapture"),
+                patch("claude_indexer.ui.collectors.runtime.PseudoStateCapture"),
+                patch("claude_indexer.ui.collectors.runtime.ScreenshotCapture"),
             ):
                 mock_targeting = MagicMock()
                 mock_targeting_cls.return_value = mock_targeting

@@ -166,7 +166,10 @@ class CLIReporter:
                 print(f"{dim}  {rule_id}: {count} issue(s){reset}", file=self.stream)
 
         # Cross-file duplicates
-        if result.cross_file_clusters and result.cross_file_clusters.cross_file_duplicates:
+        if (
+            result.cross_file_clusters
+            and result.cross_file_clusters.cross_file_duplicates
+        ):
             dups = result.cross_file_clusters.cross_file_duplicates
             print(f"\n{'='*40}", file=self.stream)
             print(f"CROSS-FILE DUPLICATES ({len(dups)})", file=self.stream)
@@ -186,7 +189,10 @@ class CLIReporter:
         if result.cleanup_map and result.cleanup_map.items:
             cmap = result.cleanup_map
             print(f"\n{'='*40}", file=self.stream)
-            print(f"CLEANUP MAP ({cmap.total_baseline_issues} total issues)", file=self.stream)
+            print(
+                f"CLEANUP MAP ({cmap.total_baseline_issues} total issues)",
+                file=self.stream,
+            )
             print(f"Estimated effort: {cmap.estimated_total_effort}", file=self.stream)
             print(f"{'='*40}", file=self.stream)
 
@@ -203,7 +209,10 @@ class CLIReporter:
         print(f"\n{'='*60}", file=self.stream)
         if result.should_fail:
             color = self.COLORS.get(Severity.FAIL, "")
-            print(f"{color}FAILED{reset} - {len(result.new_findings)} new blocking issues", file=self.stream)
+            print(
+                f"{color}FAILED{reset} - {len(result.new_findings)} new blocking issues",
+                file=self.stream,
+            )
         else:
             print(f"\033[0;32mPASSED{reset}", file=self.stream)
         print(f"{'='*60}\n", file=self.stream)
@@ -353,9 +362,9 @@ class JSONReporter:
 
         # Count fail severity
         fail_count = sum(1 for f in result.new_findings if f.severity == Severity.FAIL)
-        fail_rules = list(set(
-            f.rule_id for f in result.new_findings if f.severity == Severity.FAIL
-        ))
+        fail_rules = list(
+            {f.rule_id for f in result.new_findings if f.severity == Severity.FAIL}
+        )
 
         if len(fail_rules) == 1:
             return f"Blocked: {fail_count} {fail_rules[0]} violation(s)"

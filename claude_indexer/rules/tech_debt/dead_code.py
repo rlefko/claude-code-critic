@@ -116,9 +116,9 @@ class DeadCodeRule(BaseRule):
             return True
         if language == "python" and stripped.startswith("#"):
             return True
-        if language in ("javascript", "typescript") and stripped.startswith("//"):
-            return True
-        return False
+        return bool(
+            language in ("javascript", "typescript") and stripped.startswith("//")
+        )
 
     def _is_block_end(self, line: str, language: str) -> bool:
         """Check if line ends a block."""
@@ -316,9 +316,7 @@ class DeadCodeRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: "Finding", context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: "Finding", context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to remove dead code.
 
         Args:
@@ -355,10 +353,7 @@ class DeadCodeRule(BaseRule):
 
         # Get the comment prefix for this language
         language = context.language
-        if language == "python":
-            comment = "# "
-        else:
-            comment = "// "
+        comment = "# " if language == "python" else "// "
 
         # Generate replacement: single comment indicating removal
         indent = len(old_lines[0]) - len(old_lines[0].lstrip())

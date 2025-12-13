@@ -6,7 +6,6 @@ enabling 90%+ reduction in processing time for incremental updates.
 
 import hashlib
 import json
-import os
 import time
 from pathlib import Path
 from threading import Lock
@@ -61,7 +60,7 @@ class FileHashCache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
             if self.cache_file.exists():
-                with open(self.cache_file, "r") as f:
+                with open(self.cache_file) as f:
                     data = json.load(f)
                     self._cache = data.get("files", {})
                     self.logger.debug(

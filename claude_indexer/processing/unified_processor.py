@@ -39,8 +39,12 @@ class UnifiedContentProcessor:
             self.logger.debug(f"🔥   collection_name: {collection_name}")
             self.logger.debug(f"🔥   entities_count: {len(entities)}")
             self.logger.debug(f"🔥   relations_count: {len(relations)}")
-            self.logger.debug(f"🔥   implementation_chunks_count: {len(implementation_chunks)}")
-            self.logger.debug(f"🔥   changed_entity_ids_count: {len(changed_entity_ids)}")
+            self.logger.debug(
+                f"🔥   implementation_chunks_count: {len(implementation_chunks)}"
+            )
+            self.logger.debug(
+                f"🔥   changed_entity_ids_count: {len(changed_entity_ids)}"
+            )
 
             # Check if collection has existing data
             try:
@@ -57,11 +61,21 @@ class UnifiedContentProcessor:
         # Phase 1: Identify files being processed
         files_being_processed = set()
         if entities:
-            files_being_processed.update(entity.file_path for entity in entities if entity.file_path)
+            files_being_processed.update(
+                entity.file_path for entity in entities if entity.file_path
+            )
         if relations:
-            files_being_processed.update(getattr(relation, 'file_path', None) for relation in relations if getattr(relation, 'file_path', None))
+            files_being_processed.update(
+                getattr(relation, "file_path", None)
+                for relation in relations
+                if getattr(relation, "file_path", None)
+            )
         if implementation_chunks:
-            files_being_processed.update(getattr(chunk, 'file_path', None) for chunk in implementation_chunks if getattr(chunk, 'file_path', None))
+            files_being_processed.update(
+                getattr(chunk, "file_path", None)
+                for chunk in implementation_chunks
+                if getattr(chunk, "file_path", None)
+            )
 
         # Remove None values
         files_being_processed.discard(None)
@@ -72,15 +86,25 @@ class UnifiedContentProcessor:
             implementation_entity_names = {
                 chunk.entity_name for chunk in implementation_chunks
             }
-        
+
         # DEBUG: Track implementation_entity_names population
         if self.logger:
-            self.logger.debug(f"🔍 UNIFIED PROCESSOR DEBUG:")
-            self.logger.debug(f"🔍   implementation_chunks count: {len(implementation_chunks) if implementation_chunks else 0}")
-            self.logger.debug(f"🔍   implementation_entity_names: {sorted(implementation_entity_names)}")
+            self.logger.debug("🔍 UNIFIED PROCESSOR DEBUG:")
+            self.logger.debug(
+                f"🔍   implementation_chunks count: {len(implementation_chunks) if implementation_chunks else 0}"
+            )
+            self.logger.debug(
+                f"🔍   implementation_entity_names: {sorted(implementation_entity_names)}"
+            )
             self.logger.debug(f"🔍   entities count: {len(entities)}")
-            import_entities = [e for e in entities if hasattr(e, 'entity_type') and e.entity_type.value == 'import']
-            self.logger.debug(f"🔍   import_entities: {[e.name for e in import_entities]}")
+            import_entities = [
+                e
+                for e in entities
+                if hasattr(e, "entity_type") and e.entity_type.value == "import"
+            ]
+            self.logger.debug(
+                f"🔍   import_entities: {[e.name for e in import_entities]}"
+            )
 
         # Phase 2: Create enhanced processing context
         context = ProcessingContext(
@@ -94,8 +118,12 @@ class UnifiedContentProcessor:
 
         # Debug logging for context
         if self.logger:
-            self.logger.debug(f"🔍 DEBUG: context.files_being_processed = {context.files_being_processed}")
-            self.logger.debug(f"🔍 DEBUG: context.replacement_mode = {context.replacement_mode}")
+            self.logger.debug(
+                f"🔍 DEBUG: context.files_being_processed = {context.files_being_processed}"
+            )
+            self.logger.debug(
+                f"🔍 DEBUG: context.replacement_mode = {context.replacement_mode}"
+            )
 
         all_points: list[Any] = []
         combined_result = ProcessingResult.success_result()
@@ -133,7 +161,9 @@ class UnifiedContentProcessor:
             if context.entities_to_delete or all_points:
                 # Execute deletion before upsert if entities need to be replaced
                 if context.entities_to_delete:
-                    deletion_result = self._delete_entities_batch(collection_name, context.entities_to_delete)
+                    deletion_result = self._delete_entities_batch(
+                        collection_name, context.entities_to_delete
+                    )
                     if not deletion_result:
                         return ProcessingResult.failure_result(
                             "Failed to delete existing entities for replacement"
@@ -141,7 +171,9 @@ class UnifiedContentProcessor:
 
                 # Execute upsert for new/updated entities
                 if all_points:
-                    storage_result = self._reliable_batch_upsert(collection_name, all_points)
+                    storage_result = self._reliable_batch_upsert(
+                        collection_name, all_points
+                    )
                     if not storage_result:
                         return ProcessingResult.failure_result(
                             "Failed to store points in batch operation"
@@ -255,14 +287,18 @@ class UnifiedContentProcessor:
                     f"🧹 PHANTOM FIX: Cleaned {phantom_count} phantom relations during incremental update"
                 )
 
-    def _delete_entities_batch(self, collection_name: str, entity_ids: list[str]) -> bool:
+    def _delete_entities_batch(
+        self, collection_name: str, entity_ids: list[str]
+    ) -> bool:
         """Delete entities in batch before upsert."""
         if not entity_ids:
             return True
 
         try:
             if self.logger:
-                self.logger.debug(f"🗑️ DEBUG: About to delete {len(entity_ids)} entities from {collection_name}")
+                self.logger.debug(
+                    f"🗑️ DEBUG: About to delete {len(entity_ids)} entities from {collection_name}"
+                )
                 for i, entity_id in enumerate(entity_ids[:5]):  # Show first 5
                     self.logger.debug(f"🗑️ DEBUG: Entity {i+1}: {entity_id}")
 
@@ -272,61 +308,86 @@ class UnifiedContentProcessor:
                 if isinstance(entity_id, int):
                     integer_ids.append(entity_id)
                 else:
-                    integer_ids.append(self.vector_store.generate_deterministic_id(entity_id))
+                    integer_ids.append(
+                        self.vector_store.generate_deterministic_id(entity_id)
+                    )
 
             if self.logger:
                 self.logger.debug("🗑️ DEBUG: Converted to integer IDs:")
-                for _i, (str_id, int_id) in enumerate(zip(entity_ids[:5], integer_ids[:5], strict=False)):
+                for _i, (str_id, int_id) in enumerate(
+                    zip(entity_ids[:5], integer_ids[:5], strict=False)
+                ):
                     self.logger.debug(f"🗑️ DEBUG: {str_id} → {int_id}")
 
             from qdrant_client.models import PointIdsList
 
             # Verify entities exist before deletion
             if self.logger:
-                existing_count = self.vector_store.client.count(collection_name=collection_name).count
-                self.logger.debug(f"🗑️ DEBUG: Collection {collection_name} has {existing_count} points before deletion")
+                existing_count = self.vector_store.client.count(
+                    collection_name=collection_name
+                ).count
+                self.logger.debug(
+                    f"🗑️ DEBUG: Collection {collection_name} has {existing_count} points before deletion"
+                )
 
             # Perform deletion
             delete_result = self.vector_store.client.delete(
                 collection_name=collection_name,
-                points_selector=PointIdsList(points=integer_ids)
+                points_selector=PointIdsList(points=integer_ids),
             )
 
             if self.logger:
                 self.logger.debug(f"🗑️ DEBUG: Qdrant delete result: {delete_result}")
                 # Check count after deletion
-                remaining_count = self.vector_store.client.count(collection_name=collection_name).count
-                self.logger.debug(f"🗑️ DEBUG: Collection {collection_name} has {remaining_count} points after deletion (reduced by {existing_count - remaining_count})")
+                remaining_count = self.vector_store.client.count(
+                    collection_name=collection_name
+                ).count
+                self.logger.debug(
+                    f"🗑️ DEBUG: Collection {collection_name} has {remaining_count} points after deletion (reduced by {existing_count - remaining_count})"
+                )
 
             if self.logger:
-                self.logger.debug(f"Deleted {len(entity_ids)} existing entities for replacement")
+                self.logger.debug(
+                    f"Deleted {len(entity_ids)} existing entities for replacement"
+                )
 
             return True
         except Exception as e:
             if self.logger:
                 self.logger.error(f"❌ Failed to delete entities: {e}")
                 import traceback
+
                 self.logger.error(f"❌ Deletion traceback: {traceback.format_exc()}")
             return False
 
     def _reliable_batch_upsert(self, collection_name: str, points: list[Any]) -> bool:
-        """Perform reliable batch upsert with verification."""
+        """Perform reliable batch upsert with verification.
+
+        Uses the vector store's batch_upsert method which properly handles
+        VectorPoint to PointStruct conversion and collection creation.
+        """
         if not points:
             return True
 
         try:
-            # Use existing reliable batch upsert from vector store if available
-            if hasattr(self.vector_store, 'batch_upsert'):
-                result = self.vector_store.batch_upsert(collection_name, points)
-                return bool(result.success)
-            else:
-                # Fallback to simple upsert
-                self.vector_store.client.upsert(
-                    collection_name=collection_name,
-                    points=points,
-                    wait=True  # Ensure synchronous operation
-                )
-                return True
+            # Use the vector store's batch_upsert which handles:
+            # 1. VectorPoint to PointStruct conversion
+            # 2. Collection creation with proper dimensions
+            # 3. Sparse vector handling
+            # 4. Batch splitting and retry logic
+            result = self.vector_store.batch_upsert(collection_name, points)
+
+            if self.logger:
+                if result.success:
+                    self.logger.debug(
+                        f"✅ Batch upsert succeeded: {result.items_processed} points stored"
+                    )
+                else:
+                    self.logger.error(
+                        f"❌ Batch upsert failed: {getattr(result, 'errors', 'Unknown error')}"
+                    )
+
+            return bool(result.success)
 
         except Exception as e:
             if self.logger:

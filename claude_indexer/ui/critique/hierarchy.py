@@ -22,7 +22,9 @@ from ..models import Severity
 class HeadingScaleMetrics:
     """Metrics for heading scale analysis."""
 
-    heading_levels_found: dict[str, list[int]] = field(default_factory=dict)  # h1-h6 -> font sizes
+    heading_levels_found: dict[str, list[int]] = field(
+        default_factory=dict
+    )  # h1-h6 -> font sizes
     scale_consistent: bool = True
     scale_ratio: float | None = None
     inconsistencies: list[dict[str, Any]] = field(default_factory=list)
@@ -107,7 +109,9 @@ class HierarchyAnalyzer:
             config: UI quality configuration.
         """
         self.config = config
-        self._spacing_scale = {int(s) for s in (config.design_system.allowed_scales.spacing or [])}
+        self._spacing_scale = {
+            int(s) for s in (config.design_system.allowed_scales.spacing or [])
+        }
 
     def _parse_font_size(self, value: str) -> int | None:
         """Parse font size to pixels."""
@@ -237,7 +241,7 @@ class HierarchyAnalyzer:
 
             # Calculate ratios between adjacent levels
             sorted_levels = sorted(
-                [l for l in level_averages.keys() if l.startswith("h")],
+                [level for level in level_averages if level.startswith("h")],
                 key=lambda x: int(x[1]) if x[1].isdigit() else 0,
             )
 
@@ -258,12 +262,14 @@ class HierarchyAnalyzer:
                     deviation = abs(ratio - avg_ratio) / avg_ratio
                     if deviation > 0.2:
                         metrics.scale_consistent = False
-                        metrics.inconsistencies.append({
-                            "level_pair": f"{sorted_levels[i]}/{sorted_levels[i+1]}",
-                            "ratio": ratio,
-                            "expected": avg_ratio,
-                            "deviation": deviation,
-                        })
+                        metrics.inconsistencies.append(
+                            {
+                                "level_pair": f"{sorted_levels[i]}/{sorted_levels[i+1]}",
+                                "ratio": ratio,
+                                "expected": avg_ratio,
+                                "deviation": deviation,
+                            }
+                        )
 
         return metrics
 
@@ -318,14 +324,16 @@ class HierarchyAnalyzer:
                 metrics.passing_checks += 1
             else:
                 metrics.failing_checks += 1
-                metrics.failures.append({
-                    "element": fp.selector,
-                    "page": fp.page_id,
-                    "text_color": text_color,
-                    "background_color": bg_color,
-                    "contrast_ratio": round(ratio, 2),
-                    "required_ratio": min_ratio,
-                })
+                metrics.failures.append(
+                    {
+                        "element": fp.selector,
+                        "page": fp.page_id,
+                        "text_color": text_color,
+                        "background_color": bg_color,
+                        "contrast_ratio": round(ratio, 2),
+                        "required_ratio": min_ratio,
+                    }
+                )
 
         return metrics
 
@@ -366,20 +374,24 @@ class HierarchyAnalyzer:
                             if num in self._spacing_scale or num == 0:
                                 metrics.on_scale_spacings += 1
                             else:
-                                metrics.irregular_spacings.append({
-                                    "element": fp.selector,
-                                    "page": fp.page_id,
-                                    "property": prop,
-                                    "value": value,
-                                    "numeric": num,
-                                })
+                                metrics.irregular_spacings.append(
+                                    {
+                                        "element": fp.selector,
+                                        "page": fp.page_id,
+                                        "property": prop,
+                                        "value": value,
+                                        "numeric": num,
+                                    }
+                                )
                         except ValueError:
                             pass
                         break
 
         # Calculate rhythm adherence
         if metrics.total_spacings > 0:
-            metrics.rhythm_adherence = metrics.on_scale_spacings / metrics.total_spacings
+            metrics.rhythm_adherence = (
+                metrics.on_scale_spacings / metrics.total_spacings
+            )
 
         # Record common spacings
         metrics.common_spacings = dict(
@@ -407,57 +419,61 @@ class HierarchyAnalyzer:
         # 1. Heading scale critique
         heading_metrics = self.analyze_heading_scale(fingerprints)
         if not heading_metrics.scale_consistent and heading_metrics.inconsistencies:
-            critiques.append({
-                "category": "hierarchy",
-                "subcategory": "heading_scale",
-                "severity": Severity.WARN,
-                "title": "Inconsistent Heading Scale",
-                "description": (
-                    f"Heading sizes don't follow a consistent scale ratio. "
-                    f"Found {len(heading_metrics.inconsistencies)} inconsistencies. "
-                    f"Current average ratio: {heading_metrics.scale_ratio:.2f}"
-                ),
-                "evidence": heading_metrics.inconsistencies,
-                "metrics": heading_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "hierarchy",
+                    "subcategory": "heading_scale",
+                    "severity": Severity.WARN,
+                    "title": "Inconsistent Heading Scale",
+                    "description": (
+                        f"Heading sizes don't follow a consistent scale ratio. "
+                        f"Found {len(heading_metrics.inconsistencies)} inconsistencies. "
+                        f"Current average ratio: {heading_metrics.scale_ratio:.2f}"
+                    ),
+                    "evidence": heading_metrics.inconsistencies,
+                    "metrics": heading_metrics.to_dict(),
+                }
+            )
 
         # 2. Contrast critique
         contrast_metrics = self.analyze_contrast(fingerprints)
         if contrast_metrics.failing_checks > 0:
             severity = (
-                Severity.FAIL
-                if contrast_metrics.pass_rate < 0.8
-                else Severity.WARN
+                Severity.FAIL if contrast_metrics.pass_rate < 0.8 else Severity.WARN
             )
-            critiques.append({
-                "category": "hierarchy",
-                "subcategory": "contrast",
-                "severity": severity,
-                "title": "Insufficient Text Contrast",
-                "description": (
-                    f"{contrast_metrics.failing_checks} text elements have insufficient "
-                    f"contrast ratio (WCAG 2.1 minimum: {self.MIN_CONTRAST_NORMAL_TEXT}:1). "
-                    f"Pass rate: {contrast_metrics.pass_rate:.0%}"
-                ),
-                "evidence": contrast_metrics.failures[:10],  # Limit evidence
-                "metrics": contrast_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "hierarchy",
+                    "subcategory": "contrast",
+                    "severity": severity,
+                    "title": "Insufficient Text Contrast",
+                    "description": (
+                        f"{contrast_metrics.failing_checks} text elements have insufficient "
+                        f"contrast ratio (WCAG 2.1 minimum: {self.MIN_CONTRAST_NORMAL_TEXT}:1). "
+                        f"Pass rate: {contrast_metrics.pass_rate:.0%}"
+                    ),
+                    "evidence": contrast_metrics.failures[:10],  # Limit evidence
+                    "metrics": contrast_metrics.to_dict(),
+                }
+            )
 
         # 3. Spacing rhythm critique
         rhythm_metrics = self.analyze_spacing_rhythm(fingerprints)
         if rhythm_metrics.rhythm_adherence < 0.8:
-            critiques.append({
-                "category": "hierarchy",
-                "subcategory": "spacing_rhythm",
-                "severity": Severity.INFO,
-                "title": "Irregular Spacing Rhythm",
-                "description": (
-                    f"Only {rhythm_metrics.rhythm_adherence:.0%} of spacing values are on-scale. "
-                    f"Found {len(rhythm_metrics.irregular_spacings)} irregular values."
-                ),
-                "evidence": rhythm_metrics.irregular_spacings[:10],
-                "metrics": rhythm_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "hierarchy",
+                    "subcategory": "spacing_rhythm",
+                    "severity": Severity.INFO,
+                    "title": "Irregular Spacing Rhythm",
+                    "description": (
+                        f"Only {rhythm_metrics.rhythm_adherence:.0%} of spacing values are on-scale. "
+                        f"Found {len(rhythm_metrics.irregular_spacings)} irregular values."
+                    ),
+                    "evidence": rhythm_metrics.irregular_spacings[:10],
+                    "metrics": rhythm_metrics.to_dict(),
+                }
+            )
 
         return critiques
 

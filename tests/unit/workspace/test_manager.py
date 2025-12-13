@@ -2,8 +2,8 @@
 
 import json
 import time
+
 import pytest
-from pathlib import Path
 
 from claude_indexer.workspace.manager import (
     WorkspaceManager,
@@ -11,7 +11,6 @@ from claude_indexer.workspace.manager import (
     get_workspace_context,
 )
 from claude_indexer.workspace.types import (
-    CollectionStrategy,
     WorkspaceType,
 )
 

@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import os
-import sys
 from io import StringIO
 from unittest.mock import patch
-
-import pytest
 
 from claude_indexer.cli.output import (
     OutputConfig,

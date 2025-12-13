@@ -177,11 +177,7 @@ class UnsafeConcurrencyRule(BaseRule):
         patterns = self.SAFE_PATTERNS.get(language, [])
         context = "\n".join(lines[max(0, start - 10) : min(len(lines), end + 5)])
 
-        for pattern in patterns:
-            if re.search(pattern, context, re.IGNORECASE):
-                return True
-
-        return False
+        return any(re.search(pattern, context, re.IGNORECASE) for pattern in patterns)
 
     def _find_function_bounds(
         self, lines: list[str], line_num: int, language: str
@@ -230,9 +226,7 @@ class UnsafeConcurrencyRule(BaseRule):
 
         return (start, end)
 
-    def _is_async_without_await(
-        self, lines: list[str], start: int, end: int
-    ) -> bool:
+    def _is_async_without_await(self, lines: list[str], start: int, end: int) -> bool:
         """Check if async function lacks await statements."""
         for i in range(start, min(end + 1, len(lines))):
             if re.search(r"\bawait\s+", lines[i]):
@@ -322,9 +316,11 @@ class UnsafeConcurrencyRule(BaseRule):
                         continue
 
                     # Special check for async without await
-                    if "async" in description.lower() and "await" in description.lower():
-                        if not self._is_async_without_await(lines, start, end):
-                            continue
+                    if (
+                        "async" in description.lower()
+                        and "await" in description.lower()
+                    ) and not self._is_async_without_await(lines, start, end):
+                        continue
 
                     # Get code snippet
                     snippet = line.strip()

@@ -1,7 +1,5 @@
 """Unit tests for risk mitigation configurations."""
 
-import pytest
-
 from claude_indexer.ui.config import (
     DeterministicDataConfig,
     PIIRedactionConfig,

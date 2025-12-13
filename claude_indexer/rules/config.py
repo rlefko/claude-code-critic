@@ -282,9 +282,7 @@ class RuleEngineConfigLoader:
                 config = config.merge(project_config)
 
         # Load local overrides
-        local_config_path = (
-            self.project_path / ".claude" / self.LOCAL_CONFIG_FILENAME
-        )
+        local_config_path = self.project_path / ".claude" / self.LOCAL_CONFIG_FILENAME
         if local_config_path.exists():
             local_config = self._load_file(local_config_path)
             if local_config:

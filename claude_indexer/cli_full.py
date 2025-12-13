@@ -1,5 +1,6 @@
 """Click-based CLI interface for the Claude Code indexer."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -165,7 +166,8 @@ else:
 
         # Determine color usage
         from .cli.output import should_use_color
-        use_color = should_use_color(explicit_flag=not no_color if no_color else None)
+
+        should_use_color(explicit_flag=not no_color if no_color else None)
 
         try:
             # Validate project path first
@@ -236,6 +238,7 @@ else:
 
                 # Clear the log file for this collection
                 from .indexer_logging import clear_log_file
+
                 log_cleared = clear_log_file(collection, project_path)
                 if not quiet and log_cleared:
                     click.echo(f"🗑️ Cleared log file for collection: {collection}")
@@ -279,7 +282,10 @@ else:
                                 file_paths.append(file_path)
                             except ValueError:
                                 if not quiet:
-                                    click.echo(f"⚠️ Skipping {line}: not within project", err=True)
+                                    click.echo(
+                                        f"⚠️ Skipping {line}: not within project",
+                                        err=True,
+                                    )
                         elif not quiet:
                             click.echo(f"⚠️ Skipping {line}: file not found", err=True)
 
@@ -300,7 +306,9 @@ else:
                 # Report results
                 if result.success:
                     if not quiet:
-                        click.echo(f"✅ Batch indexing completed in {result.processing_time:.1f}s")
+                        click.echo(
+                            f"✅ Batch indexing completed in {result.processing_time:.1f}s"
+                        )
                         click.echo(f"   Files processed: {result.files_processed}")
                         click.echo(f"   Entities: {result.entities_created}")
                         click.echo(f"   Relations: {result.relations_created}")
@@ -319,7 +327,10 @@ else:
                 detector = GitChangeDetector(project_path)
 
                 if not detector.is_git_repo():
-                    click.echo("Error: --since, --staged, and --pr-diff require a git repository", err=True)
+                    click.echo(
+                        "Error: --since, --staged, and --pr-diff require a git repository",
+                        err=True,
+                    )
                     sys.exit(1)
 
                 # Get the appropriate change set
@@ -354,14 +365,20 @@ else:
                 # Report results
                 if result.success:
                     if not quiet:
-                        click.echo(f"✅ Incremental indexing completed in {result.processing_time:.1f}s")
+                        click.echo(
+                            f"✅ Incremental indexing completed in {result.processing_time:.1f}s"
+                        )
                         click.echo(f"   Files processed: {result.files_processed}")
                         click.echo(f"   Entities: {result.entities_created}")
                         click.echo(f"   Relations: {result.relations_created}")
                         if change_set.renamed_files:
-                            click.echo(f"   Renames handled: {len(change_set.renamed_files)}")
+                            click.echo(
+                                f"   Renames handled: {len(change_set.renamed_files)}"
+                            )
                         if change_set.deleted_files:
-                            click.echo(f"   Deletions handled: {len(change_set.deleted_files)}")
+                            click.echo(
+                                f"   Deletions handled: {len(change_set.deleted_files)}"
+                            )
                 else:
                     click.echo("❌ Incremental indexing failed", err=True)
                     for error in result.errors or []:
@@ -396,9 +413,7 @@ else:
 
                     # Get total tracked files from state (not just current run)
                     state = indexer._load_state(collection)
-                    total_tracked = len(
-                        [k for k in state if not k.startswith("_")]
-                    )
+                    total_tracked = len([k for k in state if not k.startswith("_")])
 
                     # Get file change details for this run
                     new_files, modified_files, deleted_files = (
@@ -644,10 +659,14 @@ else:
 
         click.echo()
         if result.success:
-            click.echo(click.style("Project initialized successfully!", fg="green", bold=True))
+            click.echo(
+                click.style("Project initialized successfully!", fg="green", bold=True)
+            )
         else:
             click.echo(
-                click.style("Initialization completed with errors", fg="yellow", bold=True)
+                click.style(
+                    "Initialization completed with errors", fg="yellow", bold=True
+                )
             )
 
         click.echo()
@@ -789,12 +808,17 @@ else:
                 icon = icon_map.get(check.status, "?")
                 click.echo(f"  {icon} {check.message}")
 
-                if check.suggestion and check.status in (CheckStatus.WARN, CheckStatus.FAIL):
+                if check.suggestion and check.status in (
+                    CheckStatus.WARN,
+                    CheckStatus.FAIL,
+                ):
                     click.echo(click.style(f"      → {check.suggestion}", fg="cyan"))
 
                 if verbose and check.details:
                     for key, value in check.details.items():
-                        click.echo(click.style(f"        {key}: {value}", fg="white", dim=True))
+                        click.echo(
+                            click.style(f"        {key}: {value}", fg="white", dim=True)
+                        )
 
         # Summary
         click.echo()
@@ -802,7 +826,9 @@ else:
         if result.passed > 0:
             summary_parts.append(click.style(f"{result.passed} passed", fg="green"))
         if result.warnings > 0:
-            summary_parts.append(click.style(f"{result.warnings} warnings", fg="yellow"))
+            summary_parts.append(
+                click.style(f"{result.warnings} warnings", fg="yellow")
+            )
         if result.failures > 0:
             summary_parts.append(click.style(f"{result.failures} errors", fg="red"))
         if result.skipped > 0:
@@ -873,8 +899,8 @@ else:
             claude-indexer status -p /path/to/project -c my-collection
             claude-indexer status --json
         """
-        from .cli.status import StatusCollector, format_status_text
         from .cli.output import should_use_color
+        from .cli.status import StatusCollector, format_status_text
 
         use_color = should_use_color(explicit_flag=not no_color if no_color else None)
 
@@ -901,6 +927,7 @@ else:
 
         # Exit codes based on overall status
         from .cli.status import StatusLevel
+
         if system_status.overall_level == StatusLevel.FAIL:
             sys.exit(2)
         elif system_status.overall_level == StatusLevel.WARN:
@@ -968,7 +995,15 @@ else:
         help="Output as JSON",
     )
     @common_options
-    def config_show(project_path: str, sources: bool, as_json: bool, verbose, quiet, no_color, config) -> None:
+    def config_show(
+        project_path: str,
+        sources: bool,
+        as_json: bool,
+        verbose,
+        quiet,
+        no_color,
+        config,
+    ) -> None:
         """Show effective configuration with source tracking.
 
         Examples:
@@ -987,6 +1022,7 @@ else:
 
             if as_json:
                 import json
+
                 output = unified_config.to_dict()
                 if sources:
                     output["_sources"] = loaded_sources
@@ -1015,21 +1051,29 @@ else:
             click.echo(f"  Qdrant URL: {unified_config.api.qdrant.url}")
             openai_key = unified_config.api.openai.api_key
             voyage_key = unified_config.api.voyage.api_key
-            click.echo(f"  OpenAI:     {'****' + openai_key[-4:] if openai_key else 'Not set'}")
-            click.echo(f"  Voyage:     {'****' + voyage_key[-4:] if voyage_key else 'Not set'}")
+            click.echo(
+                f"  OpenAI:     {'****' + openai_key[-4:] if openai_key else 'Not set'}"
+            )
+            click.echo(
+                f"  Voyage:     {'****' + voyage_key[-4:] if voyage_key else 'Not set'}"
+            )
             click.echo()
 
             # Indexing config
             click.echo("Indexing:")
             click.echo(f"  Enabled:    {unified_config.indexing.enabled}")
-            click.echo(f"  Include:    {', '.join(unified_config.indexing.file_patterns.include[:5])}...")
+            click.echo(
+                f"  Include:    {', '.join(unified_config.indexing.file_patterns.include[:5])}..."
+            )
             click.echo(f"  Max Size:   {unified_config.indexing.max_file_size:,} bytes")
             click.echo()
 
             # Performance config
             click.echo("Performance:")
             click.echo(f"  Batch Size: {unified_config.performance.batch_size}")
-            click.echo(f"  Parallel:   {unified_config.performance.use_parallel_processing}")
+            click.echo(
+                f"  Parallel:   {unified_config.performance.use_parallel_processing}"
+            )
             click.echo()
 
             # Sources
@@ -1042,6 +1086,7 @@ else:
             click.echo(f"❌ Failed to load configuration: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -1059,7 +1104,9 @@ else:
         help="Project directory path (used if config_path not provided)",
     )
     @common_options
-    def config_validate(config_path: str, project_path: str, verbose, quiet, no_color, config) -> None:
+    def config_validate(
+        config_path: str, project_path: str, verbose, quiet, no_color, config
+    ) -> None:
         """Validate configuration file.
 
         If CONFIG_PATH is provided, validates that specific file.
@@ -1070,8 +1117,8 @@ else:
             claude-indexer config validate .claude/settings.json
             claude-indexer config validate --project /path/to/project
         """
-        from .config.validation import validate_config_file, validate_config_dict
         from .config.hierarchical_loader import ConfigPaths, HierarchicalConfigLoader
+        from .config.validation import validate_config_dict, validate_config_file
 
         if config_path:
             # Validate specific file
@@ -1151,7 +1198,16 @@ else:
         help="Overwrite existing new-format config",
     )
     @common_options
-    def config_migrate(project_path: str, dry_run: bool, no_backup: bool, force: bool, verbose, quiet, no_color, config) -> None:
+    def config_migrate(
+        project_path: str,
+        dry_run: bool,
+        no_backup: bool,
+        force: bool,
+        verbose,
+        quiet,
+        no_color,
+        config,
+    ) -> None:
         """Migrate existing configuration to v3.0 format.
 
         Migrates settings.txt and/or .claude-indexer/config.json to the
@@ -1169,20 +1225,22 @@ else:
 
         # First show analysis
         if not quiet:
-            click.echo(f"\n=== Configuration Migration Analysis ===")
+            click.echo("\n=== Configuration Migration Analysis ===")
             click.echo(f"Project: {path}")
 
         analysis = migration.analyze()
 
         if not quiet:
-            click.echo(f"Migration needed: {'Yes' if analysis.migration_needed else 'No'}")
+            click.echo(
+                f"Migration needed: {'Yes' if analysis.migration_needed else 'No'}"
+            )
 
             if analysis.existing_configs:
                 click.echo("\nExisting configurations:")
                 for cfg in analysis.existing_configs:
                     click.echo(f"  - {cfg['file']}")
                     click.echo(f"    Type: {cfg['type']}, Status: {cfg['status']}")
-                    if 'version' in cfg:
+                    if "version" in cfg:
                         click.echo(f"    Version: {cfg['version']}")
 
             if analysis.warnings:
@@ -1197,7 +1255,9 @@ else:
 
         if not analysis.migration_needed and not force:
             if not quiet:
-                click.echo("\n✅ No migration needed - configuration is already current")
+                click.echo(
+                    "\n✅ No migration needed - configuration is already current"
+                )
             return
 
         # Perform migration
@@ -1278,7 +1338,9 @@ else:
         help="Specific backup timestamp to restore (format: YYYYMMDD_HHMMSS)",
     )
     @common_options
-    def config_restore(project_path: str, timestamp: str, verbose, quiet, no_color, config) -> None:
+    def config_restore(
+        project_path: str, timestamp: str, verbose, quiet, no_color, config
+    ) -> None:
         """Restore configuration from backup.
 
         If --timestamp is not provided, restores the most recent backup.
@@ -1407,8 +1469,9 @@ else:
             claude-indexer post-write src/main.py --json
             echo "content" | claude-indexer post-write src/main.py --content-stdin
         """
-        from .hooks.post_write import run_post_write_check
         import sys as _sys
+
+        from .hooks.post_write import run_post_write_check
 
         # Read content from stdin if requested
         content = None
@@ -1610,7 +1673,16 @@ else:
     )
     @click.pass_context
     def start(
-        ctx, project, collection, verbose, quiet, no_color, config, debounce, clear, clear_all
+        ctx,
+        project,
+        collection,
+        verbose,
+        quiet,
+        no_color,
+        config,
+        debounce,
+        clear,
+        clear_all,
     ):
         """Start file watching for real-time indexing."""
 
@@ -1897,7 +1969,9 @@ else:
     @click.option(
         "--config-file", type=click.Path(), help="Service configuration file path"
     )
-    def add_project(project_path, collection_name, verbose, quiet, no_color, config, config_file):
+    def add_project(
+        project_path, collection_name, verbose, quiet, no_color, config, config_file
+    ):
         """Add a project to the service watch list."""
 
         try:
@@ -2042,7 +2116,12 @@ else:
     @click.option("--json", "json_output", is_flag=True, help="Output in JSON format")
     @common_options
     def collections_list(
-        prefix_filter: str, json_output: bool, verbose: bool, quiet: bool, config: str
+        prefix_filter: str,
+        json_output: bool,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
     ) -> None:
         """List all Qdrant collections.
 
@@ -2094,7 +2173,12 @@ else:
     @click.option("--json", "json_output", is_flag=True, help="Output in JSON format")
     @common_options
     def collections_show(
-        name: str, json_output: bool, verbose: bool, quiet: bool, config: str
+        name: str,
+        json_output: bool,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
     ) -> None:
         """Show details for a specific collection.
 
@@ -2131,7 +2215,7 @@ else:
     @click.option("--force", is_flag=True, help="Skip confirmation prompt")
     @common_options
     def collections_delete(
-        name: str, force: bool, verbose: bool, quiet: bool, config: str
+        name: str, force: bool, verbose: bool, quiet: bool, no_color: bool, config: str
     ) -> None:
         """Delete a collection.
 
@@ -2174,12 +2258,20 @@ else:
     @collections.command("cleanup")
     @click.option("--dry-run", is_flag=True, help="Preview without deleting")
     @click.option(
-        "--prefix", default="claude", help="Collection prefix to filter (default: claude)"
+        "--prefix",
+        default="claude",
+        help="Collection prefix to filter (default: claude)",
     )
     @click.option("--force", is_flag=True, help="Skip confirmation prompt")
     @common_options
     def collections_cleanup(
-        dry_run: bool, prefix: str, force: bool, verbose: bool, quiet: bool, config: str
+        dry_run: bool,
+        prefix: str,
+        force: bool,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
     ) -> None:
         """Find and clean up stale/orphaned collections.
 
@@ -2207,7 +2299,9 @@ else:
                 click.echo(f"No collections found with prefix '{prefix}'")
                 return
 
-            click.echo(f"Found {len(collections)} collection(s) with prefix '{prefix}':")
+            click.echo(
+                f"Found {len(collections)} collection(s) with prefix '{prefix}':"
+            )
             for coll in collections:
                 info = manager.get_collection_info(coll)
                 points = info.get("points_count", "?")
@@ -2219,9 +2313,7 @@ else:
 
             # Confirm deletion unless --force
             if not force:
-                if not click.confirm(
-                    f"\nDelete all {len(collections)} collection(s)?"
-                ):
+                if not click.confirm(f"\nDelete all {len(collections)} collection(s)?"):
                     click.echo("Aborted")
                     return
 
@@ -2266,7 +2358,7 @@ else:
             claude-indexer session info
             claude-indexer session info -p /path/to/project --json
         """
-        from .session.manager import SessionManager, get_session_context
+        from .session.manager import SessionManager
 
         try:
             project_path = Path(project) if project else None
@@ -2304,11 +2396,13 @@ else:
             claude-indexer session clear
             claude-indexer session clear -p /path/to/project --force
         """
-        from .session.manager import clear_session
         from .session.detector import ProjectRootDetector
+        from .session.manager import clear_session
 
         try:
-            project_path = Path(project) if project else ProjectRootDetector.detect_from_cwd()
+            project_path = (
+                Path(project) if project else ProjectRootDetector.detect_from_cwd()
+            )
 
             if not force and not quiet:
                 click.confirm(f"Clear session for {project_path}?", abort=True)
@@ -2403,6 +2497,7 @@ else:
             claude-indexer workspace detect --json
         """
         import json as json_module
+
         from .workspace import WorkspaceDetector, WorkspaceType
 
         try:
@@ -2423,9 +2518,11 @@ else:
                         }
                         for m in ws_config.members
                     ],
-                    "workspace_file": str(ws_config.workspace_file)
-                    if ws_config.workspace_file
-                    else None,
+                    "workspace_file": (
+                        str(ws_config.workspace_file)
+                        if ws_config.workspace_file
+                        else None
+                    ),
                 }
                 click.echo(json_module.dumps(output, indent=2))
             else:
@@ -2436,7 +2533,9 @@ else:
                 else:
                     click.echo(f"Workspace Type: {ws_config.workspace_type.value}")
                     click.echo(f"Root: {ws_config.root_path}")
-                    click.echo(f"Collection Strategy: {ws_config.collection_strategy.value}")
+                    click.echo(
+                        f"Collection Strategy: {ws_config.collection_strategy.value}"
+                    )
                     if ws_config.workspace_file:
                         click.echo(f"Config File: {ws_config.workspace_file}")
                     click.echo(f"\nMembers ({len(ws_config.members)}):")
@@ -2450,6 +2549,7 @@ else:
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -2485,7 +2585,7 @@ else:
             claude-indexer workspace init --strategy single
             claude-indexer workspace init -p /path/to/monorepo
         """
-        from .workspace import WorkspaceManager, WorkspaceType
+        from .workspace import WorkspaceManager
 
         try:
             ws_path = Path(path) if path else None
@@ -2516,7 +2616,9 @@ else:
                 )
                 click.echo(f"   Root: {context.root_path}")
                 click.echo(f"   Members: {len(context.members)}")
-                click.echo(f"   Strategy: {context.workspace_config.collection_strategy.value}")
+                click.echo(
+                    f"   Strategy: {context.workspace_config.collection_strategy.value}"
+                )
                 click.echo(f"   Config: {config_path}")
 
                 if verbose:
@@ -2528,6 +2630,7 @@ else:
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -2554,7 +2657,8 @@ else:
             claude-indexer workspace status -p /path/to/monorepo
         """
         import json as json_module
-        from .workspace import WorkspaceManager, WorkspaceType
+
+        from .workspace import WorkspaceManager
 
         try:
             ws_path = Path(path) if path else None
@@ -2579,7 +2683,9 @@ else:
                     f"Strategy: {context.workspace_config.collection_strategy.value}"
                 )
                 if context.is_monorepo:
-                    click.echo(f"Collection: {context.workspace_config.collection_name}")
+                    click.echo(
+                        f"Collection: {context.workspace_config.collection_name}"
+                    )
                 click.echo(f"\nMembers ({len(context.members)}):")
                 for m in context.members:
                     collection = context.member_collections.get(m.name, "unknown")
@@ -2594,6 +2700,7 @@ else:
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -2661,10 +2768,28 @@ else:
 
     @ignore.command("add")
     @click.argument("pattern")
-    @click.option("--global", "global_", is_flag=True, help="Add to global .claudeignore (~/.claude-indexer/.claudeignore)")
-    @click.option("--project", "-p", type=click.Path(), help="Project directory (default: current directory)")
+    @click.option(
+        "--global",
+        "global_",
+        is_flag=True,
+        help="Add to global .claudeignore (~/.claude-indexer/.claudeignore)",
+    )
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(),
+        help="Project directory (default: current directory)",
+    )
     @common_options
-    def ignore_add(pattern: str, global_: bool, project: str, verbose: bool, quiet: bool, config: str) -> None:
+    def ignore_add(
+        pattern: str,
+        global_: bool,
+        project: str,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
+    ) -> None:
         """Add a pattern to .claudeignore file.
 
         Examples:
@@ -2673,7 +2798,6 @@ else:
             claude-indexer ignore add -p ./myproject "secrets/"
         """
         from pathlib import Path
-        import os
 
         if global_:
             ignore_dir = Path.home() / ".claude-indexer"
@@ -2689,8 +2813,12 @@ else:
             # Check if pattern already exists
             existing_patterns = []
             if ignore_file.exists():
-                with open(ignore_file, "r", encoding="utf-8") as f:
-                    existing_patterns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+                with open(ignore_file, encoding="utf-8") as f:
+                    existing_patterns = [
+                        line.strip()
+                        for line in f
+                        if line.strip() and not line.startswith("#")
+                    ]
 
             if pattern in existing_patterns:
                 if not quiet:
@@ -2701,7 +2829,7 @@ else:
             with open(ignore_file, "a", encoding="utf-8") as f:
                 if ignore_file.stat().st_size > 0:
                     # Check if file ends with newline
-                    with open(ignore_file, "r", encoding="utf-8") as rf:
+                    with open(ignore_file, encoding="utf-8") as rf:
                         content = rf.read()
                         if not content.endswith("\n"):
                             f.write("\n")
@@ -2717,10 +2845,28 @@ else:
 
     @ignore.command("list")
     @click.option("--global", "global_", is_flag=True, help="Show global patterns")
-    @click.option("--project", "-p", type=click.Path(), help="Project directory (default: current directory)")
-    @click.option("--all", "show_all", is_flag=True, help="Show all patterns (universal + global + project)")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(),
+        help="Project directory (default: current directory)",
+    )
+    @click.option(
+        "--all",
+        "show_all",
+        is_flag=True,
+        help="Show all patterns (universal + global + project)",
+    )
     @common_options
-    def ignore_list(global_: bool, project: str, show_all: bool, verbose: bool, quiet: bool, config: str) -> None:
+    def ignore_list(
+        global_: bool,
+        project: str,
+        show_all: bool,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
+    ) -> None:
         """List active ignore patterns with their sources.
 
         Examples:
@@ -2751,7 +2897,7 @@ else:
                 global_file = Path.home() / ".claude-indexer" / ".claudeignore"
                 if global_file.exists():
                     click.echo(f"Global patterns ({global_file}):")
-                    with open(global_file, "r", encoding="utf-8") as f:
+                    with open(global_file, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if line and not line.startswith("#"):
@@ -2762,7 +2908,7 @@ else:
                 project_file = project_path / ".claudeignore"
                 if project_file.exists():
                     click.echo(f"Project patterns ({project_file}):")
-                    with open(project_file, "r", encoding="utf-8") as f:
+                    with open(project_file, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if line and not line.startswith("#"):
@@ -2776,9 +2922,16 @@ else:
 
     @ignore.command("test")
     @click.argument("path")
-    @click.option("--project", "-p", type=click.Path(), help="Project directory (default: current directory)")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(),
+        help="Project directory (default: current directory)",
+    )
     @common_options
-    def ignore_test(path: str, project: str, verbose: bool, quiet: bool, config: str) -> None:
+    def ignore_test(
+        path: str, project: str, verbose: bool, quiet: bool, no_color: bool, config: str
+    ) -> None:
         """Test if a path would be ignored.
 
         Examples:
@@ -2807,11 +2960,26 @@ else:
             sys.exit(1)
 
     @ignore.command("init")
-    @click.option("--project", "-p", type=click.Path(), help="Project directory (default: current directory)")
+    @click.option(
+        "--project",
+        "-p",
+        type=click.Path(),
+        help="Project directory (default: current directory)",
+    )
     @click.option("--force", is_flag=True, help="Overwrite existing .claudeignore")
-    @click.option("--global", "global_", is_flag=True, help="Initialize global .claudeignore")
+    @click.option(
+        "--global", "global_", is_flag=True, help="Initialize global .claudeignore"
+    )
     @common_options
-    def ignore_init(project: str, force: bool, global_: bool, verbose: bool, quiet: bool, config: str) -> None:
+    def ignore_init(
+        project: str,
+        force: bool,
+        global_: bool,
+        verbose: bool,
+        quiet: bool,
+        no_color: bool,
+        config: str,
+    ) -> None:
         """Initialize .claudeignore from template.
 
         Creates a new .claudeignore file with recommended patterns for
@@ -2865,7 +3033,9 @@ else:
         help="Filter by result type (default: all)",
     )
     @common_options
-    def search(project, collection, query, limit, result_type, verbose, quiet, no_color, config):
+    def search(
+        project, collection, query, limit, result_type, verbose, quiet, no_color, config
+    ):
         """Search across code entities, relations, and chat conversations."""
 
         try:
@@ -2939,7 +3109,9 @@ else:
                         click.echo(f"   Type: {entity_type}")
 
                         if payload.get("metadata", {}).get("file_path"):
-                            click.echo(f"   File: {payload.get('metadata', {}).get('file_path')}")
+                            click.echo(
+                                f"   File: {payload.get('metadata', {}).get('file_path')}"
+                            )
 
                         if "observations" in payload:
                             obs = payload["observations"][:2]  # First 2 observations
@@ -3095,7 +3267,9 @@ else:
         default=1.0,
         help="Consider conversations inactive after N hours",
     )
-    def chat_index(project, collection, verbose, quiet, no_color, config, limit, inactive_hours):
+    def chat_index(
+        project, collection, verbose, quiet, no_color, config, limit, inactive_hours
+    ):
         """Index Claude Code chat history files for a project."""
         try:
             # Load configuration
@@ -3171,9 +3345,11 @@ else:
                             chat_id=conversation.summary_key,
                             chunk_type="chat_summary",
                             content=chat_content,
-                            timestamp=str(conversation.metadata.start_time)
-                            if hasattr(conversation.metadata, "start_time")
-                            else None,
+                            timestamp=(
+                                str(conversation.metadata.start_time)
+                                if hasattr(conversation.metadata, "start_time")
+                                else None
+                            ),
                         )
 
                         # Create vector point
@@ -3239,7 +3415,9 @@ else:
         default="markdown",
         help="Output format",
     )
-    def summarize(project, collection, verbose, quiet, no_color, config, output_dir, format):
+    def summarize(
+        project, collection, verbose, quiet, no_color, config, output_dir, format
+    ):
         """Generate summary files from indexed chat conversations."""
         try:
             # Load configuration
@@ -3378,7 +3556,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
     @click.option(
         "--limit", "-l", type=int, default=10, help="Maximum number of results"
     )
-    def chat_search(project, collection, verbose, quiet, no_color, config, query, limit):
+    def chat_search(
+        project, collection, verbose, quiet, no_color, config, query, limit
+    ):
         """Search indexed chat conversations by content."""
         try:
             # Load configuration and create components with persistent cache
@@ -3622,14 +3802,14 @@ Code Patterns: {", ".join(summary.code_patterns)}
             # Output based on format
             if output_format == "sarif":
                 exporter = SARIFExporter()
-                sarif_doc = exporter.export(
-                    result, Path(output) if output else None
-                )
+                sarif_doc = exporter.export(result, Path(output) if output else None)
                 if not output:
                     import json
+
                     click.echo(json.dumps(sarif_doc, indent=2))
             elif output_format == "json":
                 import json
+
                 output_data = result.to_dict()
                 if output:
                     with open(output, "w") as f:
@@ -3640,7 +3820,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 # CLI format
                 if not quiet:
                     click.echo()
-                    click.echo(f"📊 UI Quality Gate Results")
+                    click.echo("📊 UI Quality Gate Results")
                     click.echo(f"   Analysis time: {result.analysis_time_ms:.0f}ms")
                     click.echo(f"   Files analyzed: {result.files_analyzed}")
                     click.echo(f"   Cache hit rate: {result.cache_hit_rate:.1%}")
@@ -3693,8 +3873,12 @@ Code Patterns: {", ".join(summary.code_patterns)}
                     # Cleanup map
                     if result.cleanup_map:
                         cmap = result.cleanup_map
-                        click.echo(f"🧹 Cleanup Map ({cmap.total_baseline_issues} issues):")
-                        click.echo(f"   Estimated effort: {cmap.estimated_total_effort}")
+                        click.echo(
+                            f"🧹 Cleanup Map ({cmap.total_baseline_issues} issues):"
+                        )
+                        click.echo(
+                            f"   Estimated effort: {cmap.estimated_total_effort}"
+                        )
                         for item in cmap.items[:5]:
                             click.echo(
                                 f"   • [{item.rule_id}] {item.count} issues "
@@ -3717,6 +3901,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -3758,8 +3943,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
                     if baseline.rule_counts:
                         click.echo("   Rule counts:")
                         for rule_id, count in sorted(
-                            baseline.rule_counts.items(),
-                            key=lambda x: -x[1]
+                            baseline.rule_counts.items(), key=lambda x: -x[1]
                         ):
                             click.echo(f"      {rule_id}: {count}")
 
@@ -3778,7 +3962,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 result = runner.run()
 
                 if not quiet:
-                    click.echo(f"✅ Baseline updated with {result.total_findings} findings")
+                    click.echo(
+                        f"✅ Baseline updated with {result.total_findings} findings"
+                    )
 
             elif action == "reset":
                 baseline_manager.reset()
@@ -3792,6 +3978,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -3828,6 +4015,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         """
         try:
             import json as json_module
+
             from .ui.config import load_ui_config
             from .ui.metrics import MetricsAggregator, MetricsCollector
 
@@ -3845,22 +4033,36 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 click.echo("# UI Quality Metrics Dashboard\n")
                 click.echo("## Token Drift Reduction")
                 colors = summary["token_drift"]["colors"]
-                click.echo(f"- Unique hardcoded colors: {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction)")
-                click.echo(f"- Target: {colors['target']}% reduction | {'ON TRACK' if colors['on_track'] else 'NEEDS WORK'}")
+                click.echo(
+                    f"- Unique hardcoded colors: {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction)"
+                )
+                click.echo(
+                    f"- Target: {colors['target']}% reduction | {'ON TRACK' if colors['on_track'] else 'NEEDS WORK'}"
+                )
                 click.echo("\n## Deduplication Progress")
                 dedup = summary["deduplication"]
                 click.echo(f"- Current clusters: {dedup['current_clusters']}")
-                click.echo(f"- Resolved this month: {dedup['resolved_this_month']} | Target: {dedup['target']}")
+                click.echo(
+                    f"- Resolved this month: {dedup['resolved_this_month']} | Target: {dedup['target']}"
+                )
                 click.echo("\n## Quality Indicators")
-                click.echo(f"- Suppression rate: {summary['suppression_rate']['current']}%")
+                click.echo(
+                    f"- Suppression rate: {summary['suppression_rate']['current']}%"
+                )
                 click.echo(f"- Plan adoption: {summary['plan_adoption']['current']}%")
                 click.echo("\n## Performance (p95)")
-                for tier_name, tier_key in [("Tier 0", "tier_0"), ("Tier 1", "tier_1"), ("Tier 2", "tier_2")]:
+                for tier_name, tier_key in [
+                    ("Tier 0", "tier_0"),
+                    ("Tier 1", "tier_1"),
+                    ("Tier 2", "tier_2"),
+                ]:
                     perf = summary["performance"][tier_key]
                     p95 = perf.get("p95_ms", 0)
                     target = perf.get("target_p95_ms", 0)
                     on_track = perf.get("on_track", True)
-                    click.echo(f"- {tier_name}: {p95:.0f}ms | Target: <{target}ms | {'ON TRACK' if on_track else 'NEEDS WORK'}")
+                    click.echo(
+                        f"- {tier_name}: {p95:.0f}ms | Target: <{target}ms | {'ON TRACK' if on_track else 'NEEDS WORK'}"
+                    )
 
             else:  # cli format
                 click.echo("\nUI Quality Metrics Dashboard")
@@ -3871,7 +4073,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 click.echo("Token Drift Reduction")
                 colors = summary["token_drift"]["colors"]
                 status = "✅" if colors["on_track"] else "⚠️"
-                click.echo(f"  Unique hardcoded colors:  {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction) {status}")
+                click.echo(
+                    f"  Unique hardcoded colors:  {colors['baseline']} -> {colors['current']} ({colors['reduction_percent']}% reduction) {status}"
+                )
                 click.echo(f"  [TARGET: {colors['target']}%]")
                 click.echo()
 
@@ -3879,18 +4083,26 @@ Code Patterns: {", ".join(summary.code_patterns)}
                 click.echo("Deduplication Progress")
                 dedup = summary["deduplication"]
                 status = "✅" if dedup["on_track"] else "⚠️"
-                click.echo(f"  Duplicate clusters:       {dedup['current_clusters']} remaining")
-                click.echo(f"  Resolved this month:      {dedup['resolved_this_month']} [TARGET: {dedup['target']}] {status}")
+                click.echo(
+                    f"  Duplicate clusters:       {dedup['current_clusters']} remaining"
+                )
+                click.echo(
+                    f"  Resolved this month:      {dedup['resolved_this_month']} [TARGET: {dedup['target']}] {status}"
+                )
                 click.echo()
 
                 # Quality Indicators
                 click.echo("Quality Indicators")
                 supp = summary["suppression_rate"]
                 status = "✅" if supp["on_track"] else "⚠️"
-                click.echo(f"  Suppression rate:         {supp['current']}% [TARGET: <{supp['target_max']}%] {status}")
+                click.echo(
+                    f"  Suppression rate:         {supp['current']}% [TARGET: <{supp['target_max']}%] {status}"
+                )
                 adopt = summary["plan_adoption"]
                 status = "✅" if adopt["on_track"] else "⚠️"
-                click.echo(f"  /redesign plan adoption:  {adopt['current']}% [TARGET: >{adopt['target_min']}%] {status}")
+                click.echo(
+                    f"  /redesign plan adoption:  {adopt['current']}% [TARGET: >{adopt['target_min']}%] {status}"
+                )
                 click.echo()
 
                 # Performance
@@ -3914,16 +4126,24 @@ Code Patterns: {", ".join(summary.code_patterns)}
                         target_str = f"<{target / 60000:.0f}min"
                     else:
                         target_str = f"<{target}ms"
-                    click.echo(f"  {name:20}  {p95_str:>8} [TARGET: {target_str}] {status}")
+                    click.echo(
+                        f"  {name:20}  {p95_str:>8} [TARGET: {target_str}] {status}"
+                    )
                 click.echo()
 
                 # Overall status
-                all_on_track = all([
-                    colors["on_track"],
-                    dedup["on_track"],
-                    supp["on_track"],
-                    adopt["on_track"],
-                ] + [summary["performance"][t]["on_track"] for t in ["tier_0", "tier_1", "tier_2"]])
+                all_on_track = all(
+                    [
+                        colors["on_track"],
+                        dedup["on_track"],
+                        supp["on_track"],
+                        adopt["on_track"],
+                    ]
+                    + [
+                        summary["performance"][t]["on_track"]
+                        for t in ["tier_0", "tier_1", "tier_2"]
+                    ]
+                )
 
                 if all_on_track:
                     click.echo("✅ All targets ON TRACK")
@@ -3937,6 +4157,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -3958,10 +4179,18 @@ Code Patterns: {", ".join(summary.code_patterns)}
     @click.option(
         "--metric",
         "-m",
-        type=click.Choice([
-            "colors", "spacings", "clusters", "suppression",
-            "tier0_time", "tier1_time", "tier2_time", "findings"
-        ]),
+        type=click.Choice(
+            [
+                "colors",
+                "spacings",
+                "clusters",
+                "suppression",
+                "tier0_time",
+                "tier1_time",
+                "tier2_time",
+                "findings",
+            ]
+        ),
         default="colors",
         help="Metric to show trend for",
     )
@@ -3973,7 +4202,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Output format",
     )
     @common_options
-    def history_metrics(project, days, metric, output_format, verbose, quiet, no_color, config):
+    def history_metrics(
+        project, days, metric, output_format, verbose, quiet, no_color, config
+    ):
         """Show metrics history and trends.
 
         Examples:
@@ -3982,6 +4213,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         """
         try:
             import json as json_module
+
             from .ui.config import load_ui_config
             from .ui.metrics import MetricsAggregator, MetricsCollector
 
@@ -4023,6 +4255,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -4056,7 +4289,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
         help="Number of days to export (for CSV)",
     )
     @common_options
-    def export_metrics(project, output, output_format, days, verbose, quiet, no_color, config):
+    def export_metrics(
+        project, output, output_format, days, verbose, quiet, no_color, config
+    ):
         """Export metrics for CI dashboards.
 
         Examples:
@@ -4065,6 +4300,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         """
         try:
             import json as json_module
+
             from .ui.config import load_ui_config
             from .ui.metrics import MetricsAggregator, MetricsCollector
 
@@ -4101,6 +4337,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -4134,10 +4371,11 @@ Code Patterns: {", ".join(summary.code_patterns)}
             ui_config = load_ui_config(project_path)
             collector = MetricsCollector(project_path, ui_config)
 
-            if not confirm:
-                if not click.confirm("Are you sure you want to reset all metrics history?"):
-                    click.echo("Aborted")
-                    return
+            if not confirm and not click.confirm(
+                "Are you sure you want to reset all metrics history?"
+            ):
+                click.echo("Aborted")
+                return
 
             collector.reset()
             if not quiet:
@@ -4150,6 +4388,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 
@@ -4173,7 +4412,8 @@ Code Patterns: {", ".join(summary.code_patterns)}
 
     @perf.command("show")
     @click.option(
-        "--format", "output_format",
+        "--format",
+        "output_format",
         type=click.Choice(["table", "json"]),
         default="table",
         help="Output format",
@@ -4190,6 +4430,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             claude-indexer perf show --format json
         """
         import json as json_module
+
         from .performance import PerformanceMetricsCollector
 
         collector = PerformanceMetricsCollector()
@@ -4200,7 +4441,9 @@ Code Patterns: {", ".join(summary.code_patterns)}
         else:
             if not stats:
                 click.echo("No performance metrics collected yet.")
-                click.echo("\nMetrics are collected when CLAUDE_INDEXER_PROFILE=1 is set.")
+                click.echo(
+                    "\nMetrics are collected when CLAUDE_INDEXER_PROFILE=1 is set."
+                )
                 return
 
             click.echo("\n=== Performance Metrics ===\n")
@@ -4223,7 +4466,8 @@ Code Patterns: {", ".join(summary.code_patterns)}
 
     @perf.command("export")
     @click.option(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=click.Path(),
         default="performance_metrics.json",
         help="Output file path",
@@ -4241,6 +4485,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
         """
         import json as json_module
         import time
+
         from .performance import PerformanceMetricsCollector
 
         collector = PerformanceMetricsCollector()
@@ -4276,10 +4521,11 @@ Code Patterns: {", ".join(summary.code_patterns)}
         """
         from .performance import PerformanceMetricsCollector
 
-        if not confirm:
-            if not click.confirm("Are you sure you want to clear all performance metrics?"):
-                click.echo("Aborted")
-                return
+        if not confirm and not click.confirm(
+            "Are you sure you want to clear all performance metrics?"
+        ):
+            click.echo("Aborted")
+            return
 
         collector = PerformanceMetricsCollector()
         collector.clear()
@@ -4289,13 +4535,15 @@ Code Patterns: {", ".join(summary.code_patterns)}
 
     @perf.command("cache-stats")
     @click.option(
-        "--project", "-p",
+        "--project",
+        "-p",
         type=click.Path(exists=True),
         default=".",
         help="Project directory path",
     )
     @click.option(
-        "--collection", "-c",
+        "--collection",
+        "-c",
         help="Collection name",
     )
     @common_options
@@ -4309,19 +4557,20 @@ Code Patterns: {", ".join(summary.code_patterns)}
             claude-indexer perf cache-stats
             claude-indexer perf cache-stats -c my-collection
         """
-        import json as json_module
 
         try:
             project_path = Path(project).resolve()
             cfg = load_config(project_path, config)
             store = create_store_from_config(cfg)
 
-            if hasattr(store, 'get_query_cache_stats'):
+            if hasattr(store, "get_query_cache_stats"):
                 stats = store.get_query_cache_stats()
 
-                if not stats.get('enabled', False):
+                if not stats.get("enabled", False):
                     click.echo("Query cache is not enabled.")
-                    click.echo("\nTo enable, set enable_query_cache=True in storage configuration.")
+                    click.echo(
+                        "\nTo enable, set enable_query_cache=True in storage configuration."
+                    )
                     return
 
                 click.echo("\n=== Query Cache Statistics ===\n")
@@ -4340,6 +4589,7 @@ Code Patterns: {", ".join(summary.code_patterns)}
             click.echo(f"❌ Error: {e}", err=True)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 

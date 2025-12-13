@@ -7,14 +7,13 @@ SARIF Specification: https://docs.oasis-open.org/sarif/sarif/v2.1.0/
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..models import Finding, Severity, UIAnalysisResult
-
     from ..ci.audit_runner import CIAuditResult
+    from ..models import Finding, Severity, UIAnalysisResult
 
 
 @dataclass
@@ -23,9 +22,7 @@ class SARIFConfig:
 
     tool_name: str = "ui-consistency-guard"
     tool_version: str = "1.0.0"
-    tool_information_uri: str = (
-        "https://github.com/anthropics/claude-code-memory"
-    )
+    tool_information_uri: str = "https://github.com/anthropics/claude-code-memory"
     tool_organization: str = "Claude Code Memory"
     include_baseline: bool = False  # Whether to include baseline findings
     include_remediation: bool = True  # Whether to include fix suggestions
@@ -276,7 +273,7 @@ class SARIFExporter:
             SARIF document dictionary.
         """
         # Build rule definitions from unique rule IDs
-        rule_ids = list(set(f.rule_id for f in findings))
+        rule_ids = list({f.rule_id for f in findings})
         rules = self._build_rule_definitions(rule_ids)
 
         # Create rule index lookup

@@ -777,9 +777,7 @@ class JSONParser(TreeSitterParser):
             if not batch_callback:
                 # Only create placeholder chunk if not using callback (traditional mode)
                 chunk = EntityChunk(
-                    id=self._create_chunk_id(
-                        file_path, "no_content", "implementation"
-                    ),
+                    id=self._create_chunk_id(file_path, "no_content", "implementation"),
                     entity_name=str(file_path),
                     chunk_type="implementation",
                     content="Large JSON file with no extractable content items",

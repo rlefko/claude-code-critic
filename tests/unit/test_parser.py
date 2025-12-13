@@ -99,10 +99,12 @@ class TestPythonParser:
     def test_parse_simple_function(self, tmp_path):
         """Test parsing a simple function."""
         test_file = tmp_path / "simple.py"
-        test_file.write_text('''def hello():
+        test_file.write_text(
+            '''def hello():
     """Say hello."""
     return "Hello, World!"
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -126,7 +128,8 @@ class TestPythonParser:
     def test_parse_class_with_methods(self, tmp_path):
         """Test parsing a class with methods."""
         test_file = tmp_path / "class_test.py"
-        test_file.write_text('''class TestClass:
+        test_file.write_text(
+            '''class TestClass:
     """A test class."""
 
     def __init__(self):
@@ -136,7 +139,8 @@ class TestPythonParser:
     def method(self):
         """A method."""
         return True
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -187,14 +191,16 @@ class TestPythonParser:
     def test_parse_with_imports(self, tmp_path):
         """Test parsing file with imports."""
         test_file = tmp_path / "with_imports.py"
-        test_file.write_text('''import os
+        test_file.write_text(
+            '''import os
 from pathlib import Path
 import json as js
 
 def process_file(path):
     """Process a file."""
     return os.path.exists(path)
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -210,10 +216,12 @@ def process_file(path):
     def test_parse_syntax_error_handling(self, tmp_path):
         """Test handling of syntax errors."""
         test_file = tmp_path / "syntax_error.py"
-        test_file.write_text("""def broken_function(
+        test_file.write_text(
+            """def broken_function(
     # Intentional syntax error - missing closing parenthesis
     return "This won't parse"
-""")
+"""
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
@@ -237,9 +245,10 @@ def process_file(path):
         assert result.file_hash != ""  # Should have hash of empty content
 
     def test_parse_docstring_extraction(self, tmp_path):
-        """Test that docstrings are properly extracted."""
+        """Test that docstrings are properly extracted into observations."""
         test_file = tmp_path / "docstrings.py"
-        test_file.write_text('''"""Module docstring."""
+        test_file.write_text(
+            '''"""Module docstring."""
 
 def documented_function():
     """This function has a docstring."""
@@ -251,16 +260,28 @@ class DocumentedClass:
     def method_with_doc(self):
         """This method has a docstring."""
         pass
-''')
+'''
+        )
 
         parser = PythonParser(tmp_path)
         result = parser.parse(test_file)
 
         assert result.success
 
-        # Check that entities with docstrings are captured
-        documented_entities = [e for e in result.entities if e.docstring]
-        assert len(documented_entities) >= 1  # Should find entities with docstrings
+        # Check that docstrings are captured (either in docstring field or observations)
+        # Current implementation extracts docstrings into observations as "Purpose: ..."
+        entities_with_docstring_content = []
+        for e in result.entities:
+            # Check docstring field
+            if e.docstring or any(
+                "Purpose:" in obs or "docstring" in obs.lower()
+                for obs in e.observations
+            ):
+                entities_with_docstring_content.append(e)
+
+        assert (
+            len(entities_with_docstring_content) >= 1
+        )  # Should find entities with docstrings
 
 
 class TestMarkdownParser:
@@ -295,14 +316,16 @@ class TestMarkdownParser:
     def test_parse_simple_markdown(self, tmp_path):
         """Test parsing simple markdown content."""
         test_file = tmp_path / "simple.md"
-        test_file.write_text("""# Main Header
+        test_file.write_text(
+            """# Main Header
 
 Some content here.
 
 ## Second Header
 
 More content.
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)
@@ -328,9 +351,11 @@ More content.
         result = parser.parse(test_file)
 
         assert result.success
-        assert len(result.entities) >= 6  # File + multiple headers
+        # File entity + H1/H2 headers (parser only creates entities for level <= 2)
+        # Expected: FILE + Main Title(H1) + Section 1(H2) + Section 2(H2) = 4 entities
+        assert len(result.entities) >= 4
 
-        # Check header levels are captured
+        # Check header levels are captured (only H1 and H2 create entities)
         doc_entities = [
             e for e in result.entities if e.entity_type == EntityType.DOCUMENTATION
         ]
@@ -338,10 +363,10 @@ More content.
             e.metadata.get("header_level") for e in doc_entities if e.metadata
         ]
 
-        assert 1 in header_levels  # H1
-        assert 2 in header_levels  # H2
-        assert 3 in header_levels  # H3
-        assert 4 in header_levels  # H4
+        assert 1 in header_levels  # H1 - Main Title
+        assert 2 in header_levels  # H2 - Section 1, Section 2
+        # Note: H3 and H4 headers are captured in section content chunks,
+        # but don't create separate entities to reduce entity bloat
 
     def test_parse_empty_markdown(self, tmp_path):
         """Test parsing empty markdown file."""
@@ -357,7 +382,8 @@ More content.
     def test_parse_markdown_with_code_blocks(self, tmp_path):
         """Test parsing markdown with code blocks (should ignore code content)."""
         test_file = tmp_path / "with_code.md"
-        test_file.write_text("""# Documentation
+        test_file.write_text(
+            """# Documentation
 
 Some text here.
 
@@ -369,7 +395,8 @@ def code_function():
 ## Another Section
 
 More text.
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)
@@ -389,7 +416,8 @@ More text.
     def test_parse_malformed_headers(self, tmp_path):
         """Test handling of malformed headers."""
         test_file = tmp_path / "malformed.md"
-        test_file.write_text("""# Valid Header
+        test_file.write_text(
+            """# Valid Header
 
 ## Another Valid Header
 
@@ -400,7 +428,8 @@ More text.
 #####
 
 Regular text with # that's not a header
-""")
+"""
+        )
 
         parser = MarkdownParser()
         result = parser.parse(test_file)
@@ -443,7 +472,7 @@ class TestParserRegistry:
         assert isinstance(md_parser, MarkdownParser)
 
         # Unsupported files should return None
-        no_parser = registry.get_parser_for_file(Path("test.txt"))
+        no_parser = registry.get_parser_for_file(Path("test.xyz"))
         assert no_parser is None
 
     def test_parse_file_with_registry(self, tmp_path):
@@ -477,12 +506,12 @@ class TestParserRegistry:
         """Test parsing unsupported file type."""
         registry = ParserRegistry(tmp_path)
 
-        # Create unsupported file
-        txt_file = tmp_path / "test.txt"
-        txt_file.write_text("Just plain text")
+        # Create unsupported file (use .xyz which has no parser)
+        unsupported_file = tmp_path / "test.xyz"
+        unsupported_file.write_text("Just plain text")
 
         # Should return error result
-        result = registry.parse_file(txt_file)
+        result = registry.parse_file(unsupported_file)
         assert not result.success
         assert len(result.errors) > 0
         assert "No parser available" in result.errors[0]

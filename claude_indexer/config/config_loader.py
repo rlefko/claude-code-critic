@@ -15,10 +15,16 @@ logger = get_logger()
 class ConfigLoader:
     """Unified configuration loader with project-level support."""
 
-    def __init__(self, project_path: Path | None = None):
+    def __init__(
+        self,
+        project_path: Path | None = None,
+        settings_file_override: Path | None = None,
+    ):
         self.project_path = Path(project_path) if project_path else Path.cwd()
         self.project_manager = ProjectConfigManager(self.project_path)
         self._merged_config: Any | None = None
+        # Optional explicit settings file that replaces global settings.txt
+        self._settings_file_override = settings_file_override
 
     def load(self, **overrides: Any) -> IndexerConfig:
         """Load unified configuration from all sources.
@@ -27,13 +33,17 @@ class ConfigLoader:
         1. Explicit overrides
         2. Environment variables
         3. Project config (.claude-indexer/config.json)
-        4. Global settings.txt
+        4. Settings file (explicit override or global settings.txt)
         5. Defaults
         """
         config_dict = {}
 
-        # 1. Load global settings.txt
-        settings_file = Path(__file__).parent.parent.parent / "settings.txt"
+        # 1. Load settings file (explicit override or global settings.txt)
+        if self._settings_file_override is not None:
+            settings_file = self._settings_file_override
+        else:
+            settings_file = Path(__file__).parent.parent.parent / "settings.txt"
+
         if settings_file.exists():
             legacy_settings = load_legacy_settings(settings_file)
             config_dict.update(legacy_settings)
@@ -165,8 +175,8 @@ def load_config(settings_file: Path | None = None, **overrides: Any) -> IndexerC
         if settings_file.is_dir():
             # It's a project directory
             project_path = settings_file
-        elif settings_file.name == "settings.txt" and settings_file.exists():
-            # It's an explicit settings file path
+        elif settings_file.is_file() or settings_file.suffix == ".txt":
+            # It's an explicit settings file path (includes test_settings.txt, etc.)
             explicit_settings_file = settings_file
             project_path = (
                 settings_file.parent
@@ -177,31 +187,10 @@ def load_config(settings_file: Path | None = None, **overrides: Any) -> IndexerC
             # Default behavior - treat as project directory
             project_path = settings_file
 
-    loader = ConfigLoader(project_path)
-
-    # If explicit settings file provided, override the default path
-    if explicit_settings_file:
-        # Temporarily modify the loader to use explicit settings file
-        original_load = loader.load
-
-        def custom_load(**overrides: Any) -> IndexerConfig:
-            config_dict = {}
-
-            # Load from explicit settings file
-            if explicit_settings_file.exists():
-                legacy_settings = load_legacy_settings(explicit_settings_file)
-                config_dict.update(legacy_settings)
-
-            # Continue with normal project + env + overrides flow
-            config = original_load(**overrides)
-
-            # Apply settings file to base config
-            for key, value in config_dict.items():
-                if hasattr(config, key):
-                    setattr(config, key, value)
-
-            return config
-
-        return custom_load(**overrides)
+    # Create loader with explicit settings file if provided
+    loader = ConfigLoader(
+        project_path=project_path,
+        settings_file_override=explicit_settings_file,
+    )
 
     return loader.load(**overrides)

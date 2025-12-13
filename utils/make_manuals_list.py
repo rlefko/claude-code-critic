@@ -94,7 +94,11 @@ async def find_all_manual_entries(collection_name: str) -> list[dict[str, Any]]:
                 # Use cleanup pipeline logic to detect manual entries
                 if is_manual_entry(payload):
                     # Exclude documentation types (as specified by user)
-                    entity_type = payload.get("metadata", {}).get("entity_type") or payload.get("entity_type") or payload.get("entityType", "")
+                    entity_type = (
+                        payload.get("metadata", {}).get("entity_type")
+                        or payload.get("entity_type")
+                        or payload.get("entityType", "")
+                    )
                     if entity_type == "documentation":
                         continue
 

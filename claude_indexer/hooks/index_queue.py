@@ -13,12 +13,11 @@ A background timer processes entries after a debounce delay.
 
 import json
 import logging
-import os
 import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, Callable, ClassVar
+from typing import Any, ClassVar
 
 logger = logging.getLogger(__name__)
 

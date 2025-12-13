@@ -7,7 +7,6 @@ guard system, including symbol references, fingerprints, and findings.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 
@@ -227,9 +226,7 @@ class LayoutBox:
     y: float
     width: float
     height: float
-    padding: dict[str, float] = field(
-        default_factory=dict
-    )  # top, right, bottom, left
+    padding: dict[str, float] = field(default_factory=dict)  # top, right, bottom, left
     margin: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

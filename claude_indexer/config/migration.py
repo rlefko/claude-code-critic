@@ -8,7 +8,7 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..indexer_logging import get_logger
 from .hierarchical_loader import ConfigPaths, HierarchicalConfigLoader
@@ -45,10 +45,10 @@ class MigrationResult:
         self,
         success: bool,
         message: str,
-        changes: Optional[list[str]] = None,
-        backup_path: Optional[str] = None,
-        validation_result: Optional[str] = None,
-        sources_used: Optional[list[str]] = None,
+        changes: list[str] | None = None,
+        backup_path: str | None = None,
+        validation_result: str | None = None,
+        sources_used: list[str] | None = None,
     ) -> None:
         self.success = success
         self.message = message
@@ -208,7 +208,7 @@ class ConfigMigration:
             )
 
         changes: list[str] = []
-        backup_path: Optional[str] = None
+        backup_path: str | None = None
 
         # Create backup
         if backup:
@@ -272,7 +272,9 @@ class ConfigMigration:
         # Validate new config
         validation = validate_config_file(new_config_path)
         if not validation.valid:
-            logger.warning(f"Migration completed but validation found issues:\n{validation}")
+            logger.warning(
+                f"Migration completed but validation found issues:\n{validation}"
+            )
 
         return MigrationResult(
             success=True,
@@ -341,7 +343,7 @@ class ConfigMigration:
                     f.write("\n")
                 f.write("\n".join(gitignore_entries))
 
-    def restore_backup(self, backup_timestamp: Optional[str] = None) -> MigrationResult:
+    def restore_backup(self, backup_timestamp: str | None = None) -> MigrationResult:
         """Restore configuration from backup.
 
         Args:
@@ -365,7 +367,7 @@ class ConfigMigration:
                 message="No backups found",
             )
 
-        backup_path: Optional[Path] = None
+        backup_path: Path | None = None
         if backup_timestamp:
             for b in backups:
                 if b.name == backup_timestamp:
@@ -455,7 +457,10 @@ def analyze_migration(project_path: str) -> dict[str, Any]:
 
 
 def perform_migration(
-    project_path: str, dry_run: bool = False, no_backup: bool = False, force: bool = False
+    project_path: str,
+    dry_run: bool = False,
+    no_backup: bool = False,
+    force: bool = False,
 ) -> dict[str, Any]:
     """Perform configuration migration.
 

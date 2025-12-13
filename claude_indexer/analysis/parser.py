@@ -1,7 +1,7 @@
 """Code parsing abstractions with Tree-sitter and Jedi integration."""
 
-import hashlib
 import copy
+import hashlib
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -187,7 +187,10 @@ class PythonParser(CodeParser):
         return [".py"]
 
     def parse(
-        self, file_path: Path, batch_callback: Any = None, global_entity_names: set[str] | None = None  # noqa: ARG002
+        self,
+        file_path: Path,
+        batch_callback: Any = None,
+        global_entity_names: set[str] | None = None,  # noqa: ARG002
     ) -> ParserResult:
         """Parse Python file using Tree-sitter and Jedi."""
         import time
@@ -323,7 +326,9 @@ class PythonParser(CodeParser):
 
         entities = []
 
-        def traverse_node(node: Any, depth: int = 0, parent_context: str | None = None) -> None:
+        def traverse_node(
+            node: Any, depth: int = 0, parent_context: str | None = None
+        ) -> None:
             entity_mapping = {
                 "function_definition": EntityType.FUNCTION,
                 "class_definition": EntityType.CLASS,
@@ -378,11 +383,12 @@ class PythonParser(CodeParser):
                 # that shouldn't be indexed as entities (e.g., 'e' from 'except ... as e:')
                 pass
 
-            elif node.type == "named_expression" and current_context != "function_definition":
+            elif (
+                node.type == "named_expression"
+                and current_context != "function_definition"
+            ):
                 # Extract walrus operator variables
-                walrus_variables = self._extract_variables_from_walrus(
-                    node, file_path
-                )
+                walrus_variables = self._extract_variables_from_walrus(node, file_path)
                 entities.extend(walrus_variables)
 
             # Recursively traverse children with context
@@ -556,7 +562,9 @@ class PythonParser(CodeParser):
         """Extract multiple variables from complex assignment patterns (tuple unpacking, etc.)."""
         variables: list[Entity] = []
 
-        def extract_identifiers_from_pattern(pattern_node: Any, line_number: int) -> list[str]:
+        def extract_identifiers_from_pattern(
+            pattern_node: Any, line_number: int
+        ) -> list[str]:
             """Recursively extract identifiers from pattern nodes."""
             extracted_names = []
 
@@ -638,11 +646,11 @@ class PythonParser(CodeParser):
 
         return variables
 
-# Note: Context manager variables are now properly excluded from indexing
+    # Note: Context manager variables are now properly excluded from indexing
     # as they are temporary local variables that shouldn't be indexed as entities
 
-# Note: Exception handler variables (e.g., 'e' from 'except ... as e:') are now
-# correctly excluded from indexing as they are temporary local variables
+    # Note: Exception handler variables (e.g., 'e' from 'except ... as e:') are now
+    # correctly excluded from indexing as they are temporary local variables
 
     def _extract_variables_from_walrus(
         self, node: "tree_sitter.Node", file_path: Path
@@ -733,7 +741,11 @@ class PythonParser(CodeParser):
                         # Get the module name before 'as'
                         for subchild in child.children:
                             if subchild.type == "dotted_name":
-                                module_name = subchild.text.decode("utf-8") if subchild.text else ""
+                                module_name = (
+                                    subchild.text.decode("utf-8")
+                                    if subchild.text
+                                    else ""
+                                )
                                 break
                     else:
                         module_name = child.text.decode("utf-8") if child.text else ""
@@ -766,14 +778,17 @@ class PythonParser(CodeParser):
                         and import_node.children[i + 1].type == "dotted_name"
                     ):
                         child_text = import_node.children[i + 1].text
-                        module_name = dots + (child_text.decode("utf-8") if child_text else "")
+                        module_name = dots + (
+                            child_text.decode("utf-8") if child_text else ""
+                        )
                     else:
                         module_name = dots
                     break
 
-            if module_name and (module_name.startswith(".") or self._is_internal_import(
-                module_name, file_path, project_root
-            )):
+            if module_name and (
+                module_name.startswith(".")
+                or self._is_internal_import(module_name, file_path, project_root)
+            ):
                 # Only create relations for relative imports or project-internal modules
                 relation = RelationFactory.create_imports_relation(
                     importer=file_name, imported=module_name, import_type="module"
@@ -850,7 +865,12 @@ class PythonParser(CodeParser):
             # Get ALL names including imports (definitions=True)
             names = script.get_names(all_scopes=True, definitions=True)
 
-            analysis: dict[str, list[Any]] = {"functions": [], "classes": [], "imports": [], "variables": []}
+            analysis: dict[str, list[Any]] = {
+                "functions": [],
+                "classes": [],
+                "imports": [],
+                "variables": [],
+            }
 
             # Also check for import statements directly
             import_names = set()
@@ -866,7 +886,24 @@ class PythonParser(CodeParser):
                     for part in parts:
                         module = part.strip().split(" as ")[0].strip()
                         # Filter out file modes that aren't real imports
-                        file_modes = {'r', 'w', 'a', 'x', 'b', 't', 'rb', 'wb', 'ab', 'rt', 'wt', 'at', 'r+', 'w+', 'a+', 'x+'}
+                        file_modes = {
+                            "r",
+                            "w",
+                            "a",
+                            "x",
+                            "b",
+                            "t",
+                            "rb",
+                            "wb",
+                            "ab",
+                            "rt",
+                            "wt",
+                            "at",
+                            "r+",
+                            "w+",
+                            "a+",
+                            "x+",
+                        }
                         if module not in file_modes and self._is_internal_import(
                             module, file_path, self.project_path
                         ):
@@ -878,7 +915,24 @@ class PythonParser(CodeParser):
                     if " import " in line:
                         module = line.split(" import ")[0][5:].strip()
                         # Filter out file modes that aren't real imports
-                        file_modes = {'r', 'w', 'a', 'x', 'b', 't', 'rb', 'wb', 'ab', 'rt', 'wt', 'at', 'r+', 'w+', 'a+', 'x+'}
+                        file_modes = {
+                            "r",
+                            "w",
+                            "a",
+                            "x",
+                            "b",
+                            "t",
+                            "rb",
+                            "wb",
+                            "ab",
+                            "rt",
+                            "wt",
+                            "at",
+                            "r+",
+                            "w+",
+                            "a+",
+                            "x+",
+                        }
                         if module not in file_modes and self._is_internal_import(
                             module, file_path, self.project_path
                         ):
@@ -895,9 +949,9 @@ class PythonParser(CodeParser):
                         {
                             "name": name.name,
                             "line": name.line,
-                            "docstring": name.docstring()
-                            if hasattr(name, "docstring")
-                            else None,
+                            "docstring": (
+                                name.docstring() if hasattr(name, "docstring") else None
+                            ),
                             "full_name": name.full_name,
                         }
                     )
@@ -906,9 +960,9 @@ class PythonParser(CodeParser):
                         {
                             "name": name.name,
                             "line": name.line,
-                            "docstring": name.docstring()
-                            if hasattr(name, "docstring")
-                            else None,
+                            "docstring": (
+                                name.docstring() if hasattr(name, "docstring") else None
+                            ),
                             "full_name": name.full_name,
                         }
                     )
@@ -928,14 +982,14 @@ class PythonParser(CodeParser):
     ) -> tuple[list["Entity"], list["Relation"]]:
         """Process Jedi analysis results - IMPORTS ONLY (entities handled by Tree-sitter)."""
 
-        entities: list[Entity] = []  # No entities from Jedi - Tree-sitter handles all entity creation
+        entities: list[Entity] = (
+            []
+        )  # No entities from Jedi - Tree-sitter handles all entity creation
         relations = []
 
         # Process ONLY imports from Jedi (better cross-module resolution)
         file_name = str(file_path)
-        (
-            self.project_path if hasattr(self, "project_path") else file_path.parent
-        )
+        (self.project_path if hasattr(self, "project_path") else file_path.parent)
 
         for imp in analysis["imports"]:
             module_name = imp["name"]
@@ -1082,7 +1136,9 @@ class PythonParser(CodeParser):
             except Exception:
                 # Fallback to basic analysis
                 semantic_metadata = {
-                    "calls": self._extract_function_calls_from_source(implementation, node.type),
+                    "calls": self._extract_function_calls_from_source(
+                        implementation, node.type
+                    ),
                     "imports_used": [],
                     "exceptions_handled": [],
                     "complexity": implementation.count("\n") + 1,  # Simple line count
@@ -1138,7 +1194,9 @@ class PythonParser(CodeParser):
         except Exception:
             return {}
 
-    def _extract_function_calls_from_source(self, source: str, node_type: str = "function") -> list[str]:
+    def _extract_function_calls_from_source(
+        self, source: str, node_type: str = "function"
+    ) -> list[str]:
         """Extract function calls from source code using regex."""
 
         # Split source into lines to filter out function definitions
@@ -1304,9 +1362,22 @@ class PythonParser(CodeParser):
                                     if file_ref:
                                         # Filter out file modes that shouldn't be relation targets
                                         file_modes = {
-                                            "r", "w", "a", "x", "b", "t",
-                                            "rb", "wb", "ab", "rt", "wt", "at",
-                                            "r+", "w+", "a+", "x+",
+                                            "r",
+                                            "w",
+                                            "a",
+                                            "x",
+                                            "b",
+                                            "t",
+                                            "rb",
+                                            "wb",
+                                            "ab",
+                                            "rt",
+                                            "wt",
+                                            "at",
+                                            "r+",
+                                            "w+",
+                                            "a+",
+                                            "x+",
                                         }
                                         if file_ref not in file_modes:
                                             relation = (
@@ -1333,7 +1404,11 @@ class PythonParser(CodeParser):
                     if func_node.type == "attribute":
                         attr_value = func_node.child_by_field_name("attribute")
                         if attr_value:
-                            method_name = "." + (attr_value.text.decode("utf-8") if attr_value.text else "")
+                            method_name = "." + (
+                                attr_value.text.decode("utf-8")
+                                if attr_value.text
+                                else ""
+                            )
                             if method_name in FILE_OPERATIONS:
                                 # For pandas DataFrame methods like .to_json(), .to_csv()
                                 for arg in args_node.children:
@@ -1342,19 +1417,30 @@ class PythonParser(CodeParser):
                                         if file_ref:
                                             # Filter out file modes that shouldn't be relation targets
                                             file_modes = {
-                                                "r", "w", "a", "x", "b", "t",
-                                                "rb", "wb", "ab", "rt", "wt", "at",
-                                                "r+", "w+", "a+", "x+",
+                                                "r",
+                                                "w",
+                                                "a",
+                                                "x",
+                                                "b",
+                                                "t",
+                                                "rb",
+                                                "wb",
+                                                "ab",
+                                                "rt",
+                                                "wt",
+                                                "at",
+                                                "r+",
+                                                "w+",
+                                                "a+",
+                                                "x+",
                                             }
                                             if file_ref not in file_modes:
-                                                relation = (
-                                                    RelationFactory.create_imports_relation(
-                                                        importer=str(file_path),
-                                                        imported=file_ref,
-                                                        import_type=FILE_OPERATIONS[
-                                                            method_name
-                                                        ],
-                                                    )
+                                                relation = RelationFactory.create_imports_relation(
+                                                    importer=str(file_path),
+                                                    imported=file_ref,
+                                                    import_type=FILE_OPERATIONS[
+                                                        method_name
+                                                    ],
                                                 )
                                                 relations.append(relation)
                                                 logger.debug(
@@ -1425,9 +1511,22 @@ class PythonParser(CodeParser):
                                                 if file_ref:
                                                     # Filter out file modes that shouldn't be relation targets
                                                     file_modes = {
-                                                        "r", "w", "a", "x", "b", "t",
-                                                        "rb", "wb", "ab", "rt", "wt", "at",
-                                                        "r+", "w+", "a+", "x+",
+                                                        "r",
+                                                        "w",
+                                                        "a",
+                                                        "x",
+                                                        "b",
+                                                        "t",
+                                                        "rb",
+                                                        "wb",
+                                                        "ab",
+                                                        "rt",
+                                                        "wt",
+                                                        "at",
+                                                        "r+",
+                                                        "w+",
+                                                        "a+",
+                                                        "x+",
                                                     }
                                                     if file_ref not in file_modes:
                                                         relation = RelationFactory.create_imports_relation(
@@ -1524,13 +1623,13 @@ class PythonParser(CodeParser):
 
 class MarkdownParser(CodeParser, TiktokenMixin):
     """Parser for Markdown documentation files with intelligent chunking."""
-    
+
     # Hardcoded optimal values for chunking
     TARGET_CHUNK_TOKENS = 800  # Target tokens per chunk
-    MAX_CHUNK_TOKENS = 1000   # Hard limit
-    OVERLAP_PERCENT = 0.125   # 12.5% overlap
-    MIN_CHUNK_TOKENS = 100    # Minimum viable chunk size
-    
+    MAX_CHUNK_TOKENS = 1000  # Hard limit
+    OVERLAP_PERCENT = 0.125  # 12.5% overlap
+    MIN_CHUNK_TOKENS = 100  # Minimum viable chunk size
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1554,15 +1653,16 @@ class MarkdownParser(CodeParser, TiktokenMixin):
 
             # Extract section content as implementation chunks first
             implementation_chunks = self._extract_section_content(file_path)
-            
-            
+
             result.implementation_chunks = implementation_chunks
 
             # Create file entity with has_implementation flag based on content chunks
             has_implementation = len(implementation_chunks) > 0
             file_entity = EntityFactory.create_file_entity(
-                file_path, content_type="documentation", parsing_method="markdown", 
-                has_implementation=has_implementation
+                file_path,
+                content_type="documentation",
+                parsing_method="markdown",
+                has_implementation=has_implementation,
             )
             result.entities.append(file_entity)
 
@@ -1646,33 +1746,36 @@ class MarkdownParser(CodeParser, TiktokenMixin):
         try:
             with open(file_path, encoding="utf-8") as f:
                 content = f.read()
-                lines = content.split("\n")
+                content.split("\n")
 
             # Parse markdown into structured sections
             sections = self._parse_markdown_sections(content, file_path)
-            
+
             # Apply intelligent chunking algorithm
             chunk_groups = self._create_intelligent_chunks(sections)
-            
+
             # Convert chunk groups to EntityChunks
             for chunk_group in chunk_groups:
-                impl_chunk, metadata_chunk = self._create_entity_chunks(chunk_group, file_path, content)
+                impl_chunk, metadata_chunk = self._create_entity_chunks(
+                    chunk_group, file_path, content
+                )
                 chunks.extend([impl_chunk, metadata_chunk])
 
         except Exception as e:
             # Graceful fallback - implementation chunks are optional
             from ..indexer_logging import get_logger
+
             logger = get_logger()
             logger.debug(f"Section content extraction failed for {file_path}: {e}")
 
         return chunks
-    
+
     def _parse_markdown_sections(self, content: str, file_path: Path) -> list[dict]:
         """Parse markdown into hierarchical sections with token counts."""
         sections = []
-        lines = content.split('\n')
+        lines = content.split("\n")
         header_stack = []  # Track parent hierarchy
-        
+
         # Find all headers
         headers = []
         for line_num, line in enumerate(lines):
@@ -1681,20 +1784,18 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 level = len(line) - len(line.lstrip("#"))
                 header_text = line.lstrip("#").strip()
                 if header_text:  # Accept all header levels now
-                    headers.append({
-                        "text": header_text,
-                        "level": level,
-                        "line_num": line_num
-                    })
-        
+                    headers.append(
+                        {"text": header_text, "level": level, "line_num": line_num}
+                    )
+
         # Forward-merge empty headers into next content sections
         for i, header in enumerate(headers):
             level = header["level"]
-            
+
             # Find section boundaries
             start_line = header["line_num"] + 1
             end_line = len(lines)
-            
+
             # Find next header - stop at same level, higher level, or immediate child
             for j in range(i + 1, len(headers)):
                 next_header = headers[j]
@@ -1705,20 +1806,23 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                         break
                 else:
                     # Other levels: end at same level, higher level, or immediate child (level+1)
-                    if next_header["level"] <= level or next_header["level"] == level + 1:
+                    if (
+                        next_header["level"] <= level
+                        or next_header["level"] == level + 1
+                    ):
                         end_line = next_header["line_num"]
                         break
-            
+
             # Extract section content
-            section_lines = lines[start_line:end_line]  
+            section_lines = lines[start_line:end_line]
             section_content = "\n".join(section_lines).strip()
-            
+
             # If empty, merge into next section with content
             if not section_content or len(section_content.strip()) <= 5:
                 # Find next section with content to merge into
                 for k in range(i + 1, len(headers)):
                     next_header = headers[k]
-                    
+
                     # Get next section's content
                     next_start = next_header["line_num"] + 1
                     next_end = len(lines)
@@ -1726,48 +1830,54 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                         if headers[m]["level"] <= next_header["level"]:
                             next_end = headers[m]["line_num"]
                             break
-                    
+
                     next_content = "\n".join(lines[next_start:next_end]).strip()
-                    
+
                     # If next section has content, merge this empty header into it
                     if next_content and len(next_content.strip()) > 5:
-                        headers[k]["merged_headers"] = headers[k].get("merged_headers", []) + [header["text"]]
+                        headers[k]["merged_headers"] = headers[k].get(
+                            "merged_headers", []
+                        ) + [header["text"]]
                         break
             else:
                 # Section has content - check if any empty headers should be merged into it
                 merged_header_texts = header.get("merged_headers", [])
-                
+
                 # Update hierarchy stack with merged headers included
-                header_stack = header_stack[:level-1] + [header["text"]]
-                
+                header_stack = header_stack[: level - 1] + [header["text"]]
+
                 # Create combined content if we have merged headers
                 display_header = header["text"]
                 if merged_header_texts:
                     # Include merged header names in display header only (don't duplicate in content)
-                    display_header = f"{header['text']} (+{len(merged_header_texts)} more)"
-                
+                    display_header = (
+                        f"{header['text']} (+{len(merged_header_texts)} more)"
+                    )
+
                 # Calculate tokens for this section (header + content)
                 full_section = f"{display_header}\n\n{section_content}"
                 tokens = self._estimate_tokens_with_tiktoken(full_section)
-                
-                sections.append({
-                    "header": display_header,
-                    "level": level,
-                    "content": section_content,
-                    "tokens": tokens,
-                    "line_start": start_line,
-                    "line_end": end_line,
-                    "parent_path": header_stack.copy(),
-                    "original_header_line": header["line_num"]
-                })
-        
+
+                sections.append(
+                    {
+                        "header": display_header,
+                        "level": level,
+                        "content": section_content,
+                        "tokens": tokens,
+                        "line_start": start_line,
+                        "line_end": end_line,
+                        "parent_path": header_stack.copy(),
+                        "original_header_line": header["line_num"],
+                    }
+                )
+
         return sections
-    
+
     def _create_intelligent_chunks(self, sections: list[dict]) -> list[list[dict]]:
         """Group sections intelligently into token-optimized chunks."""
         if not sections:
             return []
-            
+
         # First pass: handle oversized sections
         processed_sections = []
         for section in sections:
@@ -1777,36 +1887,47 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 processed_sections.extend(split_sections)
             else:
                 processed_sections.append(section)
-        
+
         # Second pass: aggressive grouping for optimal token utilization
         chunk_groups = []
         current_group = []
         current_tokens = 0
         current_parent = None
-        
+
         # Smart grouping: prefer individual sections when they're substantial enough
         MIN_SECTION_TOKENS = 100  # Increased from 20 to encourage more grouping
         AGGRESSIVE_TOKEN_BUDGET = int(self.MAX_CHUNK_TOKENS * 0.85)  # 850 tokens
         MAX_SECTIONS_PER_CHUNK = 10  # Increased from 8
-        
+
         for section in processed_sections:
-            parent_key = tuple(section["parent_path"][:-1]) if len(section["parent_path"]) > 1 else ()
-            
+            parent_key = (
+                tuple(section["parent_path"][:-1])
+                if len(section["parent_path"]) > 1
+                else ()
+            )
+
             # Smart grouping logic - respect section boundaries for substantial content
             is_substantial = section["tokens"] >= MIN_SECTION_TOKENS
-            would_exceed_budget = current_tokens + section["tokens"] > AGGRESSIVE_TOKEN_BUDGET
-            
+            would_exceed_budget = (
+                current_tokens + section["tokens"] > AGGRESSIVE_TOKEN_BUDGET
+            )
+
             can_group = (
-                not would_exceed_budget and
-                len(current_group) < MAX_SECTIONS_PER_CHUNK and
-                not (is_substantial and current_group) and  # Don't group substantial sections with others
-                (
-                    current_parent == parent_key or  # Same parent (preferred)
-                    (len(section["parent_path"]) <= 3 and len(current_group) < 6) or  # Allow deeper nesting
-                    len(current_group) < 3  # Always allow first few sections to group
+                not would_exceed_budget
+                and len(current_group) < MAX_SECTIONS_PER_CHUNK
+                and not (
+                    is_substantial and current_group
+                )  # Don't group substantial sections with others
+                and (
+                    current_parent == parent_key  # Same parent (preferred)
+                    or (
+                        len(section["parent_path"]) <= 3 and len(current_group) < 6
+                    )  # Allow deeper nesting
+                    or len(current_group)
+                    < 3  # Always allow first few sections to group
                 )
             )
-            
+
             if can_group and current_group:
                 current_group.append(section)
                 current_tokens += section["tokens"]
@@ -1817,50 +1938,54 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 current_group = [section]
                 current_tokens = section["tokens"]
                 current_parent = parent_key
-        
+
         # Add final group
         if current_group:
             chunk_groups.append(current_group)
-        
-        # Third pass: redistribute undersized chunks  
+
+        # Third pass: redistribute undersized chunks
         chunk_groups = self._redistribute_undersized_chunks(chunk_groups)
-        
+
         # Fourth pass: add overlap context
         return self._add_overlap_context(chunk_groups)
-    
+
     def _split_large_section(self, section: dict) -> list[dict]:
         """Split sections that exceed token limit at semantic boundaries."""
         content = section["content"]
-        
+
         # Try splitting by semantic boundaries
         boundaries = [
-            r'\n\n\n+',           # Multiple blank lines
-            r'\n\n(?=[A-Z])',     # Paragraph breaks  
-            r'\n(?=[-*+] |\d+\.)', # Before list items
-            r'(?<=\.)\s+(?=[A-Z])', # After sentences
-            r'\n(?=```)',         # Before code blocks
-            r'(?<=```)\n',        # After code blocks
+            r"\n\n\n+",  # Multiple blank lines
+            r"\n\n(?=[A-Z])",  # Paragraph breaks
+            r"\n(?=[-*+] |\d+\.)",  # Before list items
+            r"(?<=\.)\s+(?=[A-Z])",  # After sentences
+            r"\n(?=```)",  # Before code blocks
+            r"(?<=```)\n",  # After code blocks
         ]
-        
+
         parts = [content]
         for pattern in boundaries:
             new_parts = []
             for part in parts:
-                part_tokens = self._estimate_tokens_with_tiktoken(f"{section['header']}\n\n{part}")
+                part_tokens = self._estimate_tokens_with_tiktoken(
+                    f"{section['header']}\n\n{part}"
+                )
                 if part_tokens > self.MAX_CHUNK_TOKENS:
                     splits = re.split(pattern, part)
                     new_parts.extend([s.strip() for s in splits if s.strip()])
                 else:
                     new_parts.append(part)
             parts = new_parts
-        
+
         # Create section objects for each part
         result_sections = []
         for i, part in enumerate(parts):
             if not part.strip():
                 continue
-                
-            part_tokens = self._estimate_tokens_with_tiktoken(f"{section['header']}\n\n{part}")
+
+            part_tokens = self._estimate_tokens_with_tiktoken(
+                f"{section['header']}\n\n{part}"
+            )
             if part_tokens < self.MIN_CHUNK_TOKENS and i > 0:
                 # Merge small parts with previous
                 if result_sections:
@@ -1869,160 +1994,174 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                         f"{section['header']}\n\n{result_sections[-1]['content']}"
                     )
                 continue
-            
+
             chunk_name = section["header"]
             if len(parts) > 1:
                 chunk_name += f" (Part {i + 1})"
-            
-            result_sections.append({
-                **section,
-                "header": chunk_name,
-                "content": part,
-                "tokens": part_tokens
-            })
-        
+
+            result_sections.append(
+                {
+                    **section,
+                    "header": chunk_name,
+                    "content": part,
+                    "tokens": part_tokens,
+                }
+            )
+
         return result_sections
-    
-    def _redistribute_undersized_chunks(self, chunk_groups: list[list[dict]]) -> list[list[dict]]:
+
+    def _redistribute_undersized_chunks(
+        self, chunk_groups: list[list[dict]]
+    ) -> list[list[dict]]:
         """Redistribute sections from undersized chunks to meet minimum token requirements."""
         if len(chunk_groups) <= 1:
             return chunk_groups
-        
+
         MIN_CHUNK_TOKENS = 600  # Target minimum
         redistributed_groups = []
-        
+
         i = 0
         while i < len(chunk_groups):
             current_group = chunk_groups[i]
             current_tokens = sum(section["tokens"] for section in current_group)
-            
+
             # If chunk is undersized, try to merge with adjacent chunks
             if current_tokens < MIN_CHUNK_TOKENS:
                 merged = False
-                
+
                 # First try merging with next chunk (if available)
                 if i < len(chunk_groups) - 1:
                     next_group = chunk_groups[i + 1]
                     next_tokens = sum(section["tokens"] for section in next_group)
                     combined_tokens = current_tokens + next_tokens
-                    
-                    if (combined_tokens <= self.MAX_CHUNK_TOKENS and 
-                        len(current_group) + len(next_group) <= 8):
-                        
+
+                    if (
+                        combined_tokens <= self.MAX_CHUNK_TOKENS
+                        and len(current_group) + len(next_group) <= 8
+                    ):
+
                         # Merge current undersized chunk with next
                         merged_group = current_group + next_group
                         redistributed_groups.append(merged_group)
                         i += 2  # Skip the next group since we merged it
                         merged = True
-                
+
                 # If no next merge, try merging with previous group
                 if not merged and len(redistributed_groups) > 0:
                     prev_group = redistributed_groups[-1]
                     prev_tokens = sum(section["tokens"] for section in prev_group)
                     combined_tokens = prev_tokens + current_tokens
-                    
-                    if (combined_tokens <= self.MAX_CHUNK_TOKENS and 
-                        len(prev_group) + len(current_group) <= 8):
-                        
+
+                    if (
+                        combined_tokens <= self.MAX_CHUNK_TOKENS
+                        and len(prev_group) + len(current_group) <= 8
+                    ):
+
                         # Merge with previous group
                         redistributed_groups[-1] = prev_group + current_group
                         i += 1
                         merged = True
-                
+
                 if merged:
                     continue
-            
+
             # Default: add current group as-is
             redistributed_groups.append(current_group)
             i += 1
-        
+
         return redistributed_groups
-    
+
     def _add_overlap_context(self, chunk_groups: list[list[dict]]) -> list[list[dict]]:
         """Add 12.5% overlap between adjacent chunks for context."""
         if len(chunk_groups) <= 1:
             return chunk_groups
-        
+
         # Add overlap by including trailing content from previous chunk
         # and leading content preview in next chunk
         enhanced_groups = []
-        
+
         for i, group in enumerate(chunk_groups):
             enhanced_group = copy.deepcopy(group)
-            
+
             # Add trailing context from previous chunk
             if i > 0:
-                prev_group = enhanced_groups[i-1]
+                prev_group = enhanced_groups[i - 1]
                 # Get last section content from previous chunk
                 if prev_group:
                     last_section = prev_group[-1]
                     clean_content = self._extract_clean_content(last_section["content"])
-                    overlap_content = clean_content[-200:] if len(clean_content) > 200 else clean_content
-                    
+                    overlap_content = (
+                        clean_content[-200:]
+                        if len(clean_content) > 200
+                        else clean_content
+                    )
+
                     # Append overlap context after main content to preserve header-content relationship
                     if enhanced_group:
                         enhanced_group[0] = {
                             **enhanced_group[0],
                             "content": f"{enhanced_group[0]['content']}\n\n[Previous context: ...{overlap_content}]",
-                            "has_overlap": True
+                            "has_overlap": True,
                         }
-            
+
             enhanced_groups.append(enhanced_group)
-        
+
         return enhanced_groups
-    
+
     def _extract_clean_content(self, content: str) -> str:
         """Extract clean content by removing existing overlap markers to prevent cascading."""
         if not content:
             return content
-    
+
         # If no overlap markers, return as-is
-        if '[...' not in content:
+        if "[..." not in content:
             return content
-    
+
         original_content = content
-    
+
         # Split by paragraphs and find the first clean section
-        parts = content.split('\n\n')
+        parts = content.split("\n\n")
         for part in parts:
             part = part.strip()
-            if part and not part.startswith('[...'):
+            if part and not part.startswith("[..."):
                 return part
-    
+
         # Fallback: more conservative regex cleanup
         # Only remove overlap markers that are clearly at the beginning of content
-        lines = content.split('\n')
+        lines = content.split("\n")
         clean_lines = []
-    
+
         for line in lines:
             line = line.strip()
             # Skip lines that are clearly overlap markers
-            if line.startswith('[...') and line.endswith(']'):
+            if line.startswith("[...") and line.endswith("]"):
                 continue
             # Keep everything else
             clean_lines.append(line)
-    
-        cleaned = '\n'.join(clean_lines).strip()
-    
+
+        cleaned = "\n".join(clean_lines).strip()
+
         # CRITICAL: If cleaning resulted in empty content, return original
         # This prevents data loss when entire content looks like overlap
         if not cleaned and original_content:
             return original_content
-    
+
         return cleaned if cleaned else original_content
 
-    def _create_entity_chunks(self, section_group: list[dict], file_path: Path, source_content: str) -> tuple["EntityChunk", "EntityChunk"]:
+    def _create_entity_chunks(
+        self, section_group: list[dict], file_path: Path, source_content: str
+    ) -> tuple["EntityChunk", "EntityChunk"]:
         """Create implementation and metadata chunks from section group."""
         import hashlib
-        
+
         # Combine all sections in group
         combined_content = []
         combined_headers = []
         total_tokens = 0
-        start_line = float('inf')
+        start_line = float("inf")
         end_line = 0
         first_header_line = None
-        
+
         for section in section_group:
             combined_headers.append(section["header"])
             # For grouped entities, include headers to match source exactly
@@ -2030,16 +2169,20 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 # Add header with appropriate level markers
                 header_level = section.get("level", 1)
                 header_prefix = "#" * header_level
-                combined_content.append(f"{header_prefix} {section['header']}\n\n{section['content']}")
+                combined_content.append(
+                    f"{header_prefix} {section['header']}\n\n{section['content']}"
+                )
             else:
-                combined_content.append(section['content'])
+                combined_content.append(section["content"])
             total_tokens += section["tokens"]
             # For grouped entities that include headers, use header line for start_line
             if len(section_group) > 1:
                 # Use header line for first section, content line for others
                 if first_header_line is None:
                     header_line = section.get("original_header_line")
-                    if header_line is not None:  # Check for None specifically since 0 is valid
+                    if (
+                        header_line is not None
+                    ):  # Check for None specifically since 0 is valid
                         # Convert 0-based to 1-based line number
                         start_line = min(start_line, header_line + 1)
                         first_header_line = header_line + 1
@@ -2050,27 +2193,31 @@ class MarkdownParser(CodeParser, TiktokenMixin):
             else:
                 start_line = min(start_line, section["line_start"])
             end_line = max(end_line, section["line_end"])
-        
+
         # Create chunk name
         if len(section_group) == 1:
             chunk_name = section_group[0]["header"]
         else:
             chunk_name = f"{section_group[0]['header']} (+{len(section_group)-1} more)"
-        
+
         full_content = "\n\n".join(combined_content)
-        
+
         # For grouped entities that span to the end of file, preserve trailing newline
-        if len(section_group) > 1 and end_line >= len(source_content.split('\n')):
+        if len(section_group) > 1 and end_line >= len(source_content.split("\n")):
             # Check if source file ends with newline and preserve it
-            if source_content.endswith('\n') and not full_content.endswith('\n'):
-                full_content += '\n'
-        
+            if source_content.endswith("\n") and not full_content.endswith("\n"):
+                full_content += "\n"
+
         # Create implementation chunk
-        unique_content = f"{str(file_path)}::{chunk_name}::documentation::{start_line}::{end_line}"
+        unique_content = (
+            f"{str(file_path)}::{chunk_name}::documentation::{start_line}::{end_line}"
+        )
         unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[:8]
-        impl_base_id = self._create_chunk_id(file_path, chunk_name, "implementation", "documentation")
+        impl_base_id = self._create_chunk_id(
+            file_path, chunk_name, "implementation", "documentation"
+        )
         impl_id = f"{impl_base_id}::{unique_hash}"
-        
+
         impl_chunk = EntityChunk(
             id=impl_id,
             entity_name=chunk_name,
@@ -2085,35 +2232,44 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 "content_length": len(full_content),
                 "token_count": total_tokens,
                 "section_count": len(section_group),
-                "headers": combined_headers
+                "headers": combined_headers,
             },
         )
-        
+
         # Create metadata chunk for fast discovery
-        preview = full_content[:300] + "..." if len(full_content) > 300 else full_content
+        preview = (
+            full_content[:300] + "..." if len(full_content) > 300 else full_content
+        )
         line_count = full_content.count("\n") + 1
         word_count = len(full_content.split())
-        
+
         metadata_content = f"Sections: {', '.join(combined_headers)} | Tokens: {total_tokens} | Preview: {preview} | Lines: {line_count} | Words: {word_count}"
-        
+
         # Generate BM25-optimized content for markdown entities
         # Create a temporary entity for BM25 formatting
         temp_entity = Entity(
             name=chunk_name,
             entity_type=EntityType.DOCUMENTATION,
-            observations=[f"Documentation section: {', '.join(combined_headers)}", f"File: {file_path.name}"],
+            observations=[
+                f"Documentation section: {', '.join(combined_headers)}",
+                f"File: {file_path.name}",
+            ],
             file_path=file_path,
-            line_number=int(start_line)
+            line_number=int(start_line),
         )
-        
+
         # Generate BM25 content using the same formatter as other entities
         bm25_content = EntityChunk._format_bm25_content(temp_entity, [metadata_content])
-        
-        metadata_unique_content = f"{str(file_path)}::{chunk_name}::documentation::metadata::{start_line}"
+
+        metadata_unique_content = (
+            f"{str(file_path)}::{chunk_name}::documentation::metadata::{start_line}"
+        )
         metadata_hash = hashlib.md5(metadata_unique_content.encode()).hexdigest()[:8]
-        metadata_base_id = self._create_chunk_id(file_path, chunk_name, "metadata", "documentation")
+        metadata_base_id = self._create_chunk_id(
+            file_path, chunk_name, "metadata", "documentation"
+        )
         metadata_id = f"{metadata_base_id}::{metadata_hash}"
-        
+
         metadata_chunk = EntityChunk(
             id=metadata_id,
             entity_name=chunk_name,
@@ -2134,7 +2290,7 @@ class MarkdownParser(CodeParser, TiktokenMixin):
                 "content_bm25": bm25_content,  # Add BM25-optimized content
             },
         )
-        
+
         return impl_chunk, metadata_chunk
 
 
@@ -2144,7 +2300,9 @@ class ParserRegistry:
     def __init__(self, project_path: Path, parse_cache: Any = None):
         self.project_path = project_path
         self._parsers: list[CodeParser] = []
-        self._parse_cache = parse_cache  # Optional ParseResultCache for skipping re-parsing
+        self._parse_cache = (
+            parse_cache  # Optional ParseResultCache for skipping re-parsing
+        )
 
         # Load project config for parser initialization
         self.project_config = self._load_project_config()
@@ -2159,7 +2317,7 @@ class ParserRegistry:
             config_manager = ProjectConfigManager(self.project_path)
             if config_manager.exists:
                 config = config_manager.load()
-                return config.__dict__ if hasattr(config, '__dict__') else {}
+                return config.__dict__ if hasattr(config, "__dict__") else {}
             return {}
         except Exception as e:
             logger.debug(f"Failed to load project config: {e}")
@@ -2224,9 +2382,17 @@ class ParserRegistry:
                         json_parser_config = getattr(parser_config, "json", None)
                         if json_parser_config:
                             json_config = {
-                                "content_only": getattr(json_parser_config, "content_only", False),
-                                "max_content_items": getattr(json_parser_config, "max_content_items", 0),
-                                "special_files": getattr(json_parser_config, "special_files", ["package.json", "tsconfig.json", "composer.json"]),
+                                "content_only": getattr(
+                                    json_parser_config, "content_only", False
+                                ),
+                                "max_content_items": getattr(
+                                    json_parser_config, "max_content_items", 0
+                                ),
+                                "special_files": getattr(
+                                    json_parser_config,
+                                    "special_files",
+                                    ["package.json", "tsconfig.json", "composer.json"],
+                                ),
                             }
                 elif isinstance(indexing_config, dict):
                     # Pure dict-based config
@@ -2267,7 +2433,10 @@ class ParserRegistry:
         return None
 
     def parse_file(
-        self, file_path: Path, batch_callback: Any = None, global_entity_names: Any = None
+        self,
+        file_path: Path,
+        batch_callback: Any = None,
+        global_entity_names: Any = None,
     ) -> ParserResult:
         """Parse a file using the appropriate parser with optional caching."""
         parser = self.get_parser_for_file(file_path)
@@ -2283,6 +2452,7 @@ class ParserRegistry:
             try:
                 content = file_path.read_text(encoding="utf-8", errors="replace")
                 from .parse_cache import ParseResultCache
+
                 content_hash = ParseResultCache.compute_content_hash(content)
 
                 cached = self._parse_cache.get(content_hash)
@@ -2316,7 +2486,9 @@ class ParserRegistry:
 
         return result
 
-    def _reconstruct_result(self, cached: dict[str, Any], file_path: Path) -> ParserResult:
+    def _reconstruct_result(
+        self, cached: dict[str, Any], file_path: Path
+    ) -> ParserResult:
         """Reconstruct ParserResult from cached data."""
         from .models import Entity, EntityChunk, Relation
 

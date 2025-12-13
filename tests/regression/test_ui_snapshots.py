@@ -7,16 +7,16 @@ don't explode unexpectedly when code changes are made.
 
 import json
 from pathlib import Path
-from typing import Dict, Any
 
 import pytest
 
 # Import UI modules
 try:
-    from claude_indexer.ui.config import UIQualityConfig
-    from claude_indexer.ui.rules.engine import RuleEngine
     from claude_indexer.ui.ci.audit_runner import CIAuditRunner
-    from claude_indexer.ui.models import Finding, Severity
+    from claude_indexer.ui.config import UIQualityConfig
+    from claude_indexer.ui.models import Finding, Severity  # noqa: F401
+    from claude_indexer.ui.rules.engine import RuleEngine  # noqa: F401
+
     UI_MODULES_AVAILABLE = True
 except ImportError as e:
     UI_MODULES_AVAILABLE = False
@@ -29,7 +29,7 @@ SNAPSHOT_PATH = Path(__file__).parent / "snapshots"
 
 pytestmark = pytest.mark.skipif(
     not UI_MODULES_AVAILABLE,
-    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}"
+    reason=f"UI modules not available: {IMPORT_ERROR if not UI_MODULES_AVAILABLE else ''}",
 )
 
 
@@ -41,19 +41,16 @@ EXPECTED_COUNTS = {
     "SPACING.OFF_SCALE": {"min": 8, "max": 20},
     "RADIUS.OFF_SCALE": {"min": 3, "max": 10},
     "TYPOGRAPHY.OFF_SCALE": {"min": 5, "max": 15},
-
     # Duplication rules
     "STYLE.DUPLICATE_SET": {"min": 3, "max": 10},
     "STYLE.NEAR_DUPLICATE_SET": {"min": 2, "max": 8},
     "UTILITY.DUPLICATE_SEQUENCE": {"min": 5, "max": 15},
     "COMPONENT.DUPLICATE_CLUSTER": {"min": 2, "max": 6},
-
     # Inconsistency rules
     "ROLE.OUTLIER.BUTTON": {"min": 0, "max": 3},
     "ROLE.OUTLIER.INPUT": {"min": 0, "max": 3},
     "ROLE.OUTLIER.CARD": {"min": 0, "max": 3},
     "FOCUS.RING.INCONSISTENT": {"min": 1, "max": 4},
-
     # CSS smell rules
     "CSS.SPECIFICITY.ESCALATION": {"min": 5, "max": 15},
     "IMPORTANT.NEW_USAGE": {"min": 5, "max": 12},
@@ -101,13 +98,18 @@ class TestRuleFindingCounts:
         """Token drift rule counts should be within expected ranges."""
         results = audit_runner.run_audit()
 
-        for rule_id in ["COLOR.NON_TOKEN", "SPACING.OFF_SCALE", "RADIUS.OFF_SCALE", "TYPOGRAPHY.OFF_SCALE"]:
+        for rule_id in [
+            "COLOR.NON_TOKEN",
+            "SPACING.OFF_SCALE",
+            "RADIUS.OFF_SCALE",
+            "TYPOGRAPHY.OFF_SCALE",
+        ]:
             count = results.get_count_by_rule(rule_id)
             expected = EXPECTED_COUNTS.get(rule_id, {"min": 0, "max": 100})
 
-            assert expected["min"] <= count <= expected["max"], (
-                f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
-            )
+            assert (
+                expected["min"] <= count <= expected["max"]
+            ), f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
 
     def test_duplication_counts_in_range(
         self, fixture_path: Path, audit_runner: CIAuditRunner
@@ -124,9 +126,9 @@ class TestRuleFindingCounts:
             count = results.get_count_by_rule(rule_id)
             expected = EXPECTED_COUNTS.get(rule_id, {"min": 0, "max": 100})
 
-            assert expected["min"] <= count <= expected["max"], (
-                f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
-            )
+            assert (
+                expected["min"] <= count <= expected["max"]
+            ), f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
 
     def test_css_smell_counts_in_range(
         self, fixture_path: Path, audit_runner: CIAuditRunner
@@ -138,9 +140,9 @@ class TestRuleFindingCounts:
             count = results.get_count_by_rule(rule_id)
             expected = EXPECTED_COUNTS.get(rule_id, {"min": 0, "max": 100})
 
-            assert expected["min"] <= count <= expected["max"], (
-                f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
-            )
+            assert (
+                expected["min"] <= count <= expected["max"]
+            ), f"{rule_id}: expected {expected['min']}-{expected['max']} findings, got {count}"
 
 
 class TestSeverityDistribution:
@@ -179,12 +181,13 @@ class TestBaselineClassification:
         results = audit_runner.run_audit()
 
         legacy_findings = [
-            f for f in results.findings
-            if "legacy.css" in f.location.file_path
+            f for f in results.findings if "legacy.css" in f.location.file_path
         ]
 
         for finding in legacy_findings:
-            assert finding.is_baseline, f"Issue in legacy.css should be baseline: {finding}"
+            assert (
+                finding.is_baseline
+            ), f"Issue in legacy.css should be baseline: {finding}"
 
     def test_new_file_issues_not_baseline(
         self, fixture_path: Path, audit_runner: CIAuditRunner
@@ -193,12 +196,13 @@ class TestBaselineClassification:
         results = audit_runner.run_audit()
 
         input_legacy_findings = [
-            f for f in results.findings
-            if "InputLegacy.tsx" in f.location.file_path
+            f for f in results.findings if "InputLegacy.tsx" in f.location.file_path
         ]
 
         for finding in input_legacy_findings:
-            assert not finding.is_baseline, f"Issue in InputLegacy.tsx should NOT be baseline: {finding}"
+            assert (
+                not finding.is_baseline
+            ), f"Issue in InputLegacy.tsx should NOT be baseline: {finding}"
 
 
 class TestSnapshotComparison:
@@ -289,14 +293,15 @@ class TestRegressionPrevention:
 
         for file_name in canonical_files:
             findings = [
-                f for f in results.findings
+                f
+                for f in results.findings
                 if file_name in f.location.file_path and f.severity == Severity.FAIL
             ]
 
             # Allow minimal violations in canonical files
-            assert len(findings) <= 2, (
-                f"Canonical component {file_name} has too many FAIL findings: {len(findings)}"
-            )
+            assert (
+                len(findings) <= 2
+            ), f"Canonical component {file_name} has too many FAIL findings: {len(findings)}"
 
     def test_detection_accuracy_maintained(
         self, fixture_path: Path, audit_runner: CIAuditRunner
@@ -306,27 +311,35 @@ class TestRegressionPrevention:
 
         # InputLegacy.tsx should have COLOR.NON_TOKEN findings
         input_legacy_color = [
-            f for f in results.findings
+            f
+            for f in results.findings
             if "InputLegacy.tsx" in f.location.file_path
             and f.rule_id == "COLOR.NON_TOKEN"
         ]
-        assert len(input_legacy_color) >= 5, "InputLegacy.tsx should have 5+ color violations"
+        assert (
+            len(input_legacy_color) >= 5
+        ), "InputLegacy.tsx should have 5+ color violations"
 
         # overrides.css should have specificity issues
         overrides_specificity = [
-            f for f in results.findings
+            f
+            for f in results.findings
             if "overrides.css" in f.location.file_path
             and f.rule_id == "CSS.SPECIFICITY.ESCALATION"
         ]
-        assert len(overrides_specificity) >= 3, "overrides.css should have 3+ specificity issues"
+        assert (
+            len(overrides_specificity) >= 3
+        ), "overrides.css should have 3+ specificity issues"
 
         # utilities.scss should have duplicates
         utilities_duplicates = [
-            f for f in results.findings
-            if "utilities.scss" in f.location.file_path
-            and "DUPLICATE" in f.rule_id
+            f
+            for f in results.findings
+            if "utilities.scss" in f.location.file_path and "DUPLICATE" in f.rule_id
         ]
-        assert len(utilities_duplicates) >= 2, "utilities.scss should have 2+ duplicate issues"
+        assert (
+            len(utilities_duplicates) >= 2
+        ), "utilities.scss should have 2+ duplicate issues"
 
 
 class TestFindingStability:
@@ -339,27 +352,31 @@ class TestFindingStability:
         results1 = audit_runner.run_audit()
         results2 = audit_runner.run_audit()
 
-        assert len(results1.findings) == len(results2.findings), (
-            "Two consecutive runs should produce same number of findings"
-        )
+        assert len(results1.findings) == len(
+            results2.findings
+        ), "Two consecutive runs should produce same number of findings"
 
         # Sort findings for comparison
-        sorted1 = sorted(results1.findings, key=lambda f: (f.rule_id, f.location.file_path, f.location.line))
-        sorted2 = sorted(results2.findings, key=lambda f: (f.rule_id, f.location.file_path, f.location.line))
+        sorted1 = sorted(
+            results1.findings,
+            key=lambda f: (f.rule_id, f.location.file_path, f.location.line),
+        )
+        sorted2 = sorted(
+            results2.findings,
+            key=lambda f: (f.rule_id, f.location.file_path, f.location.line),
+        )
 
-        for f1, f2 in zip(sorted1, sorted2):
+        for f1, f2 in zip(sorted1, sorted2, strict=False):
             assert f1.rule_id == f2.rule_id
             assert f1.location.file_path == f2.location.file_path
             assert f1.severity == f2.severity
 
-    def test_no_phantom_findings(
-        self, fixture_path: Path, audit_runner: CIAuditRunner
-    ):
+    def test_no_phantom_findings(self, fixture_path: Path, audit_runner: CIAuditRunner):
         """Findings should reference real files and lines."""
         results = audit_runner.run_audit()
 
         for finding in results.findings:
             file_path = Path(finding.location.file_path)
-            assert file_path.exists() or fixture_path in file_path.parents, (
-                f"Finding references non-existent file: {finding.location.file_path}"
-            )
+            assert (
+                file_path.exists() or fixture_path in file_path.parents
+            ), f"Finding references non-existent file: {finding.location.file_path}"

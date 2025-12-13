@@ -1,7 +1,8 @@
 """Unit tests for element targeting strategy."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestUIRole:
@@ -236,7 +237,6 @@ class TestElementTargetingAsync:
         """Test element discovery with mock results."""
         from claude_indexer.ui.collectors.element_targeting import (
             ElementTargetingStrategy,
-            UIRole,
         )
 
         # Mock element
@@ -248,14 +248,16 @@ class TestElementTargetingAsync:
         # Mock page
         mock_page = AsyncMock()
         mock_page.query_selector_all = AsyncMock(return_value=[mock_element])
-        mock_page.locator = MagicMock(return_value=MagicMock(count=AsyncMock(return_value=1)))
+        mock_page.locator = MagicMock(
+            return_value=MagicMock(count=AsyncMock(return_value=1))
+        )
 
         strategy = ElementTargetingStrategy(
             roles=["button"],
             max_elements_per_role=10,
         )
 
-        elements = await strategy.discover_elements(mock_page)
+        await strategy.discover_elements(mock_page)
 
         # Should have discovered at least one button
         assert mock_page.query_selector_all.called

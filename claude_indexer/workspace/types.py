@@ -9,7 +9,7 @@ import hashlib
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class WorkspaceType(Enum):
@@ -61,9 +61,9 @@ class WorkspaceMember:
     path: Path
     relative_path: str
     is_root: bool = False
-    collection_override: Optional[str] = None
+    collection_override: str | None = None
     exclude_from_workspace: bool = False
-    custom_config: Optional[Dict[str, Any]] = None
+    custom_config: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Ensure path is a Path object."""
@@ -92,13 +92,13 @@ class WorkspaceConfig:
 
     workspace_type: WorkspaceType
     root_path: Path
-    members: List[WorkspaceMember] = field(default_factory=list)
+    members: list[WorkspaceMember] = field(default_factory=list)
     collection_strategy: CollectionStrategy = CollectionStrategy.SINGLE
-    collection_name: Optional[str] = None
+    collection_name: str | None = None
     collection_prefix: str = "claude"
-    include_patterns: Optional[List[str]] = None
-    exclude_patterns: Optional[List[str]] = None
-    workspace_file: Optional[Path] = None
+    include_patterns: list[str] | None = None
+    exclude_patterns: list[str] | None = None
+    workspace_file: Path | None = None
 
     def __post_init__(self):
         """Ensure path objects and derive collection name."""
@@ -127,9 +127,7 @@ class WorkspaceConfig:
 
         return f"{self.collection_prefix}_{sanitized}_{hash_suffix}"
 
-    def get_effective_collection(
-        self, member: Optional[WorkspaceMember] = None
-    ) -> str:
+    def get_effective_collection(self, member: WorkspaceMember | None = None) -> str:
         """Get collection name for a member or workspace.
 
         For SINGLE strategy, returns the workspace collection.
@@ -175,7 +173,7 @@ class WorkspaceConfig:
             WorkspaceType.TURBOREPO,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary.
 
         Returns:

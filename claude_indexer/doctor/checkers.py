@@ -3,7 +3,7 @@
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .types import CheckCategory, CheckResult, CheckStatus
 
@@ -19,7 +19,11 @@ def check_python_version() -> CheckResult:
             category=CheckCategory.PYTHON,
             status=CheckStatus.PASS,
             message=f"Python {version_str} (required: 3.10+)",
-            details={"version": version_str, "major": version.major, "minor": version.minor},
+            details={
+                "version": version_str,
+                "major": version.major,
+                "minor": version.minor,
+            },
         )
     else:
         return CheckResult(
@@ -28,7 +32,11 @@ def check_python_version() -> CheckResult:
             status=CheckStatus.FAIL,
             message=f"Python {version_str} is below minimum (required: 3.10+)",
             suggestion="Install Python 3.10+ from https://python.org",
-            details={"version": version_str, "major": version.major, "minor": version.minor},
+            details={
+                "version": version_str,
+                "major": version.major,
+                "minor": version.minor,
+            },
         )
 
 
@@ -67,7 +75,7 @@ def check_package_installed() -> CheckResult:
             )
 
 
-def check_qdrant_connection(config: Optional[Any] = None) -> CheckResult:
+def check_qdrant_connection(config: Any | None = None) -> CheckResult:
     """Check Qdrant database connectivity."""
     try:
         from qdrant_client import QdrantClient
@@ -150,7 +158,7 @@ def check_claude_cli() -> CheckResult:
         )
 
 
-def check_openai_key(config: Optional[Any] = None) -> CheckResult:
+def check_openai_key(config: Any | None = None) -> CheckResult:
     """Check if OpenAI API key is configured."""
     import os
 
@@ -170,7 +178,10 @@ def check_openai_key(config: Optional[Any] = None) -> CheckResult:
                 category=CheckCategory.API_KEYS,
                 status=CheckStatus.PASS,
                 message=f"OpenAI API key configured ({masked})",
-                details={"masked_key": masked, "source": "env" if os.environ.get("OPENAI_API_KEY") else "config"},
+                details={
+                    "masked_key": masked,
+                    "source": "env" if os.environ.get("OPENAI_API_KEY") else "config",
+                },
             )
         else:
             return CheckResult(
@@ -191,7 +202,7 @@ def check_openai_key(config: Optional[Any] = None) -> CheckResult:
         )
 
 
-def check_voyage_key(config: Optional[Any] = None) -> CheckResult:
+def check_voyage_key(config: Any | None = None) -> CheckResult:
     """Check if Voyage AI API key is configured."""
     import os
 
@@ -209,7 +220,10 @@ def check_voyage_key(config: Optional[Any] = None) -> CheckResult:
             category=CheckCategory.API_KEYS,
             status=CheckStatus.PASS,
             message=f"Voyage AI API key configured ({masked})",
-            details={"masked_key": masked, "source": "env" if os.environ.get("VOYAGE_API_KEY") else "config"},
+            details={
+                "masked_key": masked,
+                "source": "env" if os.environ.get("VOYAGE_API_KEY") else "config",
+            },
         )
     else:
         return CheckResult(
@@ -281,7 +295,7 @@ def check_project_initialized(project_path: Path) -> CheckResult:
         )
 
 
-def check_collection_exists(config: Optional[Any], collection_name: str) -> CheckResult:
+def check_collection_exists(config: Any | None, collection_name: str) -> CheckResult:
     """Check if the specified collection exists in Qdrant."""
     if not collection_name:
         return CheckResult(
@@ -319,7 +333,11 @@ def check_collection_exists(config: Optional[Any], collection_name: str) -> Chec
                 details={
                     "collection_name": collection_name,
                     "vector_count": vector_count,
-                    "status": collection_info.status.value if collection_info.status else "unknown",
+                    "status": (
+                        collection_info.status.value
+                        if collection_info.status
+                        else "unknown"
+                    ),
                 },
             )
         except Exception:
@@ -343,6 +361,6 @@ def check_collection_exists(config: Optional[Any], collection_name: str) -> Chec
             name="collection_exists",
             category=CheckCategory.PROJECT,
             status=CheckStatus.SKIP,
-            message=f"Cannot check collection (Qdrant unavailable)",
+            message="Cannot check collection (Qdrant unavailable)",
             details={"error": str(e)},
         )

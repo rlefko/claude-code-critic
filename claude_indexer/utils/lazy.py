@@ -17,8 +17,9 @@ Example usage:
 
 import functools
 import time
+from collections.abc import Callable
 from threading import Lock
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -148,6 +149,7 @@ def lazy_init(
         embedder1 = get_embedder()  # Calls create_embedder()
         embedder2 = get_embedder()  # Returns cached value
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         cache: dict[str, T] = {}
         lock = Lock()
@@ -226,6 +228,7 @@ class LazyModule:
             with self._lock:
                 if self._module is None:
                     import importlib
+
                     self._module = importlib.import_module(self._module_name)
         return self._module
 

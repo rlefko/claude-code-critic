@@ -13,8 +13,8 @@ Example usage:
     included = parser.filter_paths(all_files)
 """
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional, Union
 
 import pathspec
 
@@ -31,17 +31,17 @@ class ClaudeIgnoreParser:
     - Root-relative patterns starting with /
     """
 
-    def __init__(self, project_root: Union[Path, str]):
+    def __init__(self, project_root: Path | str):
         """Initialize parser for a project.
 
         Args:
             project_root: Path to the project root directory.
         """
         self.project_root = Path(project_root).resolve()
-        self._patterns: List[str] = []
-        self._spec: Optional[pathspec.PathSpec] = None
+        self._patterns: list[str] = []
+        self._spec: pathspec.PathSpec | None = None
 
-    def load_file(self, ignore_file: Union[Path, str]) -> int:
+    def load_file(self, ignore_file: Path | str) -> int:
         """Load patterns from a .claudeignore or .gitignore file.
 
         Args:
@@ -60,7 +60,7 @@ class ClaudeIgnoreParser:
         count_before = len(self._patterns)
 
         try:
-            with open(ignore_path, "r", encoding="utf-8") as f:
+            with open(ignore_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.rstrip("\n\r")
 
@@ -72,16 +72,17 @@ class ClaudeIgnoreParser:
 
                     self._patterns.append(stripped)
 
-        except (OSError, IOError) as e:
+        except OSError as e:
             # Log but don't fail - file may be temporarily unavailable
             import logging
+
             logging.getLogger(__name__).warning(f"Could not read {ignore_path}: {e}")
             return 0
 
         self._rebuild_spec()
         return len(self._patterns) - count_before
 
-    def add_patterns(self, patterns: List[str]) -> None:
+    def add_patterns(self, patterns: list[str]) -> None:
         """Add patterns programmatically.
 
         Args:
@@ -102,11 +103,10 @@ class ClaudeIgnoreParser:
 
         # Use gitwildmatch for proper gitignore semantics
         self._spec = pathspec.PathSpec.from_lines(
-            pathspec.patterns.GitWildMatchPattern,
-            self._patterns
+            pathspec.patterns.GitWildMatchPattern, self._patterns
         )
 
-    def matches(self, path: Union[Path, str]) -> bool:
+    def matches(self, path: Path | str) -> bool:
         """Check if a path should be ignored.
 
         Args:
@@ -133,7 +133,7 @@ class ClaudeIgnoreParser:
 
         return self._spec.match_file(path_str)
 
-    def filter_paths(self, paths: Iterable[Union[Path, str]]) -> List[Path]:
+    def filter_paths(self, paths: Iterable[Path | str]) -> list[Path]:
         """Filter a list of paths, returning only those NOT ignored.
 
         Args:
@@ -148,7 +148,7 @@ class ClaudeIgnoreParser:
                 result.append(Path(path) if not isinstance(path, Path) else path)
         return result
 
-    def get_matching_pattern(self, path: Union[Path, str]) -> Optional[str]:
+    def get_matching_pattern(self, path: Path | str) -> str | None:
         """Get the pattern that matches a path (for debugging).
 
         Args:
@@ -173,8 +173,7 @@ class ClaudeIgnoreParser:
         # Check each pattern individually to find the matching one
         for pattern in self._patterns:
             spec = pathspec.PathSpec.from_lines(
-                pathspec.patterns.GitWildMatchPattern,
-                [pattern]
+                pathspec.patterns.GitWildMatchPattern, [pattern]
             )
             if spec.match_file(path_str):
                 # For negation patterns, continue checking
@@ -185,7 +184,7 @@ class ClaudeIgnoreParser:
         return None
 
     @property
-    def patterns(self) -> List[str]:
+    def patterns(self) -> list[str]:
         """Return all loaded patterns."""
         return self._patterns.copy()
 

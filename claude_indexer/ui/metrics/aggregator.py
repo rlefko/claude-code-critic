@@ -67,7 +67,8 @@ class MetricsAggregator:
 
         # Filter snapshots to last 30 days
         recent_snapshots = [
-            s for s in self.report.snapshots
+            s
+            for s in self.report.snapshots
             if datetime.fromisoformat(s.timestamp) > cutoff
         ]
 
@@ -96,9 +97,7 @@ class MetricsAggregator:
         Returns:
             PerformancePercentiles for the tier.
         """
-        times = [
-            s.analysis_time_ms for s in self.report.snapshots if s.tier == tier
-        ]
+        times = [s.analysis_time_ms for s in self.report.snapshots if s.tier == tier]
 
         if not times:
             return PerformancePercentiles(tier=tier)
@@ -133,7 +132,8 @@ class MetricsAggregator:
 
         # Filter snapshots
         recent = [
-            s for s in self.report.snapshots
+            s
+            for s in self.report.snapshots
             if datetime.fromisoformat(s.timestamp) > cutoff
         ]
 
@@ -142,10 +142,12 @@ class MetricsAggregator:
         for snapshot in recent:
             value = self._get_metric_value(snapshot, metric)
             if value is not None:
-                trend_data.append({
-                    "timestamp": snapshot.timestamp,
-                    "value": value,
-                })
+                trend_data.append(
+                    {
+                        "timestamp": snapshot.timestamp,
+                        "value": value,
+                    }
+                )
 
         return trend_data
 
@@ -167,15 +169,9 @@ class MetricsAggregator:
                 + snapshot.near_duplicate_clusters_found
             ),
             "suppression": snapshot.suppression_rate * 100,
-            "tier0_time": (
-                snapshot.analysis_time_ms if snapshot.tier == 0 else None
-            ),
-            "tier1_time": (
-                snapshot.analysis_time_ms if snapshot.tier == 1 else None
-            ),
-            "tier2_time": (
-                snapshot.analysis_time_ms if snapshot.tier == 2 else None
-            ),
+            "tier0_time": (snapshot.analysis_time_ms if snapshot.tier == 0 else None),
+            "tier1_time": (snapshot.analysis_time_ms if snapshot.tier == 1 else None),
+            "tier2_time": (snapshot.analysis_time_ms if snapshot.tier == 2 else None),
             "findings": snapshot.total_findings,
             "new_findings": snapshot.new_findings,
         }
@@ -214,22 +210,17 @@ class MetricsAggregator:
             return self.calculate_color_reduction() >= targets.get(target_name, 50.0)
 
         elif target_name == "clusters_resolved_monthly":
-            return (
-                self.calculate_clusters_resolved_this_month()
-                >= targets.get(target_name, 10)
+            return self.calculate_clusters_resolved_this_month() >= targets.get(
+                target_name, 10
             )
 
         elif target_name == "suppression_rate_max":
-            return (
-                self.report.current_suppression_rate
-                <= targets.get(target_name, 0.05)
+            return self.report.current_suppression_rate <= targets.get(
+                target_name, 0.05
             )
 
         elif target_name == "plan_adoption_min":
-            return (
-                self.get_plan_adoption_rate()
-                >= targets.get(target_name, 0.70)
-            )
+            return self.get_plan_adoption_rate() >= targets.get(target_name, 0.70)
 
         elif target_name == "tier_0_p95_ms":
             return self.report.tier_0_percentiles.p95_ms <= targets.get(
@@ -254,10 +245,7 @@ class MetricsAggregator:
         Returns:
             Dict mapping target names to met status.
         """
-        return {
-            name: self.is_target_met(name)
-            for name in self.report.targets.keys()
-        }
+        return {name: self.is_target_met(name) for name in self.report.targets}
 
     def generate_summary(self) -> dict[str, Any]:
         """Generate comprehensive summary for dashboard/CLI.
@@ -355,12 +343,14 @@ class MetricsAggregator:
             (1, self.report.tier_1_percentiles),
             (2, self.report.tier_2_percentiles),
         ]:
-            lines.extend([
-                f"# HELP ui_quality_latency_p95_ms P95 latency for tier {tier_num}",
-                f"# TYPE ui_quality_latency_p95_ms gauge",
-                f'ui_quality_latency_p95_ms{{tier="{tier_num}"}} {percentiles.p95_ms}',
-                "",
-            ])
+            lines.extend(
+                [
+                    f"# HELP ui_quality_latency_p95_ms P95 latency for tier {tier_num}",
+                    "# TYPE ui_quality_latency_p95_ms gauge",
+                    f'ui_quality_latency_p95_ms{{tier="{tier_num}"}} {percentiles.p95_ms}',
+                    "",
+                ]
+            )
 
         return "\n".join(lines)
 

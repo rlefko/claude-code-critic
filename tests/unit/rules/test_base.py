@@ -1,17 +1,15 @@
 """Unit tests for claude_indexer.rules.base module."""
 
-import pytest
 from pathlib import Path
-from datetime import datetime
 
 from claude_indexer.rules.base import (
-    Severity,
-    Trigger,
+    BaseRule,
     DiffHunk,
     Evidence,
     Finding,
     RuleContext,
-    BaseRule,
+    Severity,
+    Trigger,
 )
 
 

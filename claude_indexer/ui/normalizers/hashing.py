@@ -7,7 +7,7 @@ efficiently find similar items even when they differ slightly.
 
 import hashlib
 import random
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def compute_simhash(features: Sequence[str], hash_bits: int = 64) -> str:
@@ -172,7 +172,7 @@ def minhash_similarity(sig1: list[int], sig2: list[int]) -> float:
     if not sig1:
         return 0.0
 
-    matches = sum(1 for a, b in zip(sig1, sig2) if a == b)
+    matches = sum(1 for a, b in zip(sig1, sig2, strict=False) if a == b)
     return matches / len(sig1)
 
 

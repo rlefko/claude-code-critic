@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..collectors.runtime import CrawlResult
     from ..collectors.pseudo_states import PseudoStateCapture
+    from ..collectors.runtime import CrawlResult
     from ..config import UIQualityConfig
     from ..models import RuntimeElementFingerprint
 
@@ -192,10 +192,7 @@ class AffordanceAnalyzer:
         default_bg = default_styles.get("background-color", "")
         focus_bg = focus_styles.get("background-color", "")
 
-        if focus_bg != default_bg:
-            return True
-
-        return False
+        return focus_bg != default_bg
 
     def _get_focus_ring_signature(self, focus_styles: dict[str, str]) -> str:
         """Get a signature for focus ring style for consistency checking."""
@@ -222,7 +219,7 @@ class AffordanceAnalyzer:
         metrics = FocusVisibilityMetrics()
 
         # Build lookup for pseudo states by selector
-        pseudo_by_selector: dict[str, "PseudoStateCapture"] = {}
+        pseudo_by_selector: dict[str, PseudoStateCapture] = {}
         if pseudo_states:
             for ps in pseudo_states:
                 pseudo_by_selector[ps.selector] = ps
@@ -249,12 +246,14 @@ class AffordanceAnalyzer:
                     metrics.focus_ring_variations[sig] += 1
                 else:
                     metrics.without_visible_focus += 1
-                    metrics.inconsistent_focus_styles.append({
-                        "element": fp.selector,
-                        "page": fp.page_id,
-                        "role": fp.role,
-                        "issue": "no_visible_focus",
-                    })
+                    metrics.inconsistent_focus_styles.append(
+                        {
+                            "element": fp.selector,
+                            "page": fp.page_id,
+                            "role": fp.role,
+                            "issue": "no_visible_focus",
+                        }
+                    )
             else:
                 # No pseudo state captured - can't verify focus
                 metrics.with_visible_focus += 1  # Assume good faith
@@ -286,18 +285,23 @@ class AffordanceAnalyzer:
                 width = fp.layout_box.width
                 height = fp.layout_box.height
 
-                if width >= self.MIN_TAP_TARGET_SIZE and height >= self.MIN_TAP_TARGET_SIZE:
+                if (
+                    width >= self.MIN_TAP_TARGET_SIZE
+                    and height >= self.MIN_TAP_TARGET_SIZE
+                ):
                     metrics.adequate_size += 1
                 else:
                     metrics.undersized += 1
-                    metrics.undersized_elements.append({
-                        "element": fp.selector,
-                        "page": fp.page_id,
-                        "role": fp.role,
-                        "width": width,
-                        "height": height,
-                        "minimum": self.MIN_TAP_TARGET_SIZE,
-                    })
+                    metrics.undersized_elements.append(
+                        {
+                            "element": fp.selector,
+                            "page": fp.page_id,
+                            "role": fp.role,
+                            "width": width,
+                            "height": height,
+                            "minimum": self.MIN_TAP_TARGET_SIZE,
+                        }
+                    )
             else:
                 # No layout box - assume adequate
                 metrics.adequate_size += 1
@@ -319,7 +323,7 @@ class AffordanceAnalyzer:
         metrics = FormLayoutMetrics()
 
         # Group elements by page for context analysis
-        by_page: dict[str, list["RuntimeElementFingerprint"]] = defaultdict(list)
+        by_page: dict[str, list[RuntimeElementFingerprint]] = defaultdict(list)
         for fp in fingerprints:
             by_page[fp.page_id].append(fp)
 
@@ -345,17 +349,21 @@ class AffordanceAnalyzer:
                     metrics.with_labels += 1
                 elif has_placeholder:
                     metrics.with_placeholders_only += 1
-                    metrics.missing_labels.append({
-                        "element": inp.selector,
-                        "page": page_id,
-                        "issue": "placeholder_only",
-                    })
+                    metrics.missing_labels.append(
+                        {
+                            "element": inp.selector,
+                            "page": page_id,
+                            "issue": "placeholder_only",
+                        }
+                    )
                 else:
-                    metrics.missing_labels.append({
-                        "element": inp.selector,
-                        "page": page_id,
-                        "issue": "no_label",
-                    })
+                    metrics.missing_labels.append(
+                        {
+                            "element": inp.selector,
+                            "page": page_id,
+                            "issue": "no_label",
+                        }
+                    )
 
         return metrics
 
@@ -378,7 +386,7 @@ class AffordanceAnalyzer:
         metrics = FeedbackStateMetrics()
 
         # Build lookup for pseudo states
-        pseudo_by_selector: dict[str, "PseudoStateCapture"] = {}
+        pseudo_by_selector: dict[str, PseudoStateCapture] = {}
         if pseudo_states:
             for ps in pseudo_states:
                 pseudo_by_selector[ps.selector] = ps
@@ -398,7 +406,7 @@ class AffordanceAnalyzer:
             if pseudo and pseudo.disabled_styles:
                 default_opacity = fp.computed_style_subset.get("opacity", "1")
                 disabled_opacity = pseudo.disabled_styles.get("opacity", "1")
-                default_cursor = fp.computed_style_subset.get("cursor", "")
+                fp.computed_style_subset.get("cursor", "")
                 disabled_cursor = pseudo.disabled_styles.get("cursor", "")
 
                 if (
@@ -420,7 +428,11 @@ class AffordanceAnalyzer:
             # Check for error state patterns
             color = fp.computed_style_subset.get("color", "")
             border_color = fp.computed_style_subset.get("border-color", "")
-            if "error" in fp.selector.lower() or "red" in color or "#f" in border_color.lower():
+            if (
+                "error" in fp.selector.lower()
+                or "red" in color
+                or "#f" in border_color.lower()
+            ):
                 metrics.with_error_state += 1
 
         return metrics
@@ -447,102 +459,107 @@ class AffordanceAnalyzer:
         focus_metrics = self.analyze_focus_visibility(fingerprints, pseudo_states)
         if focus_metrics.visibility_rate < 0.9:
             severity = (
-                Severity.FAIL
-                if focus_metrics.visibility_rate < 0.7
-                else Severity.WARN
+                Severity.FAIL if focus_metrics.visibility_rate < 0.7 else Severity.WARN
             )
-            critiques.append({
-                "category": "affordance",
-                "subcategory": "focus_visibility",
-                "severity": severity,
-                "title": "Missing Focus Indicators",
-                "description": (
-                    f"{focus_metrics.without_visible_focus} of "
-                    f"{focus_metrics.total_interactive} interactive elements "
-                    f"lack visible focus indicators. This impacts keyboard navigation."
-                ),
-                "evidence": focus_metrics.inconsistent_focus_styles[:10],
-                "metrics": focus_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "affordance",
+                    "subcategory": "focus_visibility",
+                    "severity": severity,
+                    "title": "Missing Focus Indicators",
+                    "description": (
+                        f"{focus_metrics.without_visible_focus} of "
+                        f"{focus_metrics.total_interactive} interactive elements "
+                        f"lack visible focus indicators. This impacts keyboard navigation."
+                    ),
+                    "evidence": focus_metrics.inconsistent_focus_styles[:10],
+                    "metrics": focus_metrics.to_dict(),
+                }
+            )
 
         # Check focus ring consistency
         if len(focus_metrics.focus_ring_variations) > 3:
-            critiques.append({
-                "category": "affordance",
-                "subcategory": "focus_consistency",
-                "severity": Severity.INFO,
-                "title": "Inconsistent Focus Ring Styles",
-                "description": (
-                    f"Found {len(focus_metrics.focus_ring_variations)} different focus ring styles. "
-                    "Consider standardizing focus indicators for consistency."
-                ),
-                "evidence": [],
-                "metrics": {"variations": focus_metrics.focus_ring_variations},
-            })
+            critiques.append(
+                {
+                    "category": "affordance",
+                    "subcategory": "focus_consistency",
+                    "severity": Severity.INFO,
+                    "title": "Inconsistent Focus Ring Styles",
+                    "description": (
+                        f"Found {len(focus_metrics.focus_ring_variations)} different focus ring styles. "
+                        "Consider standardizing focus indicators for consistency."
+                    ),
+                    "evidence": [],
+                    "metrics": {"variations": focus_metrics.focus_ring_variations},
+                }
+            )
 
         # 2. Tap target critique
         tap_metrics = self.analyze_tap_targets(fingerprints)
         if tap_metrics.undersized > 0:
             severity = (
-                Severity.WARN
-                if tap_metrics.compliance_rate >= 0.8
-                else Severity.FAIL
+                Severity.WARN if tap_metrics.compliance_rate >= 0.8 else Severity.FAIL
             )
-            critiques.append({
-                "category": "affordance",
-                "subcategory": "tap_targets",
-                "severity": severity,
-                "title": "Undersized Touch Targets",
-                "description": (
-                    f"{tap_metrics.undersized} interactive elements are smaller than "
-                    f"the minimum recommended size of {self.MIN_TAP_TARGET_SIZE}x"
-                    f"{self.MIN_TAP_TARGET_SIZE}px."
-                ),
-                "evidence": tap_metrics.undersized_elements[:10],
-                "metrics": tap_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "affordance",
+                    "subcategory": "tap_targets",
+                    "severity": severity,
+                    "title": "Undersized Touch Targets",
+                    "description": (
+                        f"{tap_metrics.undersized} interactive elements are smaller than "
+                        f"the minimum recommended size of {self.MIN_TAP_TARGET_SIZE}x"
+                        f"{self.MIN_TAP_TARGET_SIZE}px."
+                    ),
+                    "evidence": tap_metrics.undersized_elements[:10],
+                    "metrics": tap_metrics.to_dict(),
+                }
+            )
 
         # 3. Form layout critique
         form_metrics = self.analyze_form_layout(fingerprints)
         if form_metrics.label_coverage < 0.9:
             severity = (
-                Severity.FAIL
-                if form_metrics.label_coverage < 0.7
-                else Severity.WARN
+                Severity.FAIL if form_metrics.label_coverage < 0.7 else Severity.WARN
             )
-            critiques.append({
-                "category": "affordance",
-                "subcategory": "form_labels",
-                "severity": severity,
-                "title": "Missing Form Labels",
-                "description": (
-                    f"Only {form_metrics.label_coverage:.0%} of form inputs have proper labels. "
-                    f"{form_metrics.with_placeholders_only} inputs rely only on placeholders."
-                ),
-                "evidence": form_metrics.missing_labels[:10],
-                "metrics": form_metrics.to_dict(),
-            })
+            critiques.append(
+                {
+                    "category": "affordance",
+                    "subcategory": "form_labels",
+                    "severity": severity,
+                    "title": "Missing Form Labels",
+                    "description": (
+                        f"Only {form_metrics.label_coverage:.0%} of form inputs have proper labels. "
+                        f"{form_metrics.with_placeholders_only} inputs rely only on placeholders."
+                    ),
+                    "evidence": form_metrics.missing_labels[:10],
+                    "metrics": form_metrics.to_dict(),
+                }
+            )
 
         # 4. Feedback states critique
         feedback_metrics = self.analyze_feedback_states(fingerprints, pseudo_states)
         if feedback_metrics.components_analyzed > 0:
             disabled_coverage = (
-                feedback_metrics.with_disabled_state / feedback_metrics.components_analyzed
+                feedback_metrics.with_disabled_state
+                / feedback_metrics.components_analyzed
             )
             if disabled_coverage < 0.5:
-                critiques.append({
-                    "category": "affordance",
-                    "subcategory": "feedback_states",
-                    "severity": Severity.INFO,
-                    "title": "Limited Feedback States",
-                    "description": (
-                        f"Only {feedback_metrics.with_disabled_state} of "
-                        f"{feedback_metrics.components_analyzed} components have visible "
-                        "disabled states. Consider adding clear state feedback."
-                    ),
-                    "evidence": [],
-                    "metrics": feedback_metrics.to_dict(),
-                })
+                critiques.append(
+                    {
+                        "category": "affordance",
+                        "subcategory": "feedback_states",
+                        "severity": Severity.INFO,
+                        "title": "Limited Feedback States",
+                        "description": (
+                            f"Only {feedback_metrics.with_disabled_state} of "
+                            f"{feedback_metrics.components_analyzed} components have visible "
+                            "disabled states. Consider adding clear state feedback."
+                        ),
+                        "evidence": [],
+                        "metrics": feedback_metrics.to_dict(),
+                    }
+                )
 
         return critiques
 

@@ -6,7 +6,7 @@ directory tree looking for project markers.
 """
 
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 
 class ProjectRootDetector:
@@ -43,7 +43,7 @@ class ProjectRootDetector:
     ]
 
     @classmethod
-    def find_project_root(cls, start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_project_root(cls, start_path: Path | None = None) -> Path | None:
         """Walk up from start_path to find project root.
 
         Searches for project markers starting from the given path and
@@ -101,7 +101,7 @@ class ProjectRootDetector:
         return any((path / marker).exists() for marker in cls.PROJECT_MARKERS)
 
     @classmethod
-    def get_project_marker(cls, path: Path) -> Optional[str]:
+    def get_project_marker(cls, path: Path) -> str | None:
         """Get the first project marker found at a path.
 
         Args:

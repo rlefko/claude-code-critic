@@ -1,15 +1,14 @@
 """BM25 sparse embeddings implementation for efficient keyword-based search."""
 
 import hashlib
-import json
 import math
 import pickle
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from ..indexer_logging import get_logger
-from .base import EmbeddingResult, Embedder
+from .base import Embedder, EmbeddingResult
 
 try:
     import bm25s
@@ -24,7 +23,7 @@ logger = get_logger()
 
 class BM25Embedder(Embedder):
     """BM25 sparse embeddings for keyword-based semantic search.
-    
+
     Generates sparse vectors compatible with Qdrant format using the bm25s library.
     Maintains separate models for different collections and supports incremental updates.
     """
@@ -41,11 +40,11 @@ class BM25Embedder(Embedder):
         **kwargs: Any,  # noqa: ARG002
     ) -> None:
         """Initialize BM25 embedder with configurable parameters.
-        
+
         Args:
             model_name: Identifier for the BM25 model
             k1: Controls term frequency saturation (default: 1.2)
-            b: Controls field length normalization (default: 0.75)  
+            b: Controls field length normalization (default: 0.75)
             delta: Adds constant to term frequencies (default: 0.0)
             method: BM25 variant ('robertson', 'lucene', 'atire', 'bm25l', 'bm25plus')
             corpus_size_limit: Maximum corpus size for memory management
@@ -62,13 +61,13 @@ class BM25Embedder(Embedder):
         self.delta = delta
         self.method = method
         self.corpus_size_limit = corpus_size_limit
-        
+
         # Set up cache directory
         if cache_dir is None:
             cache_dir = Path.home() / ".claude-indexer" / "bm25_cache"
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Model state
         self.model: bm25s.BM25 | None = None
         self.vocabulary: dict[str, int] = {}
@@ -76,11 +75,11 @@ class BM25Embedder(Embedder):
         self.is_fitted = False
         # Cache document frequencies globally to avoid O(n²) recalculation
         self._doc_freq_cache: dict[str, int] = {}
-        
+
         # Performance tracking
         self._fit_time = 0.0
         self._total_texts_processed = 0
-        
+
         logger.debug(f"Initialized BM25Embedder with method={method}, k1={k1}, b={b}")
 
     def _get_cache_key(self, corpus_hash: str) -> str:
@@ -102,10 +101,14 @@ class BM25Embedder(Embedder):
             corpus_sample = corpus[:sample_size] + corpus[-sample_size:]
 
         # Include corpus size and sample in hash
-        hash_data = f"{len(corpus)}::{len(corpus_sample)}::" + "\n".join(sorted(corpus_sample[:200]))
+        hash_data = f"{len(corpus)}::{len(corpus_sample)}::" + "\n".join(
+            sorted(corpus_sample[:200])
+        )
         hash_result = hashlib.sha256(hash_data.encode()).hexdigest()[:16]
         hash_time = time.time() - start_time
-        logger.debug(f"✅ Optimized corpus hashing took {hash_time:.3f}s for {len(corpus)} docs (sampled {len(corpus_sample)})")
+        logger.debug(
+            f"✅ Optimized corpus hashing took {hash_time:.3f}s for {len(corpus)} docs (sampled {len(corpus_sample)})"
+        )
         return hash_result
 
     def _save_model_cache(self, cache_key: str) -> None:
@@ -126,12 +129,12 @@ class BM25Embedder(Embedder):
                 "fit_time": self._fit_time,
                 "total_texts": self._total_texts_processed,
             }
-            
+
             with open(cache_file, "wb") as f:
                 pickle.dump(cache_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-                
+
             logger.debug(f"Saved BM25 model cache to {cache_file}")
-            
+
         except Exception as e:
             logger.warning(f"Failed to save model cache: {e}")
 
@@ -141,10 +144,10 @@ class BM25Embedder(Embedder):
             cache_file = self.cache_dir / f"{cache_key}.pkl"
             if not cache_file.exists():
                 return False
-                
+
             with open(cache_file, "rb") as f:
                 cache_data = pickle.load(f)
-            
+
             # Verify config matches
             cached_config = cache_data.get("config", {})
             if (
@@ -155,7 +158,7 @@ class BM25Embedder(Embedder):
             ):
                 logger.debug("Cache config mismatch, rebuilding model")
                 return False
-            
+
             self.model = cache_data["model"]
             self.vocabulary = cache_data["vocabulary"]
             self.corpus = cache_data["corpus"]
@@ -163,10 +166,12 @@ class BM25Embedder(Embedder):
             self._fit_time = cache_data.get("fit_time", 0.0)
             self._total_texts_processed = cache_data.get("total_texts", 0)
             self.is_fitted = True
-            
-            logger.debug(f"Loaded BM25 model from cache with {len(self.corpus)} documents")
+
+            logger.debug(
+                f"Loaded BM25 model from cache with {len(self.corpus)} documents"
+            )
             return True
-            
+
         except Exception as e:
             logger.warning(f"Failed to load model cache: {e}")
             return False
@@ -175,14 +180,14 @@ class BM25Embedder(Embedder):
         """Preprocess text into tokens."""
         # Simple tokenization - can be enhanced with proper tokenizers
         import re
-        
+
         # Convert to lowercase and extract alphanumeric tokens
         text = text.lower()
-        tokens = re.findall(r'\b[a-zA-Z0-9]+\b', text)
-        
+        tokens = re.findall(r"\b[a-zA-Z0-9]+\b", text)
+
         # Remove very short tokens
         tokens = [token for token in tokens if len(token) > 1]
-        
+
         return tokens
 
     def _fit_corpus(self, corpus: list[str]) -> None:
@@ -195,7 +200,7 @@ class BM25Embedder(Embedder):
                 f"Corpus size {len(corpus)} exceeds limit {self.corpus_size_limit}, "
                 f"using first {self.corpus_size_limit} documents for BM25 fitting"
             )
-            corpus = corpus[:self.corpus_size_limit]
+            corpus = corpus[: self.corpus_size_limit]
 
         # Check cache first
         corpus_hash = self._get_corpus_hash(corpus)
@@ -211,9 +216,9 @@ class BM25Embedder(Embedder):
         # Import progress bar if available
         try:
             from ..progress_bar import ModernProgressBar
+
             progress_bar = ModernProgressBar(
-                total_items=len(corpus),
-                description="Tokenizing BM25 corpus"
+                total_items=len(corpus), description="Tokenizing BM25 corpus"
             )
         except ImportError:
             progress_bar = None
@@ -221,7 +226,7 @@ class BM25Embedder(Embedder):
         tokenized_corpus = []
         batch_size = 1000
         for i in range(0, len(corpus), batch_size):
-            batch = corpus[i:i+batch_size]
+            batch = corpus[i : i + batch_size]
             tokenized_batch = [self._preprocess_text(text) for text in batch]
             tokenized_corpus.extend(tokenized_batch)
 
@@ -231,56 +236,59 @@ class BM25Embedder(Embedder):
 
             # Log progress for large corpora (fallback if no progress bar)
             elif len(corpus) > 5000 and (i + batch_size) % 5000 == 0:
-                logger.debug(f"Tokenized {min(i + batch_size, len(corpus))}/{len(corpus)} documents")
+                logger.debug(
+                    f"Tokenized {min(i + batch_size, len(corpus))}/{len(corpus)} documents"
+                )
 
         # Complete progress bar
         if progress_bar:
             progress_bar.complete()
 
         tokenize_time = time.time() - tokenize_start
-        logger.debug(f"✅ Optimized tokenization took {tokenize_time:.3f}s for {len(corpus)} docs")
-        
+        logger.debug(
+            f"✅ Optimized tokenization took {tokenize_time:.3f}s for {len(corpus)} docs"
+        )
+
         # Initialize BM25 model
         self.model = bm25s.BM25(
-            method=self.method,
-            k1=self.k1,
-            b=self.b,
-            delta=self.delta
+            method=self.method, k1=self.k1, b=self.b, delta=self.delta
         )
-        
+
         # Fit the model
         logger.debug(f"Fitting BM25 model on {len(corpus)} documents...")
         fit_start = time.time()
         self.model.index(tokenized_corpus)
         fit_time = time.time() - fit_start
         logger.debug(f"🐌 BM25 model.index() took {fit_time:.3f}s")
-        
+
         # Store corpus and extract vocabulary
         self.corpus = corpus.copy()
-        
+
         # Extract vocabulary from the fitted model
-        if hasattr(self.model, 'vocab'):
+        if hasattr(self.model, "vocab"):
             self.vocabulary = {term: idx for idx, term in enumerate(self.model.vocab)}
-        elif hasattr(self.model, 'vocabulary'):
-            self.vocabulary = getattr(self.model, 'vocabulary', {})
+        elif hasattr(self.model, "vocabulary"):
+            self.vocabulary = getattr(self.model, "vocabulary", {})
         else:
             # Create vocabulary from tokenized corpus if model doesn't provide it
             unique_tokens = set()
             for tokens in tokenized_corpus:
                 unique_tokens.update(tokens)
-            self.vocabulary = {term: idx for idx, term in enumerate(sorted(unique_tokens))}
-        
+            self.vocabulary = {
+                term: idx for idx, term in enumerate(sorted(unique_tokens))
+            }
+
         self.is_fitted = True
-        
+
         # Pre-calculate document frequencies ONCE during fitting
         self._calculate_doc_frequencies()
-        
+
         self._fit_time = time.time() - start_time
         self._total_texts_processed = len(corpus)
-        
+
         # Save to cache
         self._save_model_cache(cache_key)
-        
+
         logger.debug(
             f"BM25 model fitted in {self._fit_time:.2f}s, "
             f"vocabulary size: {len(self.vocabulary)}"
@@ -296,12 +304,13 @@ class BM25Embedder(Embedder):
 
         # More efficient approach: iterate documents once, count all terms
         from collections import defaultdict
+
         doc_freq_counts = defaultdict(int)
 
         # Process documents in batches to manage memory
         batch_size = 1000
         for i in range(0, len(self.corpus), batch_size):
-            batch = self.corpus[i:i+batch_size]
+            batch = self.corpus[i : i + batch_size]
             for doc in batch:
                 # Get unique tokens for this document
                 doc_tokens = set(self._preprocess_text(doc))
@@ -319,33 +328,39 @@ class BM25Embedder(Embedder):
                 self._doc_freq_cache[term] = 0
 
         calc_time = time.time() - calc_start
-        logger.debug(f"✅ Optimized doc frequency calculation in {calc_time:.3f}s for {len(self.vocabulary)} terms")
+        logger.debug(
+            f"✅ Optimized doc frequency calculation in {calc_time:.3f}s for {len(self.vocabulary)} terms"
+        )
 
     def _generate_sparse_vector(self, text: str) -> list[float]:
         """Generate sparse vector for a single text using proper IDF-based term weighting."""
         if not self.is_fitted or self.model is None:
-            raise RuntimeError("BM25 model not fitted. Call fit_corpus or embed_batch first.")
-        
+            raise RuntimeError(
+                "BM25 model not fitted. Call fit_corpus or embed_batch first."
+            )
+
         # Tokenize query text
         query_tokens = self._preprocess_text(text)
-        
+
         if not query_tokens:
             # Return zero vector for empty queries
             vocab_size = max(len(self.vocabulary), 100)  # minimum size
             return [0.0] * vocab_size
-        
+
         try:
             # Create vocabulary mapping if missing
-            if not self.vocabulary and hasattr(self.model, 'vocab'):
-                self.vocabulary = {term: idx for idx, term in enumerate(self.model.vocab)}
-            
+            if not self.vocabulary and hasattr(self.model, "vocab"):
+                self.vocabulary = {
+                    term: idx for idx, term in enumerate(self.model.vocab)
+                }
+
             # Determine vector dimension
             vocab_size = max(len(self.vocabulary), 100)
             sparse_vector = np.zeros(vocab_size, dtype=np.float32)
-            
+
             # Use pre-calculated document frequencies (O(1) lookup vs O(n²) calculation)
             doc_freq = self._doc_freq_cache
-            
+
             # Calculate IDF weights for query terms
             N = len(self.corpus)
             for token in query_tokens:
@@ -360,9 +375,9 @@ class BM25Embedder(Embedder):
                         else:
                             # Term not in corpus, give it a small positive weight
                             sparse_vector[vocab_idx] = 0.1
-            
+
             return sparse_vector.tolist()
-            
+
         except Exception as e:
             logger.warning(f"BM25 scoring failed: {e}, returning zero vector")
             vocab_size = max(len(self.vocabulary), 100)
@@ -371,7 +386,7 @@ class BM25Embedder(Embedder):
     def embed_text(self, text: str) -> EmbeddingResult:
         """Generate BM25 sparse embedding for a single text."""
         start_time = time.time()
-        
+
         try:
             # Handle empty or very short text
             tokens = self._preprocess_text(text)
@@ -386,17 +401,19 @@ class BM25Embedder(Embedder):
                     processing_time=time.time() - start_time,
                     cost_estimate=0.0,
                 )
-            
+
             # If model not fitted, fit on single text corpus
             if not self.is_fitted:
                 logger.debug("BM25 model not fitted, using single-text corpus")
                 # For single text, add some default corpus to avoid empty vocabulary
-                corpus = [text] if tokens else ["default corpus text for initialization"]
+                corpus = (
+                    [text] if tokens else ["default corpus text for initialization"]
+                )
                 self._fit_corpus(corpus)
-            
+
             # Generate sparse vector
             embedding = self._generate_sparse_vector(text)
-            
+
             return EmbeddingResult(
                 text=text,
                 embedding=embedding,
@@ -405,7 +422,7 @@ class BM25Embedder(Embedder):
                 processing_time=time.time() - start_time,
                 cost_estimate=0.0,  # BM25 is free
             )
-            
+
         except Exception as e:
             logger.error(f"BM25 embedding failed: {e}")
             # Return zero vector on error
@@ -418,7 +435,9 @@ class BM25Embedder(Embedder):
                 error=str(e),
             )
 
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Generate BM25 sparse embeddings for multiple texts.
 
         Args:
@@ -427,26 +446,26 @@ class BM25Embedder(Embedder):
         """
         if not texts:
             return []
-        
+
         start_time = time.time()
         logger.debug(f"🐌 BM25 embed_batch starting with {len(texts)} texts")
-        
+
         try:
             # Fit model on the entire corpus first
             if not self.is_fitted:
                 # Limit corpus size for memory management
-                corpus = texts[:self.corpus_size_limit]
+                corpus = texts[: self.corpus_size_limit]
                 fit_start = time.time()
                 self._fit_corpus(corpus)
                 fit_total = time.time() - fit_start
                 logger.debug(f"🐌 BM25 _fit_corpus took {fit_total:.3f}s")
-            
+
             # Generate embeddings for all texts
             results = []
             embedding_start = time.time()
             for text in texts:
                 embedding = self._generate_sparse_vector(text)
-                
+
                 results.append(
                     EmbeddingResult(
                         text=text,
@@ -457,12 +476,14 @@ class BM25Embedder(Embedder):
                         cost_estimate=0.0,  # BM25 is free
                     )
                 )
-            
+
             embedding_total = time.time() - embedding_start
-            logger.debug(f"🐌 BM25 embedding generation took {embedding_total:.3f}s for {len(texts)} texts")
+            logger.debug(
+                f"🐌 BM25 embedding generation took {embedding_total:.3f}s for {len(texts)} texts"
+            )
             logger.debug(f"Generated {len(results)} BM25 embeddings")
             return results
-            
+
         except Exception as e:
             logger.error(f"BM25 batch embedding failed: {e}")
             error_msg = str(e)
@@ -484,7 +505,7 @@ class BM25Embedder(Embedder):
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the BM25 model."""
         vocab_size = len(self.vocabulary) if self.vocabulary else 0
-        
+
         return {
             "provider": "bm25",
             "model": f"bm25_{self.method}",
@@ -518,14 +539,16 @@ class BM25Embedder(Embedder):
         """Get statistics about the fitted corpus."""
         if not self.is_fitted:
             return {"fitted": False}
-        
+
         token_counts = [len(self._preprocess_text(text)) for text in self.corpus]
-        
+
         return {
             "fitted": True,
             "corpus_size": len(self.corpus),
             "vocabulary_size": len(self.vocabulary),
-            "avg_tokens_per_doc": sum(token_counts) / len(token_counts) if token_counts else 0,
+            "avg_tokens_per_doc": (
+                sum(token_counts) / len(token_counts) if token_counts else 0
+            ),
             "min_tokens_per_doc": min(token_counts) if token_counts else 0,
             "max_tokens_per_doc": max(token_counts) if token_counts else 0,
             "fit_time": self._fit_time,
@@ -538,10 +561,10 @@ class BM25Embedder(Embedder):
             cache_files = list(self.cache_dir.glob("*.pkl"))
             for cache_file in cache_files:
                 cache_file.unlink()
-            
+
             logger.debug(f"Cleared {len(cache_files)} BM25 cache files")
             return len(cache_files)
-            
+
         except Exception as e:
             logger.warning(f"Failed to clear cache: {e}")
             return 0
@@ -554,5 +577,5 @@ class BM25Embedder(Embedder):
         self.is_fitted = False
         self._fit_time = 0.0
         self._total_texts_processed = 0
-        
+
         logger.debug("BM25 model state reset")

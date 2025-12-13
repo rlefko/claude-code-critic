@@ -1,9 +1,9 @@
 """Tests for init manager functionality."""
 
-import json
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+import pytest
 
 from claude_indexer.init.manager import InitManager
 from claude_indexer.init.types import InitOptions, InitResult, ProjectType
@@ -33,7 +33,9 @@ class TestInitManager:
         assert (tmp_path / ".claude" / "guard.config.json").exists()
         assert (tmp_path / ".claude-indexer" / "config.json").exists()
 
-    def test_init_result_has_correct_metadata(self, tmp_path: Path, init_options: InitOptions):
+    def test_init_result_has_correct_metadata(
+        self, tmp_path: Path, init_options: InitOptions
+    ):
         """Test that init result contains correct metadata."""
         manager = InitManager(init_options)
         result = manager.run()
@@ -91,7 +93,9 @@ class TestInitManager:
 
         assert result.project_type == ProjectType.TYPESCRIPT
 
-    def test_init_skips_existing_without_force(self, tmp_path: Path, init_options: InitOptions):
+    def test_init_skips_existing_without_force(
+        self, tmp_path: Path, init_options: InitOptions
+    ):
         """Test that init skips existing files without force."""
         # Pre-create files
         (tmp_path / ".claudeignore").write_text("# Custom")
@@ -100,7 +104,9 @@ class TestInitManager:
         result = manager.run()
 
         # Should have skipped .claudeignore
-        claudeignore_step = next(s for s in result.steps if s.step_name == "claudeignore")
+        claudeignore_step = next(
+            s for s in result.steps if s.step_name == "claudeignore"
+        )
         assert claudeignore_step.skipped
 
         # Content should be unchanged
@@ -122,7 +128,9 @@ class TestInitManager:
         result = manager.run()
 
         # Should not have skipped .claudeignore
-        claudeignore_step = next(s for s in result.steps if s.step_name == "claudeignore")
+        claudeignore_step = next(
+            s for s in result.steps if s.step_name == "claudeignore"
+        )
         assert not claudeignore_step.skipped
 
         # Content should be changed
@@ -140,10 +148,7 @@ class TestInitManager:
         result = manager.run()
 
         # Should have a skipped hooks step
-        hooks_step = next(
-            (s for s in result.steps if s.step_name == "hooks"),
-            None
-        )
+        hooks_step = next((s for s in result.steps if s.step_name == "hooks"), None)
         if hooks_step:
             assert hooks_step.skipped
 
@@ -193,11 +198,15 @@ class TestInitManager:
         assert result.success
 
         # Should have warning about Qdrant
-        qdrant_step = next(s for s in result.steps if s.step_name == "qdrant_collection")
+        qdrant_step = next(
+            s for s in result.steps if s.step_name == "qdrant_collection"
+        )
         assert qdrant_step.skipped
         assert qdrant_step.warning
 
-    def test_init_result_tracks_warnings(self, tmp_path: Path, init_options: InitOptions):
+    def test_init_result_tracks_warnings(
+        self, tmp_path: Path, init_options: InitOptions
+    ):
         """Test that warnings are properly tracked."""
         manager = InitManager(init_options)
         result = manager.run()
@@ -304,11 +313,13 @@ class TestInitResult:
         )
 
         # Add failing step
-        result.add_step(InitStepResult(
-            step_name="failing",
-            success=False,
-            message="Failed",
-        ))
+        result.add_step(
+            InitStepResult(
+                step_name="failing",
+                success=False,
+                message="Failed",
+            )
+        )
 
         result.update_success()
         assert result.success is False

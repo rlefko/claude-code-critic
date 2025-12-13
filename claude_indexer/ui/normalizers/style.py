@@ -248,9 +248,7 @@ class StyleNormalizer:
         """Check if a value looks like a color."""
         value = value.strip().lower()
         return (
-            value.startswith("#")
-            or value.startswith("rgb")
-            or value.startswith("hsl")
+            value.startswith("#") or value.startswith("rgb") or value.startswith("hsl")
         )
 
     def _looks_like_length(self, value: str) -> bool:
@@ -339,7 +337,9 @@ class StyleNormalizer:
         features = [f"{k}={v}" for k, v in declarations.items()]
         return compute_simhash(features)
 
-    def compute_similarity(self, style1: NormalizedStyle, style2: NormalizedStyle) -> float:
+    def compute_similarity(
+        self, style1: NormalizedStyle, style2: NormalizedStyle
+    ) -> float:
         """Compute similarity between two normalized styles.
 
         Args:

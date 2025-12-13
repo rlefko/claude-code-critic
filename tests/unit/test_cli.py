@@ -14,6 +14,18 @@ except ImportError:
     CLI_AVAILABLE = False
     cli = None
 
+from claude_indexer.config import IndexerConfig
+
+
+@pytest.fixture
+def mock_config():
+    """Create a mock IndexerConfig for testing without loading real settings.txt."""
+    return IndexerConfig(
+        openai_api_key="sk-test-key",
+        qdrant_api_key="test-qdrant-key",
+        qdrant_url="http://localhost:6333",
+    )
+
 
 class TestMainCLI:
     """Test main CLI group functionality."""
@@ -77,16 +89,14 @@ class TestIndexCommands:
         mock_create_store,
         mock_create_embedder,
         mock_indexer_class,
+        mock_config,
     ):
         """Test basic project indexing."""
         if not CLI_AVAILABLE:
             pytest.skip("CLI not available (Click or dependencies missing)")
 
-        # Load real configuration from settings.txt
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        mock_load_config.return_value = real_config
+        # Use mock config instead of loading real settings.txt
+        mock_load_config.return_value = mock_config
 
         # Mock components
         mock_embedder = MagicMock()
@@ -102,9 +112,23 @@ class TestIndexCommands:
         mock_result.files_processed = 3
         mock_result.entities_created = 15
         mock_result.relations_created = 12
+        mock_result.implementation_chunks_created = 10
         mock_result.warnings = []
         mock_result.total_tokens = 0  # Add missing attribute for cost tracking
+        mock_result.embedding_requests = 0
+        mock_result.total_cost_estimate = 0.0
         mock_indexer.index_project.return_value = mock_result
+        # Mock internal methods called by CLI for success reporting
+        mock_indexer._load_previous_statistics.return_value = {}
+        mock_indexer._load_state.return_value = {}
+        mock_indexer._categorize_file_changes.return_value = ([], [], [])
+        mock_indexer._get_state_file.return_value = Path(
+            "test_project/.claude-indexer/state.json"
+        )
+        # Make vector_store raise exception to trigger fallback code path
+        mock_indexer.vector_store.backend.client.count.side_effect = Exception(
+            "Mock exception"
+        )
         mock_indexer_class.return_value = mock_indexer
 
         runner = CliRunner()
@@ -124,7 +148,7 @@ class TestIndexCommands:
                 ],
             )
 
-            assert result.exit_code == 0
+            assert result.exit_code == 0, f"CLI failed with: {result.output}"
             assert "Indexing completed" in result.output
             mock_indexer.index_project.assert_called_once()
 
@@ -138,13 +162,11 @@ class TestIndexCommands:
         mock_create_store,
         mock_create_embedder,
         mock_indexer_class,
+        mock_config,
     ):
         """Test project indexing with various options."""
-        # Load real configuration from settings.txt
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        mock_load_config.return_value = real_config
+        # Use mock config instead of loading real settings.txt
+        mock_load_config.return_value = mock_config
 
         # Mock components
         mock_embedder = MagicMock()
@@ -198,14 +220,12 @@ class TestIndexCommands:
     @patch("claude_indexer.cli_full.create_store_from_config")
     @patch("claude_indexer.cli_full.load_config")
     def test_index_project_qdrant_connection_error(
-        self, mock_load_config, mock_create_store
+        self, mock_load_config, mock_create_store, mock_config
     ):
         """Test proper error handling when Qdrant is unavailable."""
-        # Load real configuration from settings.txt
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        mock_load_config.return_value = real_config
+        # Use mock config with valid API key to test Qdrant error
+        mock_config.openai_api_key = "sk-test-key-for-qdrant-test"
+        mock_load_config.return_value = mock_config
 
         # Simulate Qdrant connection failure
         mock_create_store.side_effect = ConnectionError("Cannot connect to Qdrant")
@@ -230,14 +250,11 @@ class TestIndexCommands:
             assert "Cannot connect to Qdrant" in result.output
 
     @patch("claude_indexer.cli_full.load_config")
-    def test_index_project_missing_openai_key(self, mock_load_config):
+    def test_index_project_missing_openai_key(self, mock_load_config, mock_config):
         """Test error handling for missing OpenAI API key."""
-        # Load real config but override with missing OpenAI key
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        real_config.openai_api_key = None
-        mock_load_config.return_value = real_config
+        # Use mock config with missing OpenAI key
+        mock_config.openai_api_key = ""
+        mock_load_config.return_value = mock_config
 
         runner = CliRunner()
         with runner.isolated_filesystem():
@@ -267,13 +284,11 @@ class TestIndexCommands:
         mock_create_store,
         mock_create_embedder,
         mock_indexer_class,
+        mock_config,
     ):
         """Test that indexing only uses Qdrant mode (no MCP fallback)."""
-        # Load real configuration from settings.txt
-        from claude_indexer.config import load_config
-
-        real_config = load_config()
-        mock_load_config.return_value = real_config
+        # Use mock config instead of loading real settings.txt
+        mock_load_config.return_value = mock_config
 
         mock_embedder = MagicMock()
         mock_embedder.get_model_info.return_value = {
@@ -292,12 +307,24 @@ class TestIndexCommands:
         mock_result.files_processed = 1
         mock_result.entities_created = 10
         mock_result.relations_created = 5
+        mock_result.implementation_chunks_created = 8
         mock_result.warnings = []
         mock_result.errors = []
         mock_result.total_tokens = 1000
         mock_result.total_cost_estimate = 0.05
         mock_result.embedding_requests = 10
         mock_indexer.index_project.return_value = mock_result
+        # Mock internal methods called by CLI for success reporting
+        mock_indexer._load_previous_statistics.return_value = {}
+        mock_indexer._load_state.return_value = {}
+        mock_indexer._categorize_file_changes.return_value = ([], [], [])
+        mock_indexer._get_state_file.return_value = Path(
+            "test_project/.claude-indexer/state.json"
+        )
+        # Make vector_store raise exception to trigger fallback code path
+        mock_indexer.vector_store.backend.client.count.side_effect = Exception(
+            "Mock exception"
+        )
         mock_indexer_class.return_value = mock_indexer
 
         runner = CliRunner()
@@ -313,16 +340,22 @@ class TestIndexCommands:
                     "test_project",
                     "--collection",
                     "test-collection",
+                    "--verbose",  # Required to see the direct mode message
                 ],
             )
 
-            assert result.exit_code == 0
-            assert "Using Qdrant + OpenAI (direct mode)" in result.output
+            assert result.exit_code == 0, f"CLI failed with: {result.output}"
+            # Check for direct mode message (case-insensitive for provider name)
+            assert (
+                "Using Qdrant +" in result.output and "(direct mode)" in result.output
+            )
 
             # Verify that only Qdrant components were created
-            create_embedder_call = mock_create_embedder.call_args[0][0]
-            assert create_embedder_call["provider"] == "openai"
+            # create_embedder_from_config is called with IndexerConfig object
+            create_embedder_config = mock_create_embedder.call_args[0][0]
+            assert create_embedder_config.embedding_provider == "openai"
 
+            # create_store_from_config is called with a dict
             create_store_call = mock_create_store.call_args[0][0]
             assert create_store_call["backend"] == "qdrant"
 
@@ -1121,7 +1154,9 @@ class TestCollectionsCommands:
         mock_manager_class.return_value = mock_manager
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["collections", "cleanup", "--prefix", "nonexistent"])
+        result = runner.invoke(
+            cli, ["collections", "cleanup", "--prefix", "nonexistent"]
+        )
 
         assert result.exit_code == 0
         assert "No collections found" in result.output

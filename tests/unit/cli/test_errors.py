@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from claude_indexer.cli.errors import (
     CLIError,
     CollectionNotFoundError,

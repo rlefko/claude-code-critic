@@ -1,8 +1,6 @@
 """Unit tests for workspace detector module."""
 
 import json
-import pytest
-from pathlib import Path
 
 from claude_indexer.workspace.detector import WorkspaceDetector
 from claude_indexer.workspace.types import (
@@ -240,9 +238,7 @@ class TestWorkspaceDetector:
         """Test that pnpm takes priority over npm workspaces."""
         # Create both pnpm-workspace.yaml and package.json with workspaces
         (tmp_path / "pnpm-workspace.yaml").write_text("packages:\n  - 'pkg/*'\n")
-        (tmp_path / "package.json").write_text(
-            json.dumps({"workspaces": ["pkg/*"]})
-        )
+        (tmp_path / "package.json").write_text(json.dumps({"workspaces": ["pkg/*"]}))
 
         pkg = tmp_path / "pkg" / "a"
         pkg.mkdir(parents=True)
@@ -254,9 +250,7 @@ class TestWorkspaceDetector:
 
     def test_detect_ignores_package_json_without_workspaces(self, tmp_path):
         """Test that package.json without workspaces is not detected."""
-        (tmp_path / "package.json").write_text(
-            json.dumps({"name": "single-package"})
-        )
+        (tmp_path / "package.json").write_text(json.dumps({"name": "single-package"}))
 
         config = WorkspaceDetector.detect(tmp_path)
 

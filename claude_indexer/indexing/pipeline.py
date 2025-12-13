@@ -112,7 +112,10 @@ class IndexingPipeline:
 
     def _get_parallel_processor(self) -> ParallelFileProcessor | None:
         """Get or create parallel processor."""
-        if self._parallel_processor is None and self.indexer_config.use_parallel_processing:
+        if (
+            self._parallel_processor is None
+            and self.indexer_config.use_parallel_processing
+        ):
             max_workers = (
                 self.indexer_config.max_parallel_workers
                 if self.indexer_config.max_parallel_workers > 0
@@ -136,9 +139,7 @@ class IndexingPipeline:
     def _get_file_cache(self, collection_name: str) -> FileHashCache:
         """Get or create file hash cache."""
         if self._file_cache is None:
-            self._file_cache = FileHashCache(
-                self.project_path, collection_name
-            )
+            self._file_cache = FileHashCache(self.project_path, collection_name)
         return self._file_cache
 
     def _get_parser_registry(self) -> ParserRegistry:
@@ -148,6 +149,7 @@ class IndexingPipeline:
             parse_cache = None
             try:
                 from ..analysis.parse_cache import ParseResultCache
+
                 cache_dir = self.project_path / ".index_cache"
                 parse_cache = ParseResultCache(cache_dir)
             except Exception:
@@ -168,6 +170,7 @@ class IndexingPipeline:
         if self._ignore_manager is None:
             try:
                 from ..utils.hierarchical_ignore import HierarchicalIgnoreManager
+
                 self._ignore_manager = HierarchicalIgnoreManager(
                     self.project_path
                 ).load()
@@ -248,7 +251,7 @@ class IndexingPipeline:
                 callback=progress_callback,
             )
 
-            checkpoint_state = self.checkpoint.create(
+            self.checkpoint.create(
                 collection_name=collection_name,
                 project_path=self.project_path,
                 all_files=changed_files,
@@ -257,8 +260,6 @@ class IndexingPipeline:
 
             # Phase 4: Process batches
             all_entities: list[Entity] = []
-            all_relations: list[Relation] = []
-            all_chunks: list[EntityChunk] = []
             total_files_processed = 0
             total_files_failed = 0
 
@@ -288,7 +289,11 @@ class IndexingPipeline:
                 )
 
                 # Save checkpoint periodically
-                if (batch_index + 1) % max(1, self.config.checkpoint_interval // self.batch_optimizer.current_size) == 0:
+                if (batch_index + 1) % max(
+                    1,
+                    self.config.checkpoint_interval
+                    // self.batch_optimizer.current_size,
+                ) == 0:
                     self.checkpoint.save()
 
                 # Record batch metrics for optimizer
@@ -307,8 +312,13 @@ class IndexingPipeline:
             if incremental:
                 file_cache = self._get_file_cache(collection_name)
                 file_cache.update_batch(
-                    [Path(f) for f in self.checkpoint.get_state().processed_files if self.checkpoint.get_state()]
-                    if self.checkpoint.get_state() else []
+                    [
+                        Path(f)
+                        for f in self.checkpoint.get_state().processed_files
+                        if self.checkpoint.get_state()
+                    ]
+                    if self.checkpoint.get_state()
+                    else []
                 )
 
             # Clear checkpoint on success
@@ -329,7 +339,11 @@ class IndexingPipeline:
                 errors=errors,
                 warnings=warnings,
                 batch_count=total_batches,
-                cache_stats=self._get_file_cache(collection_name).get_stats() if incremental else {},
+                cache_stats=(
+                    self._get_file_cache(collection_name).get_stats()
+                    if incremental
+                    else {}
+                ),
             )
 
         except Exception as e:
@@ -546,10 +560,16 @@ class IndexingPipeline:
                 )
                 for file_result in parse_result:
                     if file_result.get("success", False):
-                        entities.extend(self._dict_to_entities(file_result.get("entities", [])))
-                        relations.extend(self._dict_to_relations(file_result.get("relations", [])))
+                        entities.extend(
+                            self._dict_to_entities(file_result.get("entities", []))
+                        )
+                        relations.extend(
+                            self._dict_to_relations(file_result.get("relations", []))
+                        )
                         implementation_chunks.extend(
-                            self._dict_to_chunks(file_result.get("implementation_chunks", []))
+                            self._dict_to_chunks(
+                                file_result.get("implementation_chunks", [])
+                            )
                         )
                         processed_files.append(file_result.get("file_path", ""))
                     else:
@@ -568,8 +588,8 @@ class IndexingPipeline:
             parser_registry = self._get_parser_registry()
             for file_path in batch:
                 try:
-                    file_entities, file_relations, file_chunks = parser_registry.parse_file(
-                        file_path
+                    file_entities, file_relations, file_chunks = (
+                        parser_registry.parse_file(file_path)
                     )
                     entities.extend(file_entities)
                     relations.extend(file_relations)

@@ -8,11 +8,14 @@ Tests cover:
 
 import pytest
 
-from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.critique.engine import CritiqueItem, CritiqueReport, CritiqueSummary
+from claude_indexer.ui.critique.engine import (
+    CritiqueItem,
+    CritiqueReport,
+    CritiqueSummary,
+)
 from claude_indexer.ui.models import Evidence, EvidenceType, Severity
 from claude_indexer.ui.plan.generator import PlanGenerator, PlanGeneratorConfig
-from claude_indexer.ui.plan.prioritizer import PrioritizationConfig, TaskPrioritizer
+from claude_indexer.ui.plan.prioritizer import TaskPrioritizer
 from claude_indexer.ui.plan.task import ImplementationPlan, Task, TaskGroup
 
 
@@ -204,8 +207,24 @@ class TestTaskGroup:
             scope="tokens",
             description="Token tasks",
             tasks=[
-                Task(id="T1", title="T1", description="", scope="tokens", priority=1, estimated_effort="low", impact=0.5),
-                Task(id="T2", title="T2", description="", scope="tokens", priority=2, estimated_effort="low", impact=0.5),
+                Task(
+                    id="T1",
+                    title="T1",
+                    description="",
+                    scope="tokens",
+                    priority=1,
+                    estimated_effort="low",
+                    impact=0.5,
+                ),
+                Task(
+                    id="T2",
+                    title="T2",
+                    description="",
+                    scope="tokens",
+                    priority=2,
+                    estimated_effort="low",
+                    impact=0.5,
+                ),
             ],
         )
         assert group.total_effort == "low"
@@ -216,9 +235,33 @@ class TestTaskGroup:
             scope="components",
             description="Component tasks",
             tasks=[
-                Task(id="T1", title="T1", description="", scope="components", priority=1, estimated_effort="high", impact=0.5),
-                Task(id="T2", title="T2", description="", scope="components", priority=2, estimated_effort="high", impact=0.5),
-                Task(id="T3", title="T3", description="", scope="components", priority=3, estimated_effort="high", impact=0.5),
+                Task(
+                    id="T1",
+                    title="T1",
+                    description="",
+                    scope="components",
+                    priority=1,
+                    estimated_effort="high",
+                    impact=0.5,
+                ),
+                Task(
+                    id="T2",
+                    title="T2",
+                    description="",
+                    scope="components",
+                    priority=2,
+                    estimated_effort="high",
+                    impact=0.5,
+                ),
+                Task(
+                    id="T3",
+                    title="T3",
+                    description="",
+                    scope="components",
+                    priority=3,
+                    estimated_effort="high",
+                    impact=0.5,
+                ),
             ],
         )
         assert group.total_effort == "high"
@@ -229,8 +272,24 @@ class TestTaskGroup:
             scope="tokens",
             description="Token tasks",
             tasks=[
-                Task(id="T1", title="T1", description="", scope="tokens", priority=1, estimated_effort="low", impact=0.9),  # Quick win
-                Task(id="T2", title="T2", description="", scope="tokens", priority=2, estimated_effort="high", impact=0.4),  # Not quick win
+                Task(
+                    id="T1",
+                    title="T1",
+                    description="",
+                    scope="tokens",
+                    priority=1,
+                    estimated_effort="low",
+                    impact=0.9,
+                ),  # Quick win
+                Task(
+                    id="T2",
+                    title="T2",
+                    description="",
+                    scope="tokens",
+                    priority=2,
+                    estimated_effort="high",
+                    impact=0.4,
+                ),  # Not quick win
             ],
         )
         quick_wins = group.quick_wins
@@ -249,15 +308,39 @@ class TestImplementationPlan:
                     scope="tokens",
                     description="",
                     tasks=[
-                        Task(id="T1", title="", description="", scope="tokens", priority=1, estimated_effort="low", impact=0.5),
+                        Task(
+                            id="T1",
+                            title="",
+                            description="",
+                            scope="tokens",
+                            priority=1,
+                            estimated_effort="low",
+                            impact=0.5,
+                        ),
                     ],
                 ),
                 TaskGroup(
                     scope="components",
                     description="",
                     tasks=[
-                        Task(id="T2", title="", description="", scope="components", priority=1, estimated_effort="low", impact=0.5),
-                        Task(id="T3", title="", description="", scope="components", priority=2, estimated_effort="low", impact=0.5),
+                        Task(
+                            id="T2",
+                            title="",
+                            description="",
+                            scope="components",
+                            priority=1,
+                            estimated_effort="low",
+                            impact=0.5,
+                        ),
+                        Task(
+                            id="T3",
+                            title="",
+                            description="",
+                            scope="components",
+                            priority=2,
+                            estimated_effort="low",
+                            impact=0.5,
+                        ),
                     ],
                 ),
             ],
@@ -421,9 +504,7 @@ class TestPlanGenerator:
         assert plan.summary
         assert len(plan.summary) > 0
 
-    def test_scope_ordering(
-        self, sample_critique_report: CritiqueReport
-    ) -> None:
+    def test_scope_ordering(self, sample_critique_report: CritiqueReport) -> None:
         """Test that groups are ordered: tokens, components, pages."""
         generator = PlanGenerator()
 
@@ -469,9 +550,7 @@ class TestPlanGenerator:
         assert plan.total_tasks == 0
         assert "No actionable tasks" in plan.summary
 
-    def test_plan_to_dict(
-        self, sample_critique_report: CritiqueReport
-    ) -> None:
+    def test_plan_to_dict(self, sample_critique_report: CritiqueReport) -> None:
         """Test plan serialization."""
         generator = PlanGenerator()
 

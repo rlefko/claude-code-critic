@@ -82,11 +82,8 @@ class LargeFilesRule(BaseRule):
             percentage_over = (excess / max_lines) * 100
 
             # Adjust severity based on how much over
-            severity = self.default_severity
-            if percentage_over > 100:  # More than 2x the limit
-                severity = Severity.MEDIUM
-            elif percentage_over > 200:  # More than 3x the limit
-                severity = Severity.HIGH
+            if percentage_over > 100 or percentage_over > 200:  # More than 2x the limit
+                pass
 
             findings.append(
                 self._create_finding(
@@ -112,9 +109,11 @@ class LargeFilesRule(BaseRule):
                         "Look for logical groupings that could become separate modules",
                         "Consider using a package structure with __init__.py",
                     ],
-                    config=context.config.get_rule_config(self.rule_id)
-                    if context.config
-                    else None,
+                    config=(
+                        context.config.get_rule_config(self.rule_id)
+                        if context.config
+                        else None
+                    ),
                 )
             )
 

@@ -15,11 +15,9 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
-from typing import Optional
 
 
-def run_git_command(cmd: list, cwd: str) -> Optional[str]:
+def run_git_command(cmd: list, cwd: str) -> str | None:
     """Run a git command and return output, or None on error."""
     try:
         result = subprocess.run(

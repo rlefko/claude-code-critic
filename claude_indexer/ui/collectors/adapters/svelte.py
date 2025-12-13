@@ -161,7 +161,9 @@ class SvelteAdapter(BaseSourceAdapter):
         style_section = self._extract_section(content, "style")
         if style_section:
             style_start = content.find("<style")
-            style_line_offset = content[:style_start].count("\n") if style_start >= 0 else 0
+            style_line_offset = (
+                content[:style_start].count("\n") if style_start >= 0 else 0
+            )
 
             for rule in self._find_css_rules(style_section):
                 selector = rule["selector"]
@@ -210,9 +212,13 @@ class SvelteAdapter(BaseSourceAdapter):
             Template content.
         """
         # Remove script sections
-        template = re.sub(r"<script[^>]*>[\s\S]*?</script>", "", content, flags=re.IGNORECASE)
+        template = re.sub(
+            r"<script[^>]*>[\s\S]*?</script>", "", content, flags=re.IGNORECASE
+        )
         # Remove style sections
-        template = re.sub(r"<style[^>]*>[\s\S]*?</style>", "", template, flags=re.IGNORECASE)
+        template = re.sub(
+            r"<style[^>]*>[\s\S]*?</style>", "", template, flags=re.IGNORECASE
+        )
         return template.strip()
 
     def _extract_template_structure(self, template: str) -> str:

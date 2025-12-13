@@ -8,7 +8,7 @@ user-friendly error messages and suggestions.
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..indexer_logging import get_logger
 
@@ -31,7 +31,7 @@ class ConfigError:
 
     path: str
     message: str
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
     severity: str = "error"
 
     def __str__(self) -> str:
@@ -119,17 +119,19 @@ class ConfigValidator:
         "$schema",
     }
 
-    def __init__(self, schema_path: Optional[Path] = None):
+    def __init__(self, schema_path: Path | None = None):
         """Initialize the validator.
 
         Args:
             schema_path: Path to JSON Schema file. If not provided, uses embedded schema.
         """
         self.schema_path = schema_path or (
-            Path(__file__).parent.parent.parent / "schemas" / "unified-config.schema.json"
+            Path(__file__).parent.parent.parent
+            / "schemas"
+            / "unified-config.schema.json"
         )
-        self._schema: Optional[dict] = None
-        self._validator: Optional[Any] = None
+        self._schema: dict | None = None
+        self._validator: Any | None = None
 
     @property
     def schema(self) -> dict:
@@ -239,7 +241,7 @@ class ConfigValidator:
         issues: list[tuple[str, ConfigError]] = []
 
         # Check for unknown top-level keys
-        for key in config.keys():
+        for key in config:
             if key not in self.VALID_SECTIONS:
                 issues.append(
                     (
@@ -342,7 +344,13 @@ class ConfigValidator:
             )
 
         # Warn about potentially dangerous patterns
-        dangerous_patterns = [".env", "*.env", ".env*", "**/secrets/*", "**/credentials/*"]
+        dangerous_patterns = [
+            ".env",
+            "*.env",
+            ".env*",
+            "**/secrets/*",
+            "**/credentials/*",
+        ]
         for pattern in include:
             if pattern in dangerous_patterns or any(
                 d in pattern for d in [".env", "secret", "credential", "password"]

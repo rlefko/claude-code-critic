@@ -1,6 +1,5 @@
 """Unit tests for .claudeignore parser and hierarchical ignore manager."""
 
-import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -21,6 +20,7 @@ class TestClaudeIgnoreParser:
     def parser(self, temp_project):
         """Create a parser instance."""
         from claude_indexer.utils.claudeignore_parser import ClaudeIgnoreParser
+
         return ClaudeIgnoreParser(temp_project)
 
     def test_basic_glob_pattern(self, parser, temp_project):
@@ -75,14 +75,16 @@ class TestClaudeIgnoreParser:
     def test_comments_and_blanks(self, parser, temp_project):
         """Test that comments and blank lines are ignored."""
         ignore_file = temp_project / ".claudeignore"
-        ignore_file.write_text("""
+        ignore_file.write_text(
+            """
 # This is a comment
 *.log
 
 # Another comment
 *.tmp
 
-""")
+"""
+        )
 
         parser.load_file(ignore_file)
 
@@ -199,8 +201,12 @@ class TestHierarchicalIgnoreManager:
         assert stats["project_patterns"] == 2
         assert stats["project_ignore_exists"] is True
 
-    @patch("claude_indexer.utils.hierarchical_ignore.HierarchicalIgnoreManager.GLOBAL_IGNORE")
-    def test_global_patterns_loaded(self, mock_global_ignore, temp_project, temp_global):
+    @patch(
+        "claude_indexer.utils.hierarchical_ignore.HierarchicalIgnoreManager.GLOBAL_IGNORE"
+    )
+    def test_global_patterns_loaded(
+        self, mock_global_ignore, temp_project, temp_global
+    ):
         """Test that global .claudeignore is loaded."""
         from claude_indexer.utils.hierarchical_ignore import HierarchicalIgnoreManager
 

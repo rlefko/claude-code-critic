@@ -485,7 +485,11 @@ class ObservationExtractor:
                     elif child.type == "tuple":
                         for tuple_child in child.children:
                             if tuple_child.type == "identifier":
-                                exc_name = tuple_child.text.decode("utf-8") if tuple_child.text else ""
+                                exc_name = (
+                                    tuple_child.text.decode("utf-8")
+                                    if tuple_child.text
+                                    else ""
+                                )
                                 if exc_name not in ["as", "except"]:
                                     exceptions.add(exc_name)
 
@@ -506,7 +510,9 @@ class ObservationExtractor:
                         # Extract exception being raised
                         func_node = child.child_by_field_name("function")
                         if func_node and func_node.type == "identifier":
-                            exc_name = func_node.text.decode("utf-8") if func_node.text else ""
+                            exc_name = (
+                                func_node.text.decode("utf-8") if func_node.text else ""
+                            )
                             if "Error" in exc_name or "Exception" in exc_name:
                                 exceptions.add(exc_name)
                     elif child.type == "identifier":
@@ -521,7 +527,11 @@ class ObservationExtractor:
                         # Look for constructor being called (e.g., new Error(), new AuthenticationError())
                         for new_child in child.children:
                             if new_child.type == "identifier":
-                                exc_name = new_child.text.decode("utf-8") if new_child.text else ""
+                                exc_name = (
+                                    new_child.text.decode("utf-8")
+                                    if new_child.text
+                                    else ""
+                                )
                                 if "Error" in exc_name or "Exception" in exc_name:
                                     exceptions.add(exc_name)
                             elif new_child.type == "call_expression":
@@ -584,15 +594,21 @@ class ObservationExtractor:
                     for param_child in child.children:
                         if param_child.type == "identifier":
                             # Simple parameter (like 'self')
-                            param_name = source_code[param_child.start_byte : param_child.end_byte]
+                            param_name = source_code[
+                                param_child.start_byte : param_child.end_byte
+                            ]
                             param_names.append(param_name)
                         elif param_child.type == "typed_parameter":
                             # Parameter with type annotation (like 'username: str')
-                            param_full = source_code[param_child.start_byte : param_child.end_byte]
+                            param_full = source_code[
+                                param_child.start_byte : param_child.end_byte
+                            ]
                             param_names.append(param_full)
                         elif param_child.type == "typed_default_parameter":
                             # Parameter with type annotation and default value (like 'db_path: str = None')
-                            param_full = source_code[param_child.start_byte : param_child.end_byte]
+                            param_full = source_code[
+                                param_child.start_byte : param_child.end_byte
+                            ]
                             param_names.append(param_full)
 
                     if param_names:
@@ -734,7 +750,9 @@ class ObservationExtractor:
         find_attributes(node)
         return attributes
 
-    def _calculate_complexity(self, node: "tree_sitter.Node", source_code: str) -> int:  # noqa: ARG002
+    def _calculate_complexity(
+        self, node: "tree_sitter.Node", source_code: str
+    ) -> int:  # noqa: ARG002
         """Calculate complexity based on control flow statements."""
         complexity = 1  # Base complexity
 
@@ -815,7 +833,10 @@ class ObservationExtractor:
         return func_name in builtins or len(func_name) <= 2
 
     def _get_jedi_docstring(
-        self, node: "tree_sitter.Node", jedi_script: "jedi.Script", source_code: str  # noqa: ARG002
+        self,
+        node: "tree_sitter.Node",
+        jedi_script: "jedi.Script",
+        source_code: str,  # noqa: ARG002
     ) -> str | None:
         """Get enhanced docstring from Jedi analysis."""
         try:
@@ -846,7 +867,10 @@ class ObservationExtractor:
             return None
 
     def _extract_jedi_type_info(
-        self, node: "tree_sitter.Node", jedi_script: "jedi.Script", source_code: str  # noqa: ARG002
+        self,
+        node: "tree_sitter.Node",
+        jedi_script: "jedi.Script",
+        source_code: str,  # noqa: ARG002
     ) -> list[str]:
         """Extract type information from Jedi analysis."""
         type_observations: list[str] = []

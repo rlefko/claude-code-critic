@@ -69,8 +69,12 @@ class RedesignResult:
             "visual_clusters": (
                 self.visual_clusters.to_dict() if self.visual_clusters else None
             ),
-            "html_report_path": str(self.html_report_path) if self.html_report_path else None,
-            "json_report_path": str(self.json_report_path) if self.json_report_path else None,
+            "html_report_path": (
+                str(self.html_report_path) if self.html_report_path else None
+            ),
+            "json_report_path": (
+                str(self.json_report_path) if self.json_report_path else None
+            ),
             "execution_time_ms": self.execution_time_ms,
             "focus_area": self.focus_area,
             "errors": self.errors,
@@ -123,7 +127,7 @@ class RedesignOrchestrator:
         self._config = config
 
         # Lazy-initialize components
-        self._runtime_collector: "RuntimeCollector | None" = None
+        self._runtime_collector: RuntimeCollector | None = None
         self._ci_runner: CIAuditRunner | None = None
         self._critique_engine: CritiqueEngine | None = None
         self._plan_generator: PlanGenerator | None = None
@@ -165,10 +169,12 @@ class RedesignOrchestrator:
     def html_reporter(self) -> HTMLReporter:
         """Lazy-initialized HTML reporter."""
         if self._html_reporter is None:
-            self._html_reporter = HTMLReporter(HTMLReportConfig(
-                title=f"UI Redesign Report{' - ' + self.redesign_config.focus if self.redesign_config.focus else ''}",
-                include_screenshots=not self.redesign_config.skip_screenshots,
-            ))
+            self._html_reporter = HTMLReporter(
+                HTMLReportConfig(
+                    title=f"UI Redesign Report{' - ' + self.redesign_config.focus if self.redesign_config.focus else ''}",
+                    include_screenshots=not self.redesign_config.skip_screenshots,
+                )
+            )
         return self._html_reporter
 
     def _parse_focus(self, focus: str | None) -> dict[str, Any]:
@@ -276,7 +282,7 @@ class RedesignOrchestrator:
                     config=self.config,
                 )
             return self._ci_runner.run()
-        except Exception as e:
+        except Exception:
             return None
 
     async def _run_runtime_collection(

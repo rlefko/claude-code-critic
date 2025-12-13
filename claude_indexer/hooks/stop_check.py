@@ -361,9 +361,7 @@ class StopCheckExecutor:
             for line in result.stdout.split("\n"):
                 if line.startswith("@@"):
                     # Parse @@ -a,b +c,d @@ format
-                    match = re.match(
-                        r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line
-                    )
+                    match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
                     if match:
                         start = int(match.group(1))
                         count = int(match.group(2)) if match.group(2) else 1
@@ -519,15 +517,9 @@ class StopCheckExecutor:
             return False
 
         # Check if in skip directory
-        for part in file_path.parts:
-            if part in skip_dirs:
-                return False
+        return all(part not in skip_dirs for part in file_path.parts)
 
-        return True
-
-    def _should_block(
-        self, findings: list[Finding], threshold: Severity
-    ) -> bool:
+    def _should_block(self, findings: list[Finding], threshold: Severity) -> bool:
         """Determine if findings should block Claude.
 
         Args:
@@ -573,7 +565,15 @@ def format_findings_for_claude(result: StopCheckResult) -> str:
     if not result.findings:
         return ""
 
-    lines = ["", "=== QUALITY CHECK BLOCKED ===" if result.should_block else "=== QUALITY CHECK WARNINGS ===", ""]
+    lines = [
+        "",
+        (
+            "=== QUALITY CHECK BLOCKED ==="
+            if result.should_block
+            else "=== QUALITY CHECK WARNINGS ==="
+        ),
+        "",
+    ]
 
     # Sort findings by severity (critical first)
     severity_order = {
@@ -592,7 +592,7 @@ def format_findings_for_claude(result: StopCheckResult) -> str:
 
     # Add summary
     lines.append("")
-    blocking_count = result.critical_count + result.high_count
+    result.critical_count + result.high_count
     lines.append(
         f"Found {len(result.findings)} issue(s): "
         f"{result.critical_count} critical, {result.high_count} high, "
@@ -602,7 +602,9 @@ def format_findings_for_claude(result: StopCheckResult) -> str:
     if result.should_block:
         lines.append("Please fix the critical/high issues to proceed.")
 
-    lines.append(f"Checked {result.files_checked} files in {result.execution_time_ms:.0f}ms")
+    lines.append(
+        f"Checked {result.files_checked} files in {result.execution_time_ms:.0f}ms"
+    )
     lines.append("")
 
     return "\n".join(lines)

@@ -251,7 +251,7 @@ def x():
 
     def test_unsupported_language_returns_empty(self, rule):
         """Test unsupported language returns empty findings."""
-        content = "fn main() { println!(\"Hello\"); }"
+        content = 'fn main() { println!("Hello"); }'
         context = create_context(
             content, "rust", file_path="test.rs", memory_client=MagicMock()
         )

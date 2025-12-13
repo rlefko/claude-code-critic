@@ -633,12 +633,14 @@ class ChatHtmlReporter:
 
         items = []
         for key, value in debugging_info.items():
-            items.append(f"""
+            items.append(
+                f"""
                 <div class="metadata-item">
                     <div class="metadata-label">{html.escape(key.title())}</div>
                     <div class="metadata-value">{html.escape(str(value))}</div>
                 </div>
-            """)
+            """
+            )
 
         return f"""
             <div style="margin-top: 25px;">
@@ -1002,7 +1004,9 @@ class ChatHtmlReporter:
 
         return entries
 
-    def _format_memory_entries(self, entries, conversation: ChatConversation) -> str:  # noqa: ARG002
+    def _format_memory_entries(
+        self, entries, conversation: ChatConversation
+    ) -> str:  # noqa: ARG002
         """Format memory entries for HTML display."""
         if not entries:
             return ""
@@ -1043,7 +1047,8 @@ class ChatHtmlReporter:
                 else "No detailed content available"
             )
 
-            memory_cards.append(f"""
+            memory_cards.append(
+                f"""
                 <div class="memory-card {card_class}">
                     <div class="memory-title">
                         {html.escape(name)}
@@ -1052,7 +1057,8 @@ class ChatHtmlReporter:
                     </div>
                     <div class="memory-content">{content}</div>
                 </div>
-            """)
+            """
+            )
 
         return f"""
             <div class="memory-section">
@@ -1075,7 +1081,8 @@ class ChatHtmlReporter:
 
             formatted_content = self._format_message_content(message.content)
 
-            messages_html.append(f"""
+            messages_html.append(
+                f"""
                 <div class="message {message.role}">
                     <div class="message-header">
                         <span class="role-badge {message.role}">{message.role}</span>
@@ -1089,7 +1096,8 @@ class ChatHtmlReporter:
                         <span class="word-count">{message.word_count} words</span>
                     </div>
                 </div>
-            """)
+            """
+            )
 
         return f"""
         <div class="conversation-section">
@@ -1144,9 +1152,11 @@ class ChatHtmlReporter:
         # Paragraphs (split by double newlines)
         paragraphs = content.split("\n\n")
         paragraphs = [
-            f"<p>{p.replace(chr(10), '<br>')}</p>"
-            if p.strip() and not p.startswith("<")
-            else p
+            (
+                f"<p>{p.replace(chr(10), '<br>')}</p>"
+                if p.strip() and not p.startswith("<")
+                else p
+            )
             for p in paragraphs
         ]
         content = "\n\n".join(paragraphs)

@@ -6,13 +6,14 @@ on Unix systems. Lock files contain metadata about the lock holder for
 debugging and conflict reporting.
 """
 
+import contextlib
 import fcntl
 import json
 import os
 import socket
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..indexer_logging import get_logger
 
@@ -30,8 +31,8 @@ class LockConflictError(Exception):
     def __init__(
         self,
         lock_path: Path,
-        holder_info: Optional[dict[str, Any]] = None,
-        message: Optional[str] = None,
+        holder_info: dict[str, Any] | None = None,
+        message: str | None = None,
     ):
         self.lock_path = lock_path
         self.holder_info = holder_info
@@ -80,7 +81,7 @@ class LockManager:
     def __init__(
         self,
         lock_path: Path,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         timeout_seconds: float = 5.0,
     ):
         """Initialize lock manager.
@@ -93,7 +94,7 @@ class LockManager:
         self.lock_path = Path(lock_path)
         self.session_id = session_id
         self.timeout = timeout_seconds
-        self._fd: Optional[int] = None
+        self._fd: int | None = None
         self._locked = False
 
     def acquire(self, exclusive: bool = True, blocking: bool = True) -> bool:
@@ -144,7 +145,7 @@ class LockManager:
             else:
                 try:
                     fcntl.flock(self._fd, lock_flags)
-                except (OSError, IOError):
+                except OSError:
                     os.close(self._fd)
                     self._fd = None
                     return False
@@ -157,12 +158,10 @@ class LockManager:
             logger.debug(f"Lock acquired: {self.lock_path}")
             return True
 
-        except (OSError, IOError) as e:
+        except OSError as e:
             if self._fd is not None:
-                try:
+                with contextlib.suppress(OSError):
                     os.close(self._fd)
-                except OSError:
-                    pass
                 self._fd = None
             logger.debug(f"Failed to acquire lock {self.lock_path}: {e}")
             return False
@@ -183,7 +182,7 @@ class LockManager:
             try:
                 fcntl.flock(self._fd, lock_flags | fcntl.LOCK_NB)
                 return True
-            except (OSError, IOError):
+            except OSError:
                 elapsed = time.time() - start_time
                 if elapsed >= self.timeout:
                     return False
@@ -206,7 +205,7 @@ class LockManager:
             os.ftruncate(self._fd, 0)
             os.lseek(self._fd, 0, os.SEEK_SET)
             os.write(self._fd, json.dumps(holder_info, indent=2).encode())
-        except (OSError, IOError) as e:
+        except OSError as e:
             # Non-fatal - lock still works without metadata
             logger.debug(f"Could not write lock holder info: {e}")
 
@@ -220,7 +219,7 @@ class LockManager:
                 fcntl.flock(self._fd, fcntl.LOCK_UN)
                 os.close(self._fd)
                 logger.debug(f"Lock released: {self.lock_path}")
-            except (OSError, IOError) as e:
+            except OSError as e:
                 logger.debug(f"Error releasing lock: {e}")
             finally:
                 self._fd = None
@@ -235,7 +234,7 @@ class LockManager:
         return self._locked
 
     @classmethod
-    def check_lock_holder(cls, lock_path: Path) -> Optional[dict[str, Any]]:
+    def check_lock_holder(cls, lock_path: Path) -> dict[str, Any] | None:
         """Check who holds the lock (for conflict reporting).
 
         Reads the lock file metadata to identify the current holder.
@@ -257,7 +256,7 @@ class LockManager:
                 if not content:
                     return None
                 return json.loads(content)
-        except (json.JSONDecodeError, IOError, OSError) as e:
+        except (json.JSONDecodeError, OSError) as e:
             logger.debug(f"Could not read lock holder info: {e}")
             return None
 
@@ -309,7 +308,7 @@ class LockManager:
                 lock_path.unlink()
                 logger.info(f"Cleaned up stale lock: {lock_path}")
                 return True
-            except (OSError, IOError) as e:
+            except OSError as e:
                 logger.debug(f"Could not clean up stale lock: {e}")
         return False
 

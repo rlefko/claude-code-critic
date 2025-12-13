@@ -137,9 +137,7 @@ class ConfigurationError(CLIError):
         config_file: str | None = None,
         suggestion: str | None = None,
     ):
-        default_suggestion = (
-            "Check your configuration file syntax and required fields"
-        )
+        default_suggestion = "Check your configuration file syntax and required fields"
         super().__init__(
             category=ErrorCategory.CONFIGURATION,
             message=message,

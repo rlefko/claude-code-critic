@@ -234,7 +234,7 @@ class MissingTimeoutRule(BaseRule):
         """Get language-specific remediation hints."""
         if language == "python":
             return [
-                f"Add timeout parameter: requests.get(url, timeout=30)",
+                "Add timeout parameter: requests.get(url, timeout=30)",
                 "Use separate connect and read timeouts: timeout=(3.05, 27)",
                 "Configure session-level timeout: session.timeout = 30",
                 "For async: use asyncio.wait_for(coro, timeout=30)",

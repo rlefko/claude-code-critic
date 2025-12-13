@@ -26,9 +26,7 @@ class TestClaudeignoreIndexerIntegration:
             (project / "secrets" / "api_key.txt").write_text("sk-secret")
 
             # Create a claudeignore
-            (project / ".claudeignore").write_text(
-                ".env\nsecrets/\n*.secret\n"
-            )
+            (project / ".claudeignore").write_text(".env\nsecrets/\n*.secret\n")
 
             yield project
 
@@ -67,16 +65,16 @@ class TestClaudeignoreIndexerIntegration:
         assert "secrets/api_key.txt" not in included_names
 
         # Regular files should be included
-        assert "src/main.py" in included_names or any("main.py" in n for n in included_names)
+        assert "src/main.py" in included_names or any(
+            "main.py" in n for n in included_names
+        )
 
     def test_negation_includes_file(self, temp_project):
         """Test that negation patterns include previously excluded files."""
         from claude_indexer.utils.hierarchical_ignore import HierarchicalIgnoreManager
 
         # Update claudeignore with negation
-        (temp_project / ".claudeignore").write_text(
-            "*.env\n!.env.example\n"
-        )
+        (temp_project / ".claudeignore").write_text("*.env\n!.env.example\n")
 
         # Create the example file
         (temp_project / ".env.example").write_text("# Example env file")
@@ -120,6 +118,7 @@ class TestClaudeignoreCLIIntegration:
     def test_ignore_list_shows_patterns(self, temp_project):
         """Test that 'ignore list' shows patterns."""
         from click.testing import CliRunner
+
         from claude_indexer.cli_full import cli
 
         # Create a claudeignore
@@ -134,6 +133,7 @@ class TestClaudeignoreCLIIntegration:
     def test_ignore_test_identifies_ignored_file(self, temp_project):
         """Test that 'ignore test' correctly identifies ignored files."""
         from click.testing import CliRunner
+
         from claude_indexer.cli_full import cli
 
         (temp_project / ".claudeignore").write_text("*.secret\n")
@@ -149,6 +149,7 @@ class TestClaudeignoreCLIIntegration:
     def test_ignore_test_identifies_included_file(self, temp_project):
         """Test that 'ignore test' correctly identifies included files."""
         from click.testing import CliRunner
+
         from claude_indexer.cli_full import cli
 
         (temp_project / ".claudeignore").write_text("*.secret\n")

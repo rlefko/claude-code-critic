@@ -10,10 +10,9 @@ Supports quiet mode (suppress all output) and NO_COLOR mode (disable ANSI codes)
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import time
-import shutil
-from typing import Optional
 from dataclasses import dataclass
 
 
@@ -26,14 +25,13 @@ def _should_use_color() -> bool:
     if "FORCE_COLOR" in os.environ:
         return True
     # Check if stdout is a TTY
-    if hasattr(sys.stdout, "isatty") and not sys.stdout.isatty():
-        return False
-    return True
+    return not (hasattr(sys.stdout, "isatty") and not sys.stdout.isatty())
 
 
 @dataclass
 class ProgressState:
     """Track progress state for the bar."""
+
     current: int = 0
     total: int = 0
     start_time: float = 0.0
@@ -71,10 +69,7 @@ class ModernProgressBar:
             quiet: Suppress all progress output (for quiet mode)
             use_color: Use ANSI colors. None = auto-detect from env/TTY
         """
-        self.state = ProgressState(
-            total=total_items,
-            start_time=time.time()
-        )
+        self.state = ProgressState(total=total_items, start_time=time.time())
         self.description = description
         self.quiet = quiet
 
@@ -114,12 +109,14 @@ class ModernProgressBar:
             self.BOLD = ""
             self.DIM = ""
 
-    def update(self,
-               current: Optional[int] = None,
-               batch_num: Optional[int] = None,
-               total_batches: Optional[int] = None,
-               memory_mb: Optional[int] = None,
-               tier_info: Optional[str] = None):
+    def update(
+        self,
+        current: int | None = None,
+        batch_num: int | None = None,
+        total_batches: int | None = None,
+        memory_mb: int | None = None,
+        tier_info: str | None = None,
+    ):
         """
         Update the progress bar.
 
@@ -188,7 +185,11 @@ class ModernProgressBar:
             # Calculate partial block
             remainder = (bar_width * percentage / 100) - filled_width
             partial_block = self._get_partial_block(remainder)
-            bar = "█" * filled_width + partial_block + "░" * (bar_width - filled_width - 1)
+            bar = (
+                "█" * filled_width
+                + partial_block
+                + "░" * (bar_width - filled_width - 1)
+            )
 
         # Get spinner
         spinner = self.spinner_frames[self.spinner_index]
@@ -292,15 +293,17 @@ class BatchProgressBar(ModernProgressBar):
     Specialized progress bar for batch processing with tier information.
     """
 
-    def update_batch(self,
-                    batch_num: int,
-                    total_batches: int,
-                    files_in_batch: int,
-                    files_completed: int,
-                    total_files: int,
-                    memory_mb: int,
-                    light_files: int = 0,
-                    batch_size: int = 0):
+    def update_batch(
+        self,
+        batch_num: int,
+        total_batches: int,
+        files_in_batch: int,
+        files_completed: int,
+        total_files: int,
+        memory_mb: int,
+        light_files: int = 0,
+        batch_size: int = 0,
+    ):
         """
         Update progress for batch processing.
 
@@ -325,7 +328,7 @@ class BatchProgressBar(ModernProgressBar):
             batch_num=batch_num,
             total_batches=total_batches,
             memory_mb=memory_mb,
-            tier_info=tier_info
+            tier_info=tier_info,
         )
 
 
@@ -358,7 +361,7 @@ def demo_progress_bar():
                 total_files=total_files,
                 memory_mb=memory,
                 light_files=light_files,
-                batch_size=batch_size
+                batch_size=batch_size,
             )
 
             time.sleep(0.02)  # Simulate processing time

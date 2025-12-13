@@ -11,6 +11,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from tests.conftest import get_unique_collection_name
+
 try:
     from claude_indexer import cli_full as cli
 
@@ -18,6 +20,25 @@ try:
 except ImportError:
     CLI_AVAILABLE = False
     cli = None
+
+
+def create_file_mock():
+    """Create a properly configured file mock for logging compatibility.
+
+    This mock includes all file operations that RotatingFileHandler and other
+    logging handlers may call. Without proper return types, logging handlers
+    will fail with TypeError when they try to use Mock objects in arithmetic.
+    """
+    mock_file = Mock()
+    mock_file.__enter__ = Mock(return_value=mock_file)
+    mock_file.__exit__ = Mock(return_value=None)
+    mock_file.tell = Mock(return_value=0)  # Must return int, not Mock
+    mock_file.seek = Mock(return_value=None)
+    mock_file.write = Mock(return_value=0)
+    mock_file.read = Mock(return_value="")
+    mock_file.fileno = Mock(return_value=-1)
+    mock_file.close = Mock(return_value=None)
+    return mock_file
 
 
 @pytest.mark.e2e
@@ -104,16 +125,19 @@ class TestCLIEndToEnd:
             mock_indexer_class.return_value = mock_indexer
 
             # Mock embedder and store creation
-            with patch(
-                "claude_indexer.cli_full.create_embedder_from_config"
-            ) as mock_embedder, patch(
-                "claude_indexer.cli_full.create_store_from_config"
-            ) as mock_store:
+            with (
+                patch(
+                    "claude_indexer.cli_full.create_embedder_from_config"
+                ) as mock_embedder,
+                patch("claude_indexer.cli_full.create_store_from_config") as mock_store,
+            ):
                 # Mock file operations to prevent path errors
-                mock_file = Mock()
-                mock_file.__enter__ = Mock(return_value=mock_file)
-                mock_file.__exit__ = Mock(return_value=None)
-                with patch("builtins.open", Mock(return_value=mock_file)), patch("json.dump", Mock()):
+                # Use create_file_mock() to properly implement tell() etc for logging
+                mock_file = create_file_mock()
+                with (
+                    patch("builtins.open", Mock(return_value=mock_file)),
+                    patch("json.dump", Mock()),
+                ):
                     mock_embedder.return_value = Mock()
                     mock_store.return_value = Mock()
 
@@ -141,6 +165,7 @@ class TestCLIEndToEnd:
         """Test CLI search functionality."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -150,11 +175,15 @@ class TestCLIEndToEnd:
         runner = CliRunner()
 
         # Mock search components
-        with patch(
-            "claude_indexer.cli_full.create_embedder_from_config"
-        ) as mock_embedder_factory, patch(
-            "claude_indexer.cli_full.create_store_from_config"
-        ) as mock_store_factory, patch("claude_indexer.cli_full.CoreIndexer") as mock_indexer_class:
+        with (
+            patch(
+                "claude_indexer.cli_full.create_embedder_from_config"
+            ) as mock_embedder_factory,
+            patch(
+                "claude_indexer.cli_full.create_store_from_config"
+            ) as mock_store_factory,
+            patch("claude_indexer.cli_full.CoreIndexer") as mock_indexer_class,
+        ):
             # Configure mock embedder
             mock_embedder = Mock()
             mock_embedder.embed_single.return_value = [0.1] * 1536
@@ -182,15 +211,15 @@ class TestCLIEndToEnd:
             # Test search command
             result = runner.invoke(
                 cli.cli,
-                    [
-                        "search",
-                        "--project",
-                        str(temp_repo),
-                        "--collection",
-                        "test-collection",
-                        "test function",
-                    ],
-                )
+                [
+                    "search",
+                    "--project",
+                    str(temp_repo),
+                    "--collection",
+                    "test-collection",
+                    "test function",
+                ],
+            )
 
             assert result.exit_code == 0
             assert "test_function" in result.output
@@ -200,6 +229,7 @@ class TestCLIEndToEnd:
         """Test CLI configuration validation."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -227,6 +257,7 @@ class TestFullSystemWorkflows:
         self, temp_repo, dummy_embedder, qdrant_store, test_config
     ):
         """Test complete index -> search workflow."""
+        collection_name = get_unique_collection_name("test_e2e_workflow")
         config = test_config
 
         # Step 1: Index the project
@@ -239,42 +270,43 @@ class TestFullSystemWorkflows:
             project_path=temp_repo,
         )
 
-        result = indexer.index_project("test_e2e_workflow")
+        result = indexer.index_project(collection_name)
         assert result.success
         assert result.entities_created >= 3
 
-        # Step 2: Search for indexed content with eventual consistency
-        from tests.conftest import verify_entity_searchable
+        # Step 2: Verify indexed content with payload query (deterministic)
+        from tests.conftest import verify_entities_exist_by_name
 
-        add_function_found = verify_entity_searchable(
+        add_function_found = verify_entities_exist_by_name(
             qdrant_store,
-            dummy_embedder,
-            "test_e2e_workflow",
+            collection_name,
             "add",
+            min_expected=1,
             timeout=10.0,
             verbose=True,
-            expected_count=2,
         )
         assert add_function_found
 
         # Step 3: Modify files and re-index
         new_file = temp_repo / "new_module.py"
-        new_file.write_text('''"""New module added during test."""
+        new_file.write_text(
+            '''"""New module added during test."""
 
 def search_test_function():
     """Function added for search testing."""
     return "searchable"
-''')
+'''
+        )
 
-        result2 = indexer.index_project("test_e2e_workflow")
+        result2 = indexer.index_project(collection_name)
         assert result2.success
 
-        # Step 4: Search for new content with eventual consistency
-        new_function_found = verify_entity_searchable(
+        # Step 4: Verify new content with payload query (deterministic)
+        new_function_found = verify_entities_exist_by_name(
             qdrant_store,
-            dummy_embedder,
-            "test_e2e_workflow",
+            collection_name,
             "search_test_function",
+            min_expected=1,
             timeout=10.0,
             verbose=True,
         )
@@ -284,6 +316,7 @@ def search_test_function():
         self, temp_repo, dummy_embedder, qdrant_store, test_config
     ):
         """Test incremental indexing maintains consistency."""
+        collection_name = get_unique_collection_name("test_incremental_e2e")
         config = test_config
 
         from claude_indexer.indexer import CoreIndexer
@@ -296,35 +329,31 @@ def search_test_function():
         )
 
         # Initial index
-        indexer.index_project("test_incremental_e2e")
-        initial_count = qdrant_store.count("test_incremental_e2e")
+        indexer.index_project(collection_name)
+        initial_count = qdrant_store.count(collection_name)
 
         # First incremental run (no changes)
-        result2 = indexer.index_project("test_incremental_e2e")
+        result2 = indexer.index_project(collection_name)
         assert result2.success
-        assert (
-            qdrant_store.count("test_incremental_e2e") == initial_count
-        )  # Should be same
+        assert qdrant_store.count(collection_name) == initial_count  # Should be same
 
         # Add a file (use a name that won't be filtered as a test file)
         new_file = temp_repo / "additional_module.py"
         new_file.write_text('def incremental_func(): return "incremental"')
 
         # Second incremental run (with changes)
-        result3 = indexer.index_project("test_incremental_e2e")
+        result3 = indexer.index_project(collection_name)
         assert result3.success
-        assert (
-            qdrant_store.count("test_incremental_e2e") > initial_count
-        )  # Should increase
+        assert qdrant_store.count(collection_name) > initial_count  # Should increase
 
-        # Verify new content is searchable with eventual consistency
-        from tests.conftest import verify_entity_searchable
+        # Verify new content with payload query (deterministic)
+        from tests.conftest import verify_entities_exist_by_name
 
-        incremental_found = verify_entity_searchable(
+        incremental_found = verify_entities_exist_by_name(
             qdrant_store,
-            dummy_embedder,
-            "test_incremental_e2e",
+            collection_name,
             "incremental_func",
+            min_expected=1,
             timeout=10.0,
             verbose=True,
         )
@@ -332,6 +361,7 @@ def search_test_function():
 
     def test_error_recovery_workflow(self, temp_repo, qdrant_store, test_config):
         """Test system recovery from various error conditions."""
+        collection_name = get_unique_collection_name("test_error_recovery")
         config = test_config
 
         # Create an embedder that fails sometimes
@@ -360,7 +390,7 @@ def search_test_function():
         )
 
         # Should handle partial failures gracefully
-        result = indexer.index_project("test_error_recovery")
+        result = indexer.index_project(collection_name)
 
         # System should be resilient to individual failures
         # (exact behavior depends on error handling implementation)
@@ -368,13 +398,14 @@ def search_test_function():
 
         # Should be able to recover and continue
         call_count = 0  # Reset for successful run
-        result2 = indexer.index_project("test_error_recovery")
+        result2 = indexer.index_project(collection_name)
         assert result2.success
 
     def test_large_project_workflow(
         self, tmp_path, dummy_embedder, qdrant_store, test_config
     ):
         """Test workflow with a larger simulated project."""
+        collection_name = get_unique_collection_name("test_large_project")
         config = test_config
 
         # Create a larger project structure
@@ -423,7 +454,7 @@ def module_{module_i}_function_{func_i}():
         )
 
         # Should handle large project efficiently
-        result = indexer.index_project("test_large_project")
+        result = indexer.index_project(collection_name)
         assert result.success
 
         # Should create substantial number of entities
@@ -431,34 +462,17 @@ def module_{module_i}_function_{func_i}():
             result.entities_created >= 150
         )  # 10 modules * 5 files * 3+ entities per file
 
-        # Should be searchable with eventual consistency (use larger search scope for large project)
+        # Verify entities using payload query (deterministic, bypasses DummyEmbedder)
+        from tests.conftest import get_entities_by_name, get_file_path_from_payload
 
-        # For large projects, we need to search more broadly since there are many entities
-        def search_for_class():
-            search_embedding = dummy_embedder.embed_single("Module0Class0")
-            # Use top_k=300 for large project to ensure we find all target entities
-            # With 50 files * ~17 entities per file = ~850 total entities, we need sufficient search scope
-            hits = qdrant_store.search(
-                "test_large_project", search_embedding, top_k=300
-            )
-            matching_hits = [
-                hit
-                for hit in hits
-                if "Module0Class0"
-                in (
-                    hit.payload.get("entity_name", "")
-                    or hit.payload.get("name", "")
-                    or hit.payload.get("content", "")
-                )
-            ]
-            return matching_hits
-
-        # For large projects, just verify that Module0Class0 entities are found (no exact count requirement)
-        # The system successfully indexes all entities, DummyEmbedder just ranks them differently
-        matching_entities = search_for_class()
-        assert len(matching_entities) >= 1, (
-            f"Should find at least 1 Module0Class0 entity, found {len(matching_entities)}"
+        # Search for Module0Class0 entities using payload query
+        matching_entities = get_entities_by_name(
+            qdrant_store, collection_name, "Module0Class0", verbose=True
         )
+
+        assert (
+            len(matching_entities) >= 1
+        ), f"Should find at least 1 Module0Class0 entity, found {len(matching_entities)}"
 
         # Verify the entities are properly structured
         for entity in matching_entities[:3]:  # Check first 3 found entities
@@ -467,15 +481,24 @@ def module_{module_i}_function_{func_i}():
                 or entity.payload.get("name", "")
                 or entity.payload.get("content", "")
             )
-            assert "module_0" in entity.payload.get("file_path", "")
+            # file_path may be at top level, nested in metadata, or in entity_name for file entities
+            file_path = get_file_path_from_payload(entity.payload)
+            assert (
+                "module_0" in file_path
+            ), f"Expected 'module_0' in file_path, got: {file_path}"
             # Entity type should be either "class" or "entity" depending on storage implementation
-            entity_type = entity.payload.get(
-                "entity_type",
-                entity.payload.get("type", entity.payload.get("entityType", "")),
-            )
-            assert entity_type in ["class", "entity"], (
-                f"Expected class or entity type, got {entity_type}"
-            )
+            # It may be at top level or nested in metadata
+            entity_type = entity.payload.get("entity_type", "")
+            if not entity_type and "metadata" in entity.payload:
+                entity_type = entity.payload.get("metadata", {}).get("entity_type", "")
+            if not entity_type:
+                entity_type = entity.payload.get(
+                    "type", entity.payload.get("entityType", "")
+                )
+            assert entity_type in [
+                "class",
+                "entity",
+            ], f"Expected class or entity type, got {entity_type}"
 
 
 @pytest.mark.e2e
@@ -486,6 +509,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI with custom configuration file."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -559,9 +583,8 @@ class TestCLIIntegrationScenarios:
             with patch("claude_indexer.cli_full.create_embedder_from_config"):
                 with patch("claude_indexer.cli_full.create_store_from_config"):
                     # Mock file operations to prevent path errors
-                    mock_file = Mock()
-                    mock_file.__enter__ = Mock(return_value=mock_file)
-                    mock_file.__exit__ = Mock(return_value=None)
+                    # Use create_file_mock() to properly implement tell() etc for logging
+                    mock_file = create_file_mock()
                     with patch("builtins.open", Mock(return_value=mock_file)):
                         with patch("json.dump", Mock()):
                             result = runner.invoke(
@@ -588,6 +611,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI output modes."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -647,9 +671,8 @@ class TestCLIIntegrationScenarios:
             with patch("claude_indexer.cli_full.create_embedder_from_config"):
                 with patch("claude_indexer.cli_full.create_store_from_config"):
                     # Mock file operations to prevent path errors
-                    mock_file = Mock()
-                    mock_file.__enter__ = Mock(return_value=mock_file)
-                    mock_file.__exit__ = Mock(return_value=None)
+                    # Use create_file_mock() to properly implement tell() etc for logging
+                    mock_file = create_file_mock()
                     with patch("builtins.open", Mock(return_value=mock_file)):
                         with patch("json.dump", Mock()):
                             # Test verbose mode
@@ -690,6 +713,7 @@ class TestCLIIntegrationScenarios:
         """Test CLI error handling and user-friendly error messages."""
         try:
             import importlib.util
+
             if importlib.util.find_spec("click") is None:
                 pytest.skip("Click not available for CLI testing")
             from click.testing import CliRunner
@@ -741,6 +765,7 @@ class TestPerformanceAndScalability:
         self, temp_repo, dummy_embedder, qdrant_store, test_config
     ):
         """Test basic performance characteristics."""
+        collection_name = get_unique_collection_name("test_performance")
         config = test_config
 
         from claude_indexer.indexer import CoreIndexer
@@ -753,7 +778,7 @@ class TestPerformanceAndScalability:
         )
 
         start_time = time.time()
-        result = indexer.index_project("test_performance")
+        result = indexer.index_project(collection_name)
         duration = time.time() - start_time
 
         assert result.success
@@ -769,6 +794,7 @@ class TestPerformanceAndScalability:
         self, temp_repo, dummy_embedder, qdrant_store, test_config
     ):
         """Test that incremental indexing is faster than full re-indexing."""
+        collection_name = get_unique_collection_name("test_incremental_perf")
         config = test_config
 
         from claude_indexer.indexer import CoreIndexer
@@ -782,7 +808,7 @@ class TestPerformanceAndScalability:
 
         # Initial full index
         start_time = time.time()
-        result1 = indexer.index_project("test_incremental_perf")
+        result1 = indexer.index_project(collection_name)
         full_index_time = time.time() - start_time
 
         # Add one small file
@@ -791,7 +817,7 @@ class TestPerformanceAndScalability:
 
         # Incremental index
         start_time = time.time()
-        result2 = indexer.index_project("test_incremental_perf")
+        result2 = indexer.index_project(collection_name)
         incremental_time = time.time() - start_time
 
         assert result1.success

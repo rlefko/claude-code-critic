@@ -6,7 +6,7 @@ import re
 import secrets
 import subprocess
 from pathlib import Path
-from typing import ClassVar, List, Optional, Set
+from typing import ClassVar
 
 from ..indexer_logging import get_logger
 from .types import ProjectType
@@ -18,7 +18,7 @@ class ProjectDetector:
     """Enhanced project type and language detection."""
 
     # Markers used for project root detection (in priority order)
-    PROJECT_ROOT_MARKERS: ClassVar[List[str]] = [
+    PROJECT_ROOT_MARKERS: ClassVar[list[str]] = [
         ".claude-indexer",  # Already initialized project (highest priority)
         ".git",
         "package.json",
@@ -31,7 +31,7 @@ class ProjectDetector:
     ]
 
     @staticmethod
-    def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_project_root(start_path: Path | None = None) -> Path | None:
         """Find project root by walking up from start_path.
 
         Searches for project markers starting from the given path and
@@ -86,9 +86,9 @@ class ProjectDetector:
 
     def __init__(self, project_path: Path):
         self.project_path = Path(project_path).resolve()
-        self._file_cache: Optional[Set[Path]] = None
+        self._file_cache: set[Path] | None = None
 
-    def _get_project_files(self) -> Set[Path]:
+    def _get_project_files(self) -> set[Path]:
         """Get all project files (cached)."""
         if self._file_cache is None:
             self._file_cache = set()
@@ -191,10 +191,10 @@ class ProjectDetector:
                 data = json.load(f)
             deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
             return "react" in deps or "react-dom" in deps
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return False
 
-    def detect_languages(self) -> List[str]:
+    def detect_languages(self) -> list[str]:
         """Detect all languages used in the project."""
         languages = set()
         files = self._get_project_files()
@@ -234,8 +234,8 @@ class ProjectDetector:
 
     def derive_collection_name(
         self,
-        custom_name: Optional[str] = None,
-        prefix: Optional[str] = None,
+        custom_name: str | None = None,
+        prefix: str | None = None,
         include_hash: bool = False,
     ) -> str:
         """Derive collection name from project directory name.
@@ -249,10 +249,7 @@ class ProjectDetector:
             Sanitized collection name suitable for Qdrant.
             Format: {prefix}_{name}_{hash} or just {name} depending on args.
         """
-        if custom_name:
-            name = custom_name
-        else:
-            name = self.project_path.name
+        name = custom_name or self.project_path.name
 
         # Sanitize: lowercase, replace spaces/special chars with hyphens
         name = name.lower()
@@ -288,7 +285,7 @@ class ProjectDetector:
         git_dir = self.project_path / ".git"
         return git_dir.exists() and git_dir.is_dir()
 
-    def get_git_remote_url(self) -> Optional[str]:
+    def get_git_remote_url(self) -> str | None:
         """Get the git remote origin URL.
 
         Returns:

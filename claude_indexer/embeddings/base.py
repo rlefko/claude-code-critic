@@ -107,7 +107,9 @@ class Embedder(ABC):
         pass
 
     @abstractmethod
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Generate embeddings for multiple texts.
 
         Args:
@@ -371,7 +373,9 @@ class CachingEmbedder(Embedder):
 
         return result
 
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Embed batch with two-tier caching.
 
         Args:
@@ -417,7 +421,9 @@ class CachingEmbedder(Embedder):
         # Tier 3: Embed uncached texts via API
         if uncached_texts:
             self._api_calls += len(uncached_texts)
-            uncached_results = self.embedder.embed_batch(uncached_texts, item_type=item_type)
+            uncached_results = self.embedder.embed_batch(
+                uncached_texts, item_type=item_type
+            )
 
             # Fill in results and update cache
             for i, result in enumerate(uncached_results):
@@ -459,7 +465,8 @@ class CachingEmbedder(Embedder):
             "disk_hits": self._disk_hits,
             "api_calls": self._api_calls,
             "total_requests": total_requests,
-            "overall_hit_ratio": (self._memory_hits + self._disk_hits) / max(total_requests, 1),
+            "overall_hit_ratio": (self._memory_hits + self._disk_hits)
+            / max(total_requests, 1),
             "memory_hit_ratio": self._memory_hits / max(total_requests, 1),
             "disk_hit_ratio": self._disk_hits / max(total_requests, 1),
         }
@@ -539,7 +546,9 @@ class BatchingEmbedder(Embedder):
             self._total_errors += 1
         return result
 
-    def embed_batch(self, texts: list[str], item_type: str = "general") -> list[EmbeddingResult]:
+    def embed_batch(
+        self, texts: list[str], item_type: str = "general"
+    ) -> list[EmbeddingResult]:
         """Embed batch with adaptive sizing based on BatchOptimizer.
 
         Splits the input into optimally-sized sub-batches based on
@@ -574,8 +583,7 @@ class BatchingEmbedder(Embedder):
                 # On exception, create error results for all in batch
                 self.logger.error(f"Batch embedding failed: {e}")
                 batch_results = [
-                    EmbeddingResult(text=t, embedding=[], error=str(e))
-                    for t in batch
+                    EmbeddingResult(text=t, embedding=[], error=str(e)) for t in batch
                 ]
 
             processing_time_ms = (time.perf_counter() - start_time) * 1000

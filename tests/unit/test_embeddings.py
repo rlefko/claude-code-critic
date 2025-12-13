@@ -14,11 +14,9 @@ class TestOpenAIEmbedder:
 
     def test_initialization_valid_key(self):
         """Test OpenAI embedder initialization with valid key."""
-        from claude_indexer.config import load_config
-
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
-            config = load_config()
-            embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+            # Use mock API key to test initialization
+            embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
             assert embedder.model == "text-embedding-3-small"
             assert embedder.model_config["dimensions"] == 1536
@@ -36,11 +34,11 @@ class TestOpenAIEmbedder:
     def test_initialization_unsupported_model(self):
         """Test initialization with unsupported model."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
-            from claude_indexer.config import load_config
-
-            config = load_config()
+            # Use mock API key to test model validation
             with pytest.raises(ValueError, match="Unsupported model"):
-                OpenAIEmbedder(api_key=config.openai_api_key, model="invalid-model")
+                OpenAIEmbedder(
+                    api_key="sk-test-valid-key-for-testing", model="invalid-model"
+                )
 
     def test_initialization_openai_unavailable(self):
         """Test initialization when OpenAI package unavailable."""
@@ -70,10 +68,8 @@ class TestOpenAIEmbedder:
         """Test token estimation."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 # Test token estimation (now using tiktoken for accuracy)
                 assert embedder._estimate_tokens("hello") >= 1
@@ -87,10 +83,8 @@ class TestOpenAIEmbedder:
         """Test cost calculation."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 # Test cost calculation
                 cost = embedder._calculate_cost(1000)
@@ -113,10 +107,8 @@ class TestOpenAIEmbedder:
                 mock_client.embeddings.create.return_value = mock_response
                 mock_openai.return_value = mock_client
 
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 result = embedder.embed_text("test text")
 
                 assert isinstance(result, EmbeddingResult)
@@ -137,10 +129,8 @@ class TestOpenAIEmbedder:
                 mock_client.embeddings.create.side_effect = Exception("API Error")
                 mock_openai.return_value = mock_client
 
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 result = embedder.embed_text("test text")
 
                 assert isinstance(result, EmbeddingResult)
@@ -163,10 +153,8 @@ class TestOpenAIEmbedder:
                 mock_client.embeddings.create.return_value = mock_response
                 mock_openai.return_value = mock_client
 
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 texts = ["text 1", "text 2"]
                 results = embedder.embed_batch(texts)
 
@@ -182,10 +170,8 @@ class TestOpenAIEmbedder:
         """Test batch embedding with empty list."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 results = embedder.embed_batch([])
 
                 assert results == []
@@ -205,10 +191,8 @@ class TestOpenAIEmbedder:
                 mock_client.embeddings.create.return_value = mock_response
                 mock_openai.return_value = mock_client
 
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 texts = [f"text {i}" for i in range(150)]  # Less than batch size (500)
                 results = embedder.embed_batch(texts)
 
@@ -238,10 +222,8 @@ class TestOpenAIEmbedder:
                 mock_client.embeddings.create.side_effect = create_mock_response
                 mock_openai.return_value = mock_client
 
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
                 # Create texts that are large enough to force multiple batches with tiktoken
                 long_text = (
                     "This is a longer text sample that will consume more tokens. " * 100
@@ -260,10 +242,8 @@ class TestOpenAIEmbedder:
         """Test rate limiting functionality."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 # Test rate limit checking (should not block with low usage)
                 embedder._check_rate_limits(1000)
@@ -285,10 +265,8 @@ class TestOpenAIEmbedder:
         """Test text truncation for long inputs."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 # Test with text that's too long
                 long_text = "word " * 10000  # Very long text
@@ -302,10 +280,8 @@ class TestOpenAIEmbedder:
         """Test getting model information."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 info = embedder.get_model_info()
 
@@ -319,10 +295,8 @@ class TestOpenAIEmbedder:
         """Test usage statistics tracking."""
         with patch("claude_indexer.embeddings.openai.OPENAI_AVAILABLE", True):
             with patch("claude_indexer.embeddings.openai.openai.OpenAI"):
-                from claude_indexer.config import load_config
-
-                config = load_config()
-                embedder = OpenAIEmbedder(api_key=config.openai_api_key)
+                # Use mock API key for CI compatibility
+                embedder = OpenAIEmbedder(api_key="sk-test-valid-key-for-testing")
 
                 # Simulate some usage
                 import time

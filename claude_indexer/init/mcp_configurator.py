@@ -3,7 +3,6 @@
 import json
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from ..config.config_loader import ConfigLoader
 from ..indexer_logging import get_logger
@@ -22,7 +21,7 @@ class MCPConfigurator:
         self,
         project_path: Path,
         collection_name: str,
-        config_loader: Optional[ConfigLoader] = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize MCP configurator.
 
@@ -50,7 +49,7 @@ class MCPConfigurator:
                     self._config = None
         return self._config
 
-    def _get_mcp_server_path(self) -> Optional[Path]:
+    def _get_mcp_server_path(self) -> Path | None:
         """Get path to MCP server script."""
         # Try relative to this package
         package_dir = Path(__file__).parent.parent.parent
@@ -153,7 +152,7 @@ class MCPConfigurator:
                 details={"server_name": server_name, "server_path": str(server_path)},
             )
 
-        except IOError as e:
+        except OSError as e:
             return InitStepResult(
                 step_name="mcp_config",
                 success=False,

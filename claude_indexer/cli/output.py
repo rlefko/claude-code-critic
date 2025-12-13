@@ -52,10 +52,7 @@ def should_use_color(
     # Check if output is a TTY
     if stream is None:
         stream = sys.stdout
-    if hasattr(stream, "isatty") and not stream.isatty():
-        return False
-
-    return True
+    return not (hasattr(stream, "isatty") and not stream.isatty())
 
 
 @dataclass
@@ -82,7 +79,7 @@ class OutputConfig:
         verbose: bool = False,
         quiet: bool = False,
         no_color: bool = False,
-    ) -> "OutputConfig":
+    ) -> OutputConfig:
         """Create OutputConfig from CLI flags.
 
         Args:

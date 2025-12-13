@@ -31,18 +31,20 @@ class EntityProcessor(ContentProcessor):
             # Skip creating old-style metadata chunks for markdown documentation entities
             # since MarkdownParser in claude_indexer/analysis/parser.py creates specialized
             # metadata chunks with BM25 optimization in _create_entity_chunks() method
-            if (entity.file_path and str(entity.file_path).endswith('.md') and 
-                entity.entity_type.value == 'documentation'):
+            if (
+                entity.file_path
+                and str(entity.file_path).endswith(".md")
+                and entity.entity_type.value == "documentation"
+            ):
                 continue
 
             # BUGFIX: Import, variable, and constant entities should NEVER have has_implementation=true
             # regardless of name collisions with classes/functions
-            if entity.entity_type.value in ['import', 'variable', 'constant']:
+            if entity.entity_type.value in ["import", "variable", "constant"]:
                 has_implementation = False
             else:
                 has_implementation = entity.name in context.implementation_entity_names
-            
-            
+
             from ..analysis.entities import EntityChunk
 
             metadata_chunk = EntityChunk.create_metadata_chunk(
@@ -55,11 +57,17 @@ class EntityProcessor(ContentProcessor):
 
         # DEBUG: Log changed_entity_ids to diagnose deletion bug
         if self.logger:
-            self.logger.debug(f"🔍 DEBUG: changed_entity_ids contains {len(context.changed_entity_ids)} items:")
-            for i, entity_id in enumerate(list(context.changed_entity_ids)[:5]):  # Show first 5
+            self.logger.debug(
+                f"🔍 DEBUG: changed_entity_ids contains {len(context.changed_entity_ids)} items:"
+            )
+            for i, entity_id in enumerate(
+                list(context.changed_entity_ids)[:5]
+            ):  # Show first 5
                 self.logger.debug(f"🔍 DEBUG:   [{i+1}] {entity_id}")
             if len(context.changed_entity_ids) > 5:
-                self.logger.debug(f"🔍 DEBUG:   ... and {len(context.changed_entity_ids) - 5} more")
+                self.logger.debug(
+                    f"🔍 DEBUG:   ... and {len(context.changed_entity_ids) - 5} more"
+                )
 
         # FIX: Find and delete entities that no longer exist in current parse
         # Get all files being processed to find deleted entities
@@ -83,7 +91,7 @@ class EntityProcessor(ContentProcessor):
 
         # For each file, find entities that exist in DB but not in current parse (deleted entities)
         for file_path in files_being_processed:
-            if hasattr(self.vector_store, 'find_entities_for_file_by_type'):
+            if hasattr(self.vector_store, "find_entities_for_file_by_type"):
                 entities_by_type = self.vector_store.find_entities_for_file_by_type(
                     context.collection_name, file_path, ["metadata", "implementation"]
                 )
@@ -93,19 +101,25 @@ class EntityProcessor(ContentProcessor):
                 # Find entities that exist in DB but not in current parse
                 for chunk_type in ["metadata", "implementation"]:
                     for existing_entity in entities_by_type.get(chunk_type, []):
-                        entity_name = existing_entity.get('entity_name', '')
+                        entity_name = existing_entity.get("entity_name", "")
                         entity_id = f"{file_path}::{entity_name}"
 
                         # If entity exists in DB but not in current parse, it was deleted
                         if entity_name not in current_entities:
                             context.entities_to_delete.append(existing_entity["id"])
-                            deleted_entity_ids.add(entity_id)  # Track as deleted, not changed
+                            deleted_entity_ids.add(
+                                entity_id
+                            )  # Track as deleted, not changed
                             entities_deleted += 1
                             if self.logger:
-                                self.logger.debug(f"🗑️ DELETED ENTITY: {entity_id} (no longer in source)")
+                                self.logger.debug(
+                                    f"🗑️ DELETED ENTITY: {entity_id} (no longer in source)"
+                                )
 
         if self.logger and entities_deleted > 0:
-            self.logger.debug(f"🔄 Git+Meta Enhanced: Found {entities_deleted} deleted entities")
+            self.logger.debug(
+                f"🔄 Git+Meta Enhanced: Found {entities_deleted} deleted entities"
+            )
 
         # Process changed entities (entities that still exist but need replacement)
         # Only delete old chunks for entities that have new chunks to replace them
@@ -126,18 +140,24 @@ class EntityProcessor(ContentProcessor):
             # 2. Are NOT deleted entities
             # 3. Have new chunks to replace them
             # 4. Haven't been processed yet
-            if (entity_id in context.changed_entity_ids and
-                entity_id not in deleted_entity_ids and
-                entity_id in entities_with_new_chunks and
-                entity_id not in processed_entity_ids):
+            if (
+                entity_id in context.changed_entity_ids
+                and entity_id not in deleted_entity_ids
+                and entity_id in entities_with_new_chunks
+                and entity_id not in processed_entity_ids
+            ):
 
                 processed_entity_ids.add(entity_id)
 
                 # Find existing entity with same name/file for replacement
                 file_path = chunk.metadata.get("file_path")
-                if file_path and hasattr(self.vector_store, 'find_entities_for_file_by_type'):
+                if file_path and hasattr(
+                    self.vector_store, "find_entities_for_file_by_type"
+                ):
                     entities_by_type = self.vector_store.find_entities_for_file_by_type(
-                        context.collection_name, file_path, ["metadata", "implementation"]
+                        context.collection_name,
+                        file_path,
+                        ["metadata", "implementation"],
                     )
 
                     # Delete both metadata AND implementation chunks for THIS specific entity
@@ -147,10 +167,14 @@ class EntityProcessor(ContentProcessor):
                                 context.entities_to_delete.append(existing_entity["id"])
                                 entities_deleted += 1
                                 if self.logger:
-                                    self.logger.debug(f"🔄 ENTITY-LEVEL: Deleting old {chunk_type} {existing_entity['id']} (name: {chunk.entity_name})")
+                                    self.logger.debug(
+                                        f"🔄 ENTITY-LEVEL: Deleting old {chunk_type} {existing_entity['id']} (name: {chunk.entity_name})"
+                                    )
 
         if self.logger and entities_deleted > 0:
-            self.logger.debug(f"🔄 Entity-level replacement: Will delete {entities_deleted} changed entities")
+            self.logger.debug(
+                f"🔄 Entity-level replacement: Will delete {entities_deleted} changed entities"
+            )
 
         # Check deduplication AFTER selective deletion
         # Skip deduplication for entities that were just replaced (their old content was deleted)
@@ -276,12 +300,12 @@ class RelationProcessor(ContentProcessor):
         relations_replaced = 0
 
         for relation in relations_to_process:
-            file_path = getattr(relation, 'file_path', None)
-            if (file_path and
-                self._should_replace_file_entities(file_path, context)):
+            file_path = getattr(relation, "file_path", None)
+            if file_path and self._should_replace_file_entities(file_path, context):
 
                 # Only delete relations that will actually be re-embedded
                 from ..analysis.entities import RelationChunk
+
                 relation_chunk = RelationChunk.from_relation(relation)
                 relation_id = relation_chunk.id
                 context.entities_to_delete.append(relation_id)
@@ -355,7 +379,7 @@ class RelationProcessor(ContentProcessor):
             # self.logger.debug("🔍 === RELATION DEDUPLICATION ===")
             # self.logger.debug(f"   Total relations to process: {len(relations)}")
 
-        for i, relation in enumerate(relations):
+        for _i, relation in enumerate(relations):
             # Generate the same key that will be used for storage
             from ..analysis.entities import RelationChunk
 
@@ -462,10 +486,15 @@ class ImplementationProcessor(ContentProcessor):
             entity_id = f"{chunk.metadata.get('file_path', '')}::{chunk.entity_name}"
 
             # Check if this implementation was already embedded with its metadata (unified)
-            if hasattr(context, "unified_entity_ids") and entity_id in context.unified_entity_ids:
+            if (
+                hasattr(context, "unified_entity_ids")
+                and entity_id in context.unified_entity_ids
+            ):
                 chunks_already_unified.append(chunk)
                 if self.logger:
-                    self.logger.debug(f"⚡ Skipping unified implementation: {entity_id}")
+                    self.logger.debug(
+                        f"⚡ Skipping unified implementation: {entity_id}"
+                    )
             elif entity_id in context.replaced_entity_ids:
                 # This entity was just replaced - don't deduplicate against stale data
                 chunks_already_processed.append(chunk)

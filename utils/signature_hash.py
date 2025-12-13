@@ -124,7 +124,9 @@ class SignatureHashTable:
         fallback_str = f"unknown|{entity_name}|{normalized[:100]}"
         return hashlib.sha256(fallback_str.encode()).hexdigest()[:16]
 
-    def _extract_param_names(self, params: str, exclude_self: bool = False) -> list[str]:
+    def _extract_param_names(
+        self, params: str, exclude_self: bool = False
+    ) -> list[str]:
         """Extract parameter names from parameter string.
 
         Args:
@@ -209,7 +211,7 @@ class SignatureHashTable:
 
         try:
             with self._lock:
-                with open(self._cache_file, "r") as f:
+                with open(self._cache_file) as f:
                     data = json.load(f)
 
                 self._hash_table = {}

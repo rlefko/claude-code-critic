@@ -5,10 +5,9 @@ They require a git repository and can be run with:
     pytest tests/integration/test_incremental_indexing.py -v
 """
 
-import os
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -118,9 +117,8 @@ class TestGitChangeDetectorIntegration:
             old == "initial.py" and new == "renamed.py"
             for old, new in changes.renamed_files
         )
-        has_delete_add = (
-            "initial.py" in changes.deleted_files
-            and any(f.name == "renamed.py" for f in changes.added_files)
+        has_delete_add = "initial.py" in changes.deleted_files and any(
+            f.name == "renamed.py" for f in changes.added_files
         )
         assert has_rename or has_delete_add
 
@@ -202,7 +200,9 @@ class TestIncrementalIndexingWorkflow:
         # Verify properties
         assert change_set.has_changes
         assert len(change_set.files_to_index) == 2
-        assert change_set.total_files == 4  # 1 added + 1 modified + 1 deleted + 1 renamed
+        assert (
+            change_set.total_files == 4
+        )  # 1 added + 1 modified + 1 deleted + 1 renamed
         assert "via git" in change_set.summary()
 
     def test_hash_fallback_detection(self, tmp_path: Path):

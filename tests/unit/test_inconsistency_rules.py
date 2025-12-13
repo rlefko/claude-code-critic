@@ -7,7 +7,13 @@ style inconsistencies within UI element roles.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity, StaticComponentFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    Severity,
+    StaticComponentFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.rules.base import RuleContext
 from claude_indexer.ui.rules.inconsistency import (
     ButtonOutlierRule,
@@ -98,11 +104,13 @@ class TestButtonOutlierRule:
             create_component("SecondaryButton", ["button", "rounded-md", "p-4"]),
             create_component("TertiaryButton", ["button", "rounded-md", "p-4"]),
             create_component("SubmitButton", ["button", "rounded-md", "p-4"]),
-            create_component("OutlierButton", ["button", "rounded-full", "p-8"]),  # Different
+            create_component(
+                "OutlierButton", ["button", "rounded-full", "p-8"]
+            ),  # Different
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # May detect outliers based on distribution analysis
         # The test validates the rule can run without error
@@ -118,7 +126,7 @@ class TestButtonOutlierRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # All consistent - should have no outlier findings
 
@@ -132,7 +140,7 @@ class TestButtonOutlierRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Too few samples for statistical analysis (need min_samples=3)
 
@@ -162,7 +170,7 @@ class TestInputOutlierRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Test validates rule can run without error
 
@@ -191,7 +199,7 @@ class TestCardOutlierRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Test validates rule can run without error
 
@@ -214,10 +222,18 @@ class TestFocusRingInconsistentRule:
 
         # Create interactive elements with different focus styles
         components = [
-            create_component("PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("TextInput", ["input", "focus:outline-none", "focus:border-green-500"]),
-            create_component("EmailInput", ["input", "focus:outline-none", "focus:border-green-500"]),
+            create_component(
+                "PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "TextInput", ["input", "focus:outline-none", "focus:border-green-500"]
+            ),
+            create_component(
+                "EmailInput", ["input", "focus:outline-none", "focus:border-green-500"]
+            ),
             create_component("NavLink", ["link", "focus:ring-1", "focus:ring-red-500"]),
         ]
 
@@ -233,13 +249,19 @@ class TestFocusRingInconsistentRule:
         rule = FocusRingInconsistentRule()
 
         components = [
-            create_component("PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]),
-            create_component("TextInput", ["input", "focus:ring-2", "focus:ring-blue-500"]),
+            create_component(
+                "PrimaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "SecondaryButton", ["button", "focus:ring-2", "focus:ring-blue-500"]
+            ),
+            create_component(
+                "TextInput", ["input", "focus:ring-2", "focus:ring-blue-500"]
+            ),
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Consistent focus styles should have no or few findings
 
@@ -252,7 +274,7 @@ class TestFocusRingInconsistentRule:
         ]
 
         context = RuleContext(config=config, components=components)
-        findings = rule.evaluate(context)
+        rule.evaluate(context)
 
         # Only one interactive element, not enough for comparison
 
@@ -276,7 +298,9 @@ class TestFocusRingInconsistentRule:
         """Test focus style extraction."""
         rule = FocusRingInconsistentRule()
 
-        comp_with_focus = create_component("ActionButton", ["btn", "focus:ring-2", "focus:ring-blue-500"])
+        comp_with_focus = create_component(
+            "ActionButton", ["btn", "focus:ring-2", "focus:ring-blue-500"]
+        )
         comp_without_focus = create_component("ActionButton", ["btn", "primary"])
 
         focus_style = rule._extract_focus_style(comp_with_focus)
@@ -337,7 +361,7 @@ class TestDistributionAnalysis:
 
         # Filter to buttons first
         buttons = rule._filter_by_role(components, "button")
-        distributions = rule._analyze_distributions(buttons)
+        rule._analyze_distributions(buttons)
 
         # Distributions dict should be returned (may be empty if no props extracted)
 

@@ -85,7 +85,7 @@ class HybridVectorPoint:
         else:
             if not self.dense_vector:
                 raise ValueError("Dense vector cannot be empty")
-        
+
         # Validate sparse vector
         if hasattr(self.sparse_vector, "__len__"):
             if len(self.sparse_vector) == 0:
@@ -93,7 +93,7 @@ class HybridVectorPoint:
         else:
             if not self.sparse_vector:
                 raise ValueError("Sparse vector cannot be empty")
-                
+
         if not isinstance(self.payload, dict):
             raise ValueError("Payload must be a dictionary")
 
@@ -214,12 +214,19 @@ class ManagedVectorStore(VectorStore):
         vector_size = vector_size or self.default_vector_size
         # ALWAYS use sparse vector support for all new collections (fallback removed after TSX bug)
         try:
-            result = self.create_collection_with_sparse_vectors(collection_name, vector_size)
+            result = self.create_collection_with_sparse_vectors(
+                collection_name, vector_size
+            )
         except AttributeError:
             # Emergency fallback - should never happen in production
             import logging
-            logging.error(f"CRITICAL: create_collection_with_sparse_vectors method missing on {type(self).__name__}")
-            raise RuntimeError(f"Collection creation failed: {type(self).__name__} missing sparse vector support")
+
+            logging.error(
+                f"CRITICAL: create_collection_with_sparse_vectors method missing on {type(self).__name__}"
+            )
+            raise RuntimeError(
+                f"Collection creation failed: {type(self).__name__} missing sparse vector support"
+            ) from None
         return result.success
 
     def upsert_points(
@@ -233,7 +240,7 @@ class ManagedVectorStore(VectorStore):
                 vector_size = len(points[0].dense_vector)
             else:
                 vector_size = len(points[0].vector)
-                
+
             if not self.ensure_collection(collection_name, vector_size):
                 return StorageResult(
                     success=False,

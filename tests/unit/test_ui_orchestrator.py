@@ -17,7 +17,6 @@ from claude_indexer.ui.orchestrator import (
     run_redesign,
 )
 
-
 # ==============================================================================
 # Fixtures
 # ==============================================================================
@@ -224,9 +223,7 @@ class TestRedesignResult:
         assert result.focus_area is None
         assert result.errors == []
 
-    def test_has_errors_false(
-        self, sample_critique_report, sample_implementation_plan
-    ):
+    def test_has_errors_false(self, sample_critique_report, sample_implementation_plan):
         """Test has_errors returns False when no errors."""
         result = RedesignResult(
             critique_report=sample_critique_report,
@@ -236,9 +233,7 @@ class TestRedesignResult:
 
         assert result.has_errors is False
 
-    def test_has_errors_true(
-        self, sample_critique_report, sample_implementation_plan
-    ):
+    def test_has_errors_true(self, sample_critique_report, sample_implementation_plan):
         """Test has_errors returns True when errors exist."""
         result = RedesignResult(
             critique_report=sample_critique_report,
@@ -248,9 +243,7 @@ class TestRedesignResult:
 
         assert result.has_errors is True
 
-    def test_summary_property(
-        self, sample_critique_report, sample_implementation_plan
-    ):
+    def test_summary_property(self, sample_critique_report, sample_implementation_plan):
         """Test summary property generates summary string."""
         result = RedesignResult(
             critique_report=sample_critique_report,
@@ -375,9 +368,7 @@ class TestOrchestratorInit:
 
     def test_lazy_config_loading(self, tmp_path, mock_ui_config):
         """Test config is lazy-loaded."""
-        with patch(
-            "claude_indexer.ui.orchestrator.load_ui_config"
-        ) as mock_load:
+        with patch("claude_indexer.ui.orchestrator.load_ui_config") as mock_load:
             mock_load.return_value = mock_ui_config
 
             orchestrator = RedesignOrchestrator(
@@ -622,9 +613,7 @@ class TestStaticAnalysis:
             config=mock_ui_config,
         )
 
-        with patch(
-            "claude_indexer.ui.orchestrator.CIAuditRunner"
-        ) as mock_runner_cls:
+        with patch("claude_indexer.ui.orchestrator.CIAuditRunner") as mock_runner_cls:
             mock_runner = MagicMock()
             mock_runner.run.return_value = mock_ci_result
             mock_runner_cls.return_value = mock_runner
@@ -635,9 +624,7 @@ class TestStaticAnalysis:
             mock_runner.run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_static_analysis_skips_when_disabled(
-        self, tmp_path, mock_ui_config
-    ):
+    async def test_static_analysis_skips_when_disabled(self, tmp_path, mock_ui_config):
         """Test static analysis skips when disabled."""
         redesign_config = RedesignConfig(include_static=False)
 
@@ -651,18 +638,14 @@ class TestStaticAnalysis:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_static_analysis_handles_error(
-        self, tmp_path, mock_ui_config
-    ):
+    async def test_static_analysis_handles_error(self, tmp_path, mock_ui_config):
         """Test static analysis handles exceptions."""
         orchestrator = RedesignOrchestrator(
             project_path=tmp_path,
             config=mock_ui_config,
         )
 
-        with patch(
-            "claude_indexer.ui.orchestrator.CIAuditRunner"
-        ) as mock_runner_cls:
+        with patch("claude_indexer.ui.orchestrator.CIAuditRunner") as mock_runner_cls:
             mock_runner_cls.side_effect = Exception("Audit failed")
 
             result = await orchestrator._run_static_analysis()
@@ -765,7 +748,11 @@ class TestReportGeneration:
     """Tests for _generate_reports method."""
 
     def test_generate_html_report(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test HTML report generation."""
         orchestrator = RedesignOrchestrator(
@@ -791,7 +778,11 @@ class TestReportGeneration:
         mock_reporter.generate.assert_called_once()
 
     def test_generate_json_report(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test JSON report generation."""
         orchestrator = RedesignOrchestrator(
@@ -817,7 +808,11 @@ class TestReportGeneration:
         mock_reporter.generate_json.assert_called_once()
 
     def test_generate_both_reports(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test both HTML and JSON report generation."""
         orchestrator = RedesignOrchestrator(
@@ -842,7 +837,11 @@ class TestReportGeneration:
         mock_reporter.generate_json.assert_called_once()
 
     def test_creates_output_directory(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test output directory is created."""
         output_dir = tmp_path / "reports" / "nested"
@@ -874,7 +873,11 @@ class TestFullRun:
 
     @pytest.mark.asyncio
     async def test_run_coordinates_all_steps(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test run() coordinates all analysis steps."""
         orchestrator = RedesignOrchestrator(
@@ -882,7 +885,7 @@ class TestFullRun:
             config=mock_ui_config,
             redesign_config=RedesignConfig(
                 include_runtime=False,  # Skip runtime for test
-                include_static=False,   # Skip static for test
+                include_static=False,  # Skip static for test
             ),
         )
 
@@ -909,7 +912,11 @@ class TestFullRun:
 
     @pytest.mark.asyncio
     async def test_run_with_focus(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test run() with focus area."""
         orchestrator = RedesignOrchestrator(
@@ -945,7 +952,11 @@ class TestFullRun:
         assert call_kwargs.get("focus_area") == "/checkout"
 
     def test_run_sync_wrapper(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test run_sync() wrapper works correctly."""
         orchestrator = RedesignOrchestrator(
@@ -986,7 +997,11 @@ class TestRunRedesignFunction:
 
     @pytest.mark.asyncio
     async def test_run_redesign_creates_orchestrator(
-        self, tmp_path, mock_ui_config, sample_critique_report, sample_implementation_plan
+        self,
+        tmp_path,
+        mock_ui_config,
+        sample_critique_report,
+        sample_implementation_plan,
     ):
         """Test run_redesign creates and runs orchestrator."""
         with patch(

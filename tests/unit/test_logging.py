@@ -2,7 +2,6 @@
 
 import json
 import logging
-import tempfile
 import time
 from pathlib import Path
 
@@ -461,7 +460,6 @@ class TestBackwardCompatibility:
             debug_context,
             get_category_logger,
             get_global_log_dir,
-            setup_multi_component_logging,
         )
 
         assert JSONFormatter is not None

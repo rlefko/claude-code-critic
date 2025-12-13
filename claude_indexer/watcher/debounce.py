@@ -25,7 +25,9 @@ class AsyncDebouncer:
         self._running = False
         self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
-    def set_callback(self, callback: Callable[[dict[str, Any]], Awaitable[None]]) -> None:
+    def set_callback(
+        self, callback: Callable[[dict[str, Any]], Awaitable[None]]
+    ) -> None:
         """Set the callback function for processed events."""
         self._callback = callback
 
@@ -166,6 +168,7 @@ class FileChangeCoalescer:
 
         if self._timer_thread is None or not self._timer_thread.is_alive():
             import threading
+
             self._timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
             self._timer_thread.start()
 

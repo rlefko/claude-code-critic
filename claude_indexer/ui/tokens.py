@@ -67,7 +67,11 @@ class ColorToken:
             value,
         )
         if rgb_match:
-            r, g, b = int(rgb_match.group(1)), int(rgb_match.group(2)), int(rgb_match.group(3))
+            r, g, b = (
+                int(rgb_match.group(1)),
+                int(rgb_match.group(2)),
+                int(rgb_match.group(3)),
+            )
             a = float(rgb_match.group(4)) if rgb_match.group(4) else 1.0
             a_hex = format(int(a * 255), "02X")
             return f"#{r:02X}{g:02X}{b:02X}{a_hex}"
@@ -78,7 +82,7 @@ class ColorToken:
             value,
         )
         if hsl_match:
-            h, s, l = (
+            hue, sat, light = (
                 int(hsl_match.group(1)),
                 int(hsl_match.group(2)) / 100,
                 int(hsl_match.group(3)) / 100,
@@ -86,19 +90,19 @@ class ColorToken:
             a = float(hsl_match.group(4)) if hsl_match.group(4) else 1.0
 
             # HSL to RGB conversion
-            c = (1 - abs(2 * l - 1)) * s
-            x = c * (1 - abs((h / 60) % 2 - 1))
-            m = l - c / 2
+            c = (1 - abs(2 * light - 1)) * sat
+            x = c * (1 - abs((hue / 60) % 2 - 1))
+            m = light - c / 2
 
-            if h < 60:
+            if hue < 60:
                 r1, g1, b1 = c, x, 0
-            elif h < 120:
+            elif hue < 120:
                 r1, g1, b1 = x, c, 0
-            elif h < 180:
+            elif hue < 180:
                 r1, g1, b1 = 0, c, x
-            elif h < 240:
+            elif hue < 240:
                 r1, g1, b1 = 0, x, c
-            elif h < 300:
+            elif hue < 300:
                 r1, g1, b1 = x, 0, c
             else:
                 r1, g1, b1 = c, 0, x
@@ -290,11 +294,15 @@ class TokenSet:
     def from_dict(cls, data: dict[str, Any]) -> "TokenSet":
         """Create from dictionary."""
         return cls(
-            colors={k: ColorToken.from_dict(v) for k, v in data.get("colors", {}).items()},
+            colors={
+                k: ColorToken.from_dict(v) for k, v in data.get("colors", {}).items()
+            },
             spacing={
                 k: SpacingToken.from_dict(v) for k, v in data.get("spacing", {}).items()
             },
-            radii={k: RadiusToken.from_dict(v) for k, v in data.get("radii", {}).items()},
+            radii={
+                k: RadiusToken.from_dict(v) for k, v in data.get("radii", {}).items()
+            },
             typography={
                 k: TypographyToken.from_dict(v)
                 for k, v in data.get("typography", {}).items()
@@ -321,11 +329,11 @@ class TokenSet:
 
     def get_spacing_scale(self) -> list[float]:
         """Get sorted list of spacing values for scale validation."""
-        return sorted(set(t.value for t in self.spacing.values()))
+        return sorted({t.value for t in self.spacing.values()})
 
     def get_radius_scale(self) -> list[float]:
         """Get sorted list of radius values for scale validation."""
-        return sorted(set(t.value for t in self.radii.values()))
+        return sorted({t.value for t in self.radii.values()})
 
     def get_color_values(self) -> set[str]:
         """Get set of canonical color values for token validation."""

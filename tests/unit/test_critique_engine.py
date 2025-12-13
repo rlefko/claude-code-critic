@@ -18,7 +18,7 @@ from claude_indexer.ui.config import (
 )
 from claude_indexer.ui.critique.affordance import AffordanceAnalyzer
 from claude_indexer.ui.critique.consistency import ConsistencyAnalyzer
-from claude_indexer.ui.critique.engine import CritiqueEngine, CritiqueItem
+from claude_indexer.ui.critique.engine import CritiqueEngine
 from claude_indexer.ui.critique.hierarchy import HierarchyAnalyzer
 from claude_indexer.ui.models import (
     LayoutBox,
@@ -31,6 +31,7 @@ from claude_indexer.ui.models import (
 def mock_config() -> UIQualityConfig:
     """Create mock UI quality config for testing."""
     from claude_indexer.ui.tokens import TypographyToken
+
     return UIQualityConfig(
         design_system=DesignSystemConfig(
             allowed_scales=AllowedScales(
@@ -182,7 +183,9 @@ class TestConsistencyAnalyzer:
         assert evidence[0]["property"] == "padding"
 
     def test_role_variants_counting(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test variant counting per role."""
         analyzer = ConsistencyAnalyzer(mock_config)
@@ -194,7 +197,9 @@ class TestConsistencyAnalyzer:
         assert metrics["button"].role == "button"
 
     def test_outlier_detection(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test statistical outlier detection."""
         analyzer = ConsistencyAnalyzer(mock_config)
@@ -228,7 +233,9 @@ class TestConsistencyAnalyzer:
         assert isinstance(outliers, list)
 
     def test_generate_consistency_critiques(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test critique generation from consistency analysis."""
         analyzer = ConsistencyAnalyzer(mock_config)
@@ -420,7 +427,9 @@ class TestCritiqueEngine:
     """Tests for CritiqueEngine."""
 
     def test_critique_generation(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test complete critique generation."""
         engine = CritiqueEngine(mock_config)
@@ -435,7 +444,9 @@ class TestCritiqueEngine:
         assert report.generated_at is not None
 
     def test_critique_item_structure(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test that critique items have proper structure."""
         engine = CritiqueEngine(mock_config)
@@ -453,7 +464,9 @@ class TestCritiqueEngine:
             assert critique.description
 
     def test_critique_sorting_by_severity(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test that critiques are sorted by severity (FAIL first)."""
         engine = CritiqueEngine(mock_config)
@@ -471,7 +484,9 @@ class TestCritiqueEngine:
                 assert current <= next_sev
 
     def test_remediation_hints(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test that critiques include remediation hints."""
         engine = CritiqueEngine(mock_config)
@@ -481,14 +496,16 @@ class TestCritiqueEngine:
         )
 
         # At least some critiques should have remediation hints
-        has_hints = any(len(c.remediation_hints) > 0 for c in report.critiques)
+        any(len(c.remediation_hints) > 0 for c in report.critiques)
         # This assertion depends on the specific critiques generated
         # Just verify the structure is correct
         for critique in report.critiques:
             assert isinstance(critique.remediation_hints, list)
 
     def test_summary_generation(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test critique summary generation."""
         engine = CritiqueEngine(mock_config)
@@ -503,7 +520,9 @@ class TestCritiqueEngine:
         assert isinstance(summary.by_severity, dict)
 
     def test_critique_to_dict(
-        self, mock_config: UIQualityConfig, sample_fingerprints: list[RuntimeElementFingerprint]
+        self,
+        mock_config: UIQualityConfig,
+        sample_fingerprints: list[RuntimeElementFingerprint],
     ) -> None:
         """Test critique serialization to dict."""
         engine = CritiqueEngine(mock_config)

@@ -11,11 +11,11 @@ Enhanced for Milestone 0.3 with:
 import json
 import logging
 import logging.handlers
+from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Generator
 
 
 class LogCategory(Enum):
@@ -46,7 +46,7 @@ class JSONFormatter(logging.Formatter):
             JSON string representation of the log entry.
         """
         log_entry: dict = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "module": record.module,
@@ -262,7 +262,9 @@ def debug_context(
     finally:
         target_logger.setLevel(original_level)
         # Restore handler levels
-        for handler, level in zip(target_logger.handlers, original_handler_levels):
+        for handler, level in zip(
+            target_logger.handlers, original_handler_levels, strict=False
+        ):
             handler.setLevel(level)
 
 

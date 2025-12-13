@@ -243,9 +243,9 @@ class IndexingService:
         for project_path, observer in self.observers.items():
             watchers_status[project_path] = {
                 "running": observer.is_alive(),
-                "watch_count": len(observer.watches)
-                if hasattr(observer, "watches")
-                else 0,
+                "watch_count": (
+                    len(observer.watches) if hasattr(observer, "watches") else 0
+                ),
             }
 
         return {

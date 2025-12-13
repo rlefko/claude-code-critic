@@ -2,12 +2,11 @@
 
 import json
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from claude_indexer.doctor.types import CheckResult, CheckStatus
+from claude_indexer.doctor.types import CheckStatus
 from claude_indexer.hooks.session_start import (
     IndexFreshnessResult,
     SessionStartExecutor,
@@ -334,7 +333,9 @@ class TestSessionStartExecutor:
         )
 
         with patch.object(
-            executor, "_run_git_command", side_effect=["main", "M file.py\nA new.py", "Commit 1\nCommit 2"]
+            executor,
+            "_run_git_command",
+            side_effect=["main", "M file.py\nA new.py", "Commit 1\nCommit 2"],
         ):
             branch, uncommitted, commits = executor._get_git_context()
 
@@ -372,7 +373,9 @@ class TestRunSessionStart:
 
     def test_returns_exit_code_0_on_healthy(self, tmp_path):
         """Healthy system should return exit code 0."""
-        with patch("claude_indexer.hooks.session_start.SessionStartExecutor") as MockExec:
+        with patch(
+            "claude_indexer.hooks.session_start.SessionStartExecutor"
+        ) as MockExec:
             mock_result = SessionStartResult(
                 qdrant_status=CheckStatus.PASS,
                 collection_status=CheckStatus.PASS,
@@ -389,7 +392,9 @@ class TestRunSessionStart:
 
     def test_returns_exit_code_1_on_warnings(self, tmp_path):
         """Warnings should return exit code 1."""
-        with patch("claude_indexer.hooks.session_start.SessionStartExecutor") as MockExec:
+        with patch(
+            "claude_indexer.hooks.session_start.SessionStartExecutor"
+        ) as MockExec:
             mock_result = SessionStartResult(
                 qdrant_status=CheckStatus.PASS,
                 collection_status=CheckStatus.WARN,
@@ -406,7 +411,9 @@ class TestRunSessionStart:
 
     def test_never_returns_exit_code_2(self, tmp_path):
         """Session start should never block (never exit code 2)."""
-        with patch("claude_indexer.hooks.session_start.SessionStartExecutor") as MockExec:
+        with patch(
+            "claude_indexer.hooks.session_start.SessionStartExecutor"
+        ) as MockExec:
             mock_result = SessionStartResult(
                 qdrant_status=CheckStatus.FAIL,
                 collection_status=CheckStatus.FAIL,
@@ -423,7 +430,9 @@ class TestRunSessionStart:
 
     def test_passes_timeout_to_executor(self, tmp_path):
         """Timeout should be passed to executor."""
-        with patch("claude_indexer.hooks.session_start.SessionStartExecutor") as MockExec:
+        with patch(
+            "claude_indexer.hooks.session_start.SessionStartExecutor"
+        ) as MockExec:
             mock_result = SessionStartResult()
             mock_instance = MockExec.return_value
             mock_instance.execute.return_value = mock_result

@@ -54,7 +54,7 @@ class RuleDiscovery:
                            Defaults to the directory containing this file.
         """
         self.rules_base_path = rules_base_path or Path(__file__).parent
-        self._discovered_rules: dict[str, type["BaseRule"]] = {}
+        self._discovered_rules: dict[str, type[BaseRule]] = {}
         self._discovery_errors: list[str] = []
 
     def discover_all(self) -> dict[str, type["BaseRule"]]:
@@ -85,7 +85,7 @@ class RuleDiscovery:
         Returns:
             Dictionary mapping rule_id to rule class for this category
         """
-        category_rules: dict[str, type["BaseRule"]] = {}
+        category_rules: dict[str, type[BaseRule]] = {}
         category_path = self.rules_base_path / category
 
         if not category_path.exists():
@@ -249,7 +249,7 @@ def discover_rules(
     discovery = RuleDiscovery(rules_path)
 
     if categories:
-        rules: dict[str, type["BaseRule"]] = {}
+        rules: dict[str, type[BaseRule]] = {}
         for category in categories:
             rules.update(discovery.discover_category(category))
         return rules

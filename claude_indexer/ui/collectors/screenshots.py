@@ -82,7 +82,9 @@ class VisualCluster:
         return {
             "cluster_id": self.cluster_id,
             "elements": [e.to_dict() for e in self.elements],
-            "representative": self.representative.to_dict() if self.representative else None,
+            "representative": (
+                self.representative.to_dict() if self.representative else None
+            ),
             "avg_hamming_distance": self.avg_hamming_distance,
             "is_consistent": self.is_consistent,
             "variant_count": self.variant_count,
@@ -94,9 +96,11 @@ class VisualCluster:
         return cls(
             cluster_id=data["cluster_id"],
             elements=[ElementScreenshot.from_dict(e) for e in data.get("elements", [])],
-            representative=ElementScreenshot.from_dict(data["representative"])
-            if data.get("representative")
-            else None,
+            representative=(
+                ElementScreenshot.from_dict(data["representative"])
+                if data.get("representative")
+                else None
+            ),
             avg_hamming_distance=data.get("avg_hamming_distance", 0.0),
             is_consistent=data.get("is_consistent", True),
             variant_count=data.get("variant_count", 1),
@@ -117,7 +121,9 @@ class VisualClusteringResult:
         """Convert to dictionary for JSON serialization."""
         return {
             "clusters": [c.to_dict() for c in self.clusters],
-            "identical_different_code": [c.to_dict() for c in self.identical_different_code],
+            "identical_different_code": [
+                c.to_dict() for c in self.identical_different_code
+            ],
             "inconsistent_variants": [c.to_dict() for c in self.inconsistent_variants],
         }
 
@@ -127,10 +133,12 @@ class VisualClusteringResult:
         return cls(
             clusters=[VisualCluster.from_dict(c) for c in data.get("clusters", [])],
             identical_different_code=[
-                VisualCluster.from_dict(c) for c in data.get("identical_different_code", [])
+                VisualCluster.from_dict(c)
+                for c in data.get("identical_different_code", [])
             ],
             inconsistent_variants=[
-                VisualCluster.from_dict(c) for c in data.get("inconsistent_variants", [])
+                VisualCluster.from_dict(c)
+                for c in data.get("inconsistent_variants", [])
             ],
         )
 
@@ -347,7 +355,9 @@ class VisualClusteringEngine:
         identical_different_code = self._find_identical_different_code(
             screenshots, distance_matrix
         )
-        inconsistent_variants = self._find_inconsistent_variants(screenshots, distance_matrix)
+        inconsistent_variants = self._find_inconsistent_variants(
+            screenshots, distance_matrix
+        )
 
         return VisualClusteringResult(
             clusters=clusters,
@@ -465,7 +475,7 @@ class VisualClusteringEngine:
                     representative=representative,
                     avg_hamming_distance=1.0 - avg_sim,
                     is_consistent=avg_sim >= self.similar_threshold,
-                    variant_count=len(set(e.selector for e in elements)),
+                    variant_count=len({e.selector for e in elements}),
                 )
             )
 
@@ -513,9 +523,11 @@ class VisualClusteringEngine:
                         elements=elements,
                         representative=elements[0],
                         avg_hamming_distance=1.0
-                        - self._compute_avg_similarity(identical_indices, distance_matrix),
+                        - self._compute_avg_similarity(
+                            identical_indices, distance_matrix
+                        ),
                         is_consistent=True,
-                        variant_count=len(set(e.selector for e in elements)),
+                        variant_count=len({e.selector for e in elements}),
                     )
                 )
 
@@ -539,7 +551,7 @@ class VisualClusteringEngine:
         by_role = self._group_by_role(screenshots)
 
         findings = []
-        for role, role_screenshots in by_role.items():
+        for _role, role_screenshots in by_role.items():
             if len(role_screenshots) < 3:
                 continue
 
@@ -558,7 +570,7 @@ class VisualClusteringEngine:
                         representative=role_screenshots[0],
                         avg_hamming_distance=1.0 - avg_sim,
                         is_consistent=False,
-                        variant_count=len(set(s.selector for s in role_screenshots)),
+                        variant_count=len({s.selector for s in role_screenshots}),
                     )
                 )
 

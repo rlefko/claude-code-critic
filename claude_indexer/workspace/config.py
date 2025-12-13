@@ -7,7 +7,7 @@ supporting hierarchical config inheritance from global to workspace to member.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..config.config_loader import ConfigLoader
 from ..config.models import IndexerConfig
@@ -45,7 +45,7 @@ class WorkspaceConfigLoader:
     def __init__(
         self,
         workspace_config: WorkspaceConfig,
-        base_config_loader: Optional[ConfigLoader] = None,
+        base_config_loader: ConfigLoader | None = None,
     ):
         """Initialize workspace config loader.
 
@@ -55,9 +55,9 @@ class WorkspaceConfigLoader:
         """
         self.workspace_config = workspace_config
         self.base_loader = base_config_loader or ConfigLoader()
-        self._workspace_settings: Optional[Dict[str, Any]] = None
+        self._workspace_settings: dict[str, Any] | None = None
 
-    def get_workspace_settings(self) -> Dict[str, Any]:
+    def get_workspace_settings(self) -> dict[str, Any]:
         """Load workspace-level settings.
 
         Loads settings from workspace.config.json if it exists.
@@ -123,7 +123,7 @@ class WorkspaceConfigLoader:
             return base_config
 
     def _apply_settings_to_config(
-        self, config: IndexerConfig, settings: Dict[str, Any]
+        self, config: IndexerConfig, settings: dict[str, Any]
     ) -> IndexerConfig:
         """Apply settings dictionary to config.
 
@@ -159,7 +159,7 @@ class WorkspaceConfigLoader:
 
         return IndexerConfig(**config_dict)
 
-    def get_all_member_configs(self) -> Dict[str, IndexerConfig]:
+    def get_all_member_configs(self) -> dict[str, IndexerConfig]:
         """Get configs for all workspace members.
 
         Returns:
@@ -170,9 +170,7 @@ class WorkspaceConfigLoader:
             for member in self.workspace_config.members
         }
 
-    def create_workspace_config(
-        self, settings: Optional[Dict[str, Any]] = None
-    ) -> Path:
+    def create_workspace_config(self, settings: dict[str, Any] | None = None) -> Path:
         """Create workspace configuration file.
 
         Creates workspace.config.json with initial settings
@@ -211,7 +209,7 @@ class WorkspaceConfigLoader:
         logger.info(f"Created workspace config at {config_path}")
         return config_path
 
-    def update_workspace_config(self, updates: Dict[str, Any]) -> None:
+    def update_workspace_config(self, updates: dict[str, Any]) -> None:
         """Update workspace configuration.
 
         Merges updates into existing workspace config.
@@ -244,7 +242,7 @@ class WorkspaceConfigLoader:
         # Clear cache
         self._workspace_settings = None
 
-    def get_include_patterns(self) -> List[str]:
+    def get_include_patterns(self) -> list[str]:
         """Get combined include patterns for workspace.
 
         Merges patterns from workspace config and base config.
@@ -268,7 +266,7 @@ class WorkspaceConfigLoader:
         except Exception:
             return ["*.py", "*.js", "*.ts", "*.md"]
 
-    def get_exclude_patterns(self) -> List[str]:
+    def get_exclude_patterns(self) -> list[str]:
         """Get combined exclude patterns for workspace.
 
         Merges patterns from workspace config and base config.

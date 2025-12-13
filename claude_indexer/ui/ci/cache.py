@@ -6,8 +6,6 @@ improve performance of repeated CI audit runs.
 
 import hashlib
 import json
-import os
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -141,7 +139,7 @@ class FingerprintCache:
 
         try:
             # Load metadata
-            with open(metadata_path, "r") as f:
+            with open(metadata_path) as f:
                 metadata_data = json.load(f)
                 self._metadata = CacheMetadata.from_dict(metadata_data)
 
@@ -156,7 +154,7 @@ class FingerprintCache:
                 return False
 
             # Load entries
-            with open(entries_path, "r") as f:
+            with open(entries_path) as f:
                 entries_data = json.load(f)
                 self._entries = {
                     path: CacheEntry.from_dict(entry)
@@ -336,7 +334,7 @@ class CacheManager:
         try:
             with open(file_path, "rb") as f:
                 return hashlib.sha256(f.read()).hexdigest()
-        except (OSError, IOError):
+        except OSError:
             return ""
 
     def get_cached_fingerprints(

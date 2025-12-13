@@ -126,8 +126,6 @@ class RepairCheckResult:
     def _get_escalation_message_for_user(self) -> str:
         """Get message for user when escalating."""
         finding_count = len(self.findings)
-        critical = self.base_result.critical_count
-        high = self.base_result.high_count
 
         lines = [
             f"Claude attempted to fix {finding_count} issue(s) "

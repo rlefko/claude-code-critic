@@ -93,9 +93,7 @@ class BatchOptimizer:
 
         # Check error rate
         error_rate = (
-            metrics.error_count / metrics.batch_size
-            if metrics.batch_size > 0
-            else 0.0
+            metrics.error_count / metrics.batch_size if metrics.batch_size > 0 else 0.0
         )
 
         if error_rate > self.config.error_rate_threshold:
@@ -153,8 +151,7 @@ class BatchOptimizer:
 
         if self._current_size < old_size:
             self.logger.info(
-                f"Reduced batch size: {old_size} -> {self._current_size} "
-                f"({reason})"
+                f"Reduced batch size: {old_size} -> {self._current_size} " f"({reason})"
             )
 
         return self._current_size

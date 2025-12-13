@@ -23,67 +23,67 @@ class InsecureDeserializeRule(BaseRule):
         "python": [
             # pickle.loads/load
             (
-                r'pickle\.loads?\s*\(',
+                r"pickle\.loads?\s*\(",
                 "pickle can execute arbitrary code during deserialization",
                 0.90,
             ),
             # cPickle
             (
-                r'cPickle\.loads?\s*\(',
+                r"cPickle\.loads?\s*\(",
                 "cPickle can execute arbitrary code during deserialization",
                 0.90,
             ),
             # yaml.load without SafeLoader
             (
-                r'yaml\.load\s*\([^)]*\)(?!.*Loader\s*=\s*yaml\.(Safe|Base)Loader)',
+                r"yaml\.load\s*\([^)]*\)(?!.*Loader\s*=\s*yaml\.(Safe|Base)Loader)",
                 "yaml.load without SafeLoader can execute arbitrary code",
                 0.85,
             ),
             # yaml.unsafe_load
             (
-                r'yaml\.unsafe_load\s*\(',
+                r"yaml\.unsafe_load\s*\(",
                 "yaml.unsafe_load can execute arbitrary code",
                 0.95,
             ),
             # yaml.full_load
             (
-                r'yaml\.full_load\s*\(',
+                r"yaml\.full_load\s*\(",
                 "yaml.full_load can execute arbitrary code",
                 0.90,
             ),
             # marshal.loads/load
             (
-                r'marshal\.loads?\s*\(',
+                r"marshal\.loads?\s*\(",
                 "marshal can execute arbitrary code during deserialization",
                 0.90,
             ),
             # shelve (uses pickle internally)
             (
-                r'shelve\.open\s*\(',
+                r"shelve\.open\s*\(",
                 "shelve uses pickle internally (deserialization risk)",
                 0.75,
             ),
             # dill (pickle extension)
             (
-                r'dill\.loads?\s*\(',
+                r"dill\.loads?\s*\(",
                 "dill can execute arbitrary code during deserialization",
                 0.90,
             ),
             # eval on data
             (
-                r'eval\s*\([^)]*\.(read|recv|decode)',
+                r"eval\s*\([^)]*\.(read|recv|decode)",
                 "eval on external data (code execution risk)",
                 0.95,
             ),
             # ast.literal_eval with external data
             (
-                r'ast\.literal_eval\s*\([^)]*request\.',
+                r"ast\.literal_eval\s*\([^)]*request\.",
                 "ast.literal_eval with request data (safer but review)",
                 0.60,
             ),
             # jsonpickle
             (
-                r'jsonpickle\.decode\s*\(',
+                r"jsonpickle\.decode\s*\(",
                 "jsonpickle can execute arbitrary code",
                 0.85,
             ),
@@ -91,31 +91,31 @@ class InsecureDeserializeRule(BaseRule):
         "javascript": [
             # node-serialize (CVE-2017-5941)
             (
-                r'serialize\.unserialize\s*\(',
+                r"serialize\.unserialize\s*\(",
                 "node-serialize is vulnerable to RCE",
                 0.98,
             ),
             # eval on parsed JSON (when combined with prototype pollution)
             (
-                r'eval\s*\([^)]*JSON\.parse',
+                r"eval\s*\([^)]*JSON\.parse",
                 "eval on parsed JSON (potential code execution)",
                 0.85,
             ),
             # Function constructor with data
             (
-                r'new\s+Function\s*\([^)]*\.(parse|read|body)',
+                r"new\s+Function\s*\([^)]*\.(parse|read|body)",
                 "Function constructor with external data",
                 0.90,
             ),
             # BSON/MongoDB deserialization issues
             (
-                r'BSON\.deserialize\s*\([^)]*request',
+                r"BSON\.deserialize\s*\([^)]*request",
                 "BSON deserialize with request data",
                 0.80,
             ),
             # vm.runIn* with external code
             (
-                r'vm\.(runInContext|runInNewContext)\s*\([^)]*\.(body|query|params)',
+                r"vm\.(runInContext|runInNewContext)\s*\([^)]*\.(body|query|params)",
                 "vm module with request data (code execution)",
                 0.95,
             ),
@@ -123,17 +123,17 @@ class InsecureDeserializeRule(BaseRule):
         "typescript": [
             # Same as JavaScript
             (
-                r'serialize\.unserialize\s*\(',
+                r"serialize\.unserialize\s*\(",
                 "node-serialize is vulnerable to RCE",
                 0.98,
             ),
             (
-                r'eval\s*\([^)]*JSON\.parse',
+                r"eval\s*\([^)]*JSON\.parse",
                 "eval on parsed JSON (potential code execution)",
                 0.85,
             ),
             (
-                r'new\s+Function\s*\([^)]*\.(parse|read|body)',
+                r"new\s+Function\s*\([^)]*\.(parse|read|body)",
                 "Function constructor with external data",
                 0.90,
             ),
@@ -141,37 +141,37 @@ class InsecureDeserializeRule(BaseRule):
         "java": [
             # ObjectInputStream (Java native deserialization)
             (
-                r'new\s+ObjectInputStream\s*\(',
+                r"new\s+ObjectInputStream\s*\(",
                 "Java ObjectInputStream can execute arbitrary code",
                 0.85,
             ),
             # readObject
             (
-                r'\.readObject\s*\(\s*\)',
+                r"\.readObject\s*\(\s*\)",
                 "readObject can trigger gadget chains",
                 0.80,
             ),
             # XMLDecoder
             (
-                r'new\s+XMLDecoder\s*\(',
+                r"new\s+XMLDecoder\s*\(",
                 "XMLDecoder can execute arbitrary code",
                 0.90,
             ),
             # XStream without security
             (
-                r'XStream\(\)\.fromXML\s*\(',
+                r"XStream\(\)\.fromXML\s*\(",
                 "XStream without allowlist is vulnerable",
                 0.85,
             ),
             # Jackson default typing
             (
-                r'enableDefaultTyping\s*\(\s*\)',
+                r"enableDefaultTyping\s*\(\s*\)",
                 "Jackson enableDefaultTyping is vulnerable",
                 0.90,
             ),
             # Kryo without registration
             (
-                r'kryo\.setRegistrationRequired\s*\(\s*false\s*\)',
+                r"kryo\.setRegistrationRequired\s*\(\s*false\s*\)",
                 "Kryo without registration is vulnerable",
                 0.85,
             ),
@@ -179,19 +179,19 @@ class InsecureDeserializeRule(BaseRule):
         "php": [
             # unserialize
             (
-                r'\bunserialize\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)',
+                r"\bunserialize\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)",
                 "unserialize with user input (object injection)",
                 0.95,
             ),
             # Generic unserialize (warning)
             (
-                r'\bunserialize\s*\(',
+                r"\bunserialize\s*\(",
                 "unserialize can lead to object injection",
                 0.70,
             ),
             # __wakeup exploitation possible
             (
-                r'function\s+__wakeup\s*\(',
+                r"function\s+__wakeup\s*\(",
                 "__wakeup magic method (review for deserialization attacks)",
                 0.50,
             ),
@@ -199,19 +199,19 @@ class InsecureDeserializeRule(BaseRule):
         "ruby": [
             # Marshal.load
             (
-                r'Marshal\.load\s*\(',
+                r"Marshal\.load\s*\(",
                 "Marshal.load can execute arbitrary code",
                 0.90,
             ),
             # YAML.load (pre Ruby 2.5)
             (
-                r'YAML\.load\s*\([^)]*(?!permitted)',
+                r"YAML\.load\s*\([^)]*(?!permitted)",
                 "YAML.load without permitted_classes is unsafe",
                 0.85,
             ),
             # JSON.parse with create_additions
             (
-                r'JSON\.parse\s*\([^)]*create_additions\s*[=:]\s*true',
+                r"JSON\.parse\s*\([^)]*create_additions\s*[=:]\s*true",
                 "JSON.parse with create_additions can execute code",
                 0.90,
             ),
@@ -219,13 +219,13 @@ class InsecureDeserializeRule(BaseRule):
         "go": [
             # gob.Decoder with external data
             (
-                r'gob\.NewDecoder\s*\([^)]*r\.Body',
+                r"gob\.NewDecoder\s*\([^)]*r\.Body",
                 "gob.Decoder with request body (type confusion risk)",
                 0.75,
             ),
             # yaml.Unmarshal without strict mode
             (
-                r'yaml\.Unmarshal\s*\([^)]*,\s*&?interface\{\}',
+                r"yaml\.Unmarshal\s*\([^)]*,\s*&?interface\{\}",
                 "yaml.Unmarshal to interface{} (type confusion risk)",
                 0.70,
             ),
@@ -270,15 +270,15 @@ class InsecureDeserializeRule(BaseRule):
     def _has_safe_loader(self, line: str, surrounding_lines: list[str]) -> bool:
         """Check if safe loading options are used."""
         safe_patterns = [
-            r'SafeLoader',
-            r'BaseLoader',
-            r'safe_load',
-            r'permitted_classes',
-            r'allowlist',
-            r'whitelist',
-            r'setRegistrationRequired.*true',
-            r'validateTypes',
-            r'TypeValidator',
+            r"SafeLoader",
+            r"BaseLoader",
+            r"safe_load",
+            r"permitted_classes",
+            r"allowlist",
+            r"whitelist",
+            r"setRegistrationRequired.*true",
+            r"validateTypes",
+            r"TypeValidator",
         ]
         text_to_check = line + " " + " ".join(surrounding_lines)
         for pattern in safe_patterns:
@@ -406,8 +406,11 @@ class InsecureDeserializeRule(BaseRule):
                 "Implement type-specific unmarshaling",
             ],
         }
-        return hints.get(language, [
-            "Prefer safe formats like JSON over native serialization",
-            "Implement strict input validation before deserialization",
-            "Use allowlists for permitted types/classes",
-        ])
+        return hints.get(
+            language,
+            [
+                "Prefer safe formats like JSON over native serialization",
+                "Implement strict input validation before deserialization",
+                "Use allowlists for permitted types/classes",
+            ],
+        )

@@ -18,18 +18,26 @@ from typing import Any, TextIO
 from ..collectors.source import SourceCollector
 from ..config import UIQualityConfig, load_ui_config
 from ..models import StaticComponentFingerprint, StyleFingerprint, UIAnalysisResult
-from ..normalizers.style import StyleNormalizer
 from ..normalizers.component import ComponentNormalizer
+from ..normalizers.style import StyleNormalizer
 from ..rules.base import RuleContext
 from ..rules.engine import create_rule_engine
 
-
 # UI file extensions that trigger the guard
-UI_EXTENSIONS = frozenset([
-    ".css", ".scss", ".sass", ".less",
-    ".jsx", ".tsx", ".vue", ".svelte",
-    ".html", ".htm",
-])
+UI_EXTENSIONS = frozenset(
+    [
+        ".css",
+        ".scss",
+        ".sass",
+        ".less",
+        ".jsx",
+        ".tsx",
+        ".vue",
+        ".svelte",
+        ".html",
+        ".htm",
+    ]
+)
 
 
 def is_ui_file(file_path: str | Path) -> bool:
@@ -121,7 +129,11 @@ class UIGuard:
             fingerprint = StaticComponentFingerprint(
                 structure_hash=normalized.structure_hash,
                 style_refs=component.style_refs,
-                prop_shape_sketch={k: "any" for k in normalized.prop_names} if normalized.prop_names else None,
+                prop_shape_sketch=(
+                    dict.fromkeys(normalized.prop_names, "any")
+                    if normalized.prop_names
+                    else None
+                ),
                 source_ref=component.source_ref,
             )
             component_fingerprints.append(fingerprint)

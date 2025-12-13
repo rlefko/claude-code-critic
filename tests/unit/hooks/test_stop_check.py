@@ -480,7 +480,6 @@ class TestRunStopCheck:
     @pytest.fixture
     def temp_git_repo(self):
         """Create a temporary git repository for testing."""
-        import shutil
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -537,7 +536,7 @@ class TestRunStopCheck:
         new_file = temp_git_repo / "test.py"
         new_file.write_text("x = 1\n")
 
-        exit_code = run_stop_check(
+        run_stop_check(
             project=str(temp_git_repo),
             output_json=True,
             timeout_ms=5000,
@@ -639,13 +638,15 @@ class TestIntegration:
         """Test complete flow with uncommitted changes."""
         # Add a new Python file
         test_file = temp_git_repo / "test.py"
-        test_file.write_text("""
+        test_file.write_text(
+            """
 def calculate_total(items):
     total = 0
     for item in items:
         total += item.price
     return total
-""")
+"""
+        )
 
         executor = StopCheckExecutor.get_instance()
         result = executor.check_uncommitted_changes(temp_git_repo)
@@ -697,11 +698,13 @@ def calculate_total(items):
         """Test that critical security issues trigger blocking."""
         # Create file with potential SQL injection
         test_file = temp_git_repo / "db.py"
-        test_file.write_text("""
+        test_file.write_text(
+            """
 def get_user(user_id):
     query = "SELECT * FROM users WHERE id = " + user_id
     return execute(query)
-""")
+"""
+        )
 
         exit_code = run_stop_check(
             project=str(temp_git_repo),

@@ -8,7 +8,7 @@ session state, including member collections and active member selection.
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .types import CollectionStrategy, WorkspaceConfig, WorkspaceMember, WorkspaceType
 
@@ -34,8 +34,8 @@ class WorkspaceContext:
 
     workspace_id: str
     workspace_config: WorkspaceConfig
-    active_member: Optional[WorkspaceMember] = None
-    member_collections: Dict[str, str] = field(default_factory=dict)
+    active_member: WorkspaceMember | None = None
+    member_collections: dict[str, str] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
     last_activity: float = field(default_factory=time.time)
 
@@ -94,7 +94,7 @@ class WorkspaceContext:
         return self.root_path / ".claude-indexer"
 
     @property
-    def members(self) -> List[WorkspaceMember]:
+    def members(self) -> list[WorkspaceMember]:
         """Get all workspace members.
 
         Returns:
@@ -103,7 +103,7 @@ class WorkspaceContext:
         return self.workspace_config.members
 
     @property
-    def collection_names(self) -> List[str]:
+    def collection_names(self) -> list[str]:
         """Get all collection names for this workspace.
 
         Returns:
@@ -150,7 +150,7 @@ class WorkspaceContext:
         # Fallback to workspace-level collection
         return self.workspace_config.get_effective_collection()
 
-    def get_member_for_path(self, file_path: Path) -> Optional[WorkspaceMember]:
+    def get_member_for_path(self, file_path: Path) -> WorkspaceMember | None:
         """Get workspace member containing a file path.
 
         Args:
@@ -197,7 +197,7 @@ class WorkspaceContext:
         """
         return time.time() - self.last_activity
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary.
 
         Returns:
@@ -225,7 +225,7 @@ class WorkspaceContext:
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], workspace_config: WorkspaceConfig
+        cls, data: dict[str, Any], workspace_config: WorkspaceConfig
     ) -> "WorkspaceContext":
         """Create WorkspaceContext from dictionary.
 

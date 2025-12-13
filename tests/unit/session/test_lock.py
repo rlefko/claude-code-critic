@@ -1,12 +1,9 @@
 """Tests for LockManager."""
 
 import json
-import multiprocessing
 import os
 import time
 from pathlib import Path
-
-import pytest
 
 from claude_indexer.session.lock import LockConflictError, LockManager
 

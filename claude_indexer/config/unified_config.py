@@ -5,8 +5,12 @@ all configuration options into a single, well-structured schema.
 It maintains backward compatibility with legacy configurations.
 """
 
-from pathlib import Path
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .models import IndexerConfig
 
 from pydantic import BaseModel, Field
 
@@ -46,7 +50,7 @@ class EmbeddingConfig(BaseModel):
     """Embedding generation configuration."""
 
     provider: str = Field(default="voyage", description="Embedding provider")
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None, description="Override model (uses provider default if None)"
     )
     dimension: int = Field(default=512, ge=128, le=4096, description="Vector dimension")
@@ -160,9 +164,7 @@ class WatcherConfig(BaseModel):
     debounce_seconds: float = Field(
         default=2.0, ge=0.1, le=60.0, description="Debounce delay in seconds"
     )
-    use_gitignore: bool = Field(
-        default=True, description="Respect .gitignore patterns"
-    )
+    use_gitignore: bool = Field(default=True, description="Respect .gitignore patterns")
 
 
 class PerformanceConfig(BaseModel):
@@ -220,9 +222,7 @@ class RuleConfig(BaseModel):
 
     enabled: bool = Field(default=True, description="Enable this rule")
     severity: str = Field(default="MEDIUM", description="Rule severity")
-    threshold: Optional[float] = Field(
-        default=None, description="Rule-specific threshold"
-    )
+    threshold: float | None = Field(default=None, description="Rule-specific threshold")
     auto_fix: bool = Field(default=False, description="Enable auto-fix if supported")
 
 
@@ -242,10 +242,12 @@ class GuardConfig(BaseModel):
 class LoggingConfig(BaseModel):
     """Enhanced logging configuration for Milestone 0.3."""
 
-    level: str = Field(default="INFO", description="Log level (DEBUG, INFO, WARNING, ERROR)")
+    level: str = Field(
+        default="INFO", description="Log level (DEBUG, INFO, WARNING, ERROR)"
+    )
     verbose: bool = Field(default=True, description="Enable verbose output")
     debug: bool = Field(default=False, description="Enable debug mode")
-    log_file: Optional[str] = Field(default=None, description="Path to log file")
+    log_file: str | None = Field(default=None, description="Path to log file")
     # New fields for Milestone 0.3
     format: str = Field(
         default="text",
@@ -289,9 +291,7 @@ class UnifiedConfig(BaseModel):
     """
 
     version: str = Field(default="3.0", description="Configuration schema version")
-    project: Optional[ProjectInfo] = Field(
-        default=None, description="Project metadata"
-    )
+    project: ProjectInfo | None = Field(default=None, description="Project metadata")
     api: APIConfig = Field(default_factory=APIConfig, description="API configuration")
     embedding: EmbeddingConfig = Field(
         default_factory=EmbeddingConfig, description="Embedding configuration"
@@ -318,7 +318,7 @@ class UnifiedConfig(BaseModel):
     class Config:
         extra = "allow"
 
-    def to_indexer_config(self) -> "IndexerConfig":
+    def to_indexer_config(self) -> IndexerConfig:
         """Convert to legacy IndexerConfig for backward compatibility.
 
         Returns:
@@ -353,8 +353,8 @@ class UnifiedConfig(BaseModel):
 
     @classmethod
     def from_indexer_config(
-        cls, config: "IndexerConfig", project_name: str = "default"
-    ) -> "UnifiedConfig":
+        cls, config: IndexerConfig, project_name: str = "default"
+    ) -> UnifiedConfig:
         """Create UnifiedConfig from legacy IndexerConfig.
 
         Args:
@@ -410,7 +410,7 @@ class UnifiedConfig(BaseModel):
         )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "UnifiedConfig":
+    def from_dict(cls, data: dict[str, Any]) -> UnifiedConfig:
         """Create UnifiedConfig from a dictionary.
 
         Handles both v3.0 format and legacy v2.6 ProjectConfig format.
@@ -430,7 +430,7 @@ class UnifiedConfig(BaseModel):
         return cls._from_v26_format(data)
 
     @classmethod
-    def _from_v26_format(cls, data: dict[str, Any]) -> "UnifiedConfig":
+    def _from_v26_format(cls, data: dict[str, Any]) -> UnifiedConfig:
         """Convert v2.6 ProjectConfig format to v3.0 UnifiedConfig."""
         result: dict[str, Any] = {"version": "3.0"}
 
@@ -506,7 +506,7 @@ class UnifiedConfig(BaseModel):
             return self.api.openai.api_key
         return self.api.voyage.api_key
 
-    def merge_with(self, other: "UnifiedConfig") -> "UnifiedConfig":
+    def merge_with(self, other: UnifiedConfig) -> UnifiedConfig:
         """Create a new config by merging this config with another.
 
         The other config's values take precedence.

@@ -59,10 +59,7 @@ class FileChange:
         Returns:
             True if the line is within any added range.
         """
-        for start, end in self.added_lines:
-            if start <= line_number <= end:
-                return True
-        return False
+        return any(start <= line_number <= end for start, end in self.added_lines)
 
     def is_ui_file(self, extensions: list[str] | None = None) -> bool:
         """Check if this is a UI-related file.
@@ -247,9 +244,7 @@ class GitDiffCollector:
             lambda: self._collect_diff(f"{base_branch}...", "HEAD", base_branch),
         )
 
-    def collect_commit_range(
-        self, from_ref: str, to_ref: str = "HEAD"
-    ) -> DiffResult:
+    def collect_commit_range(self, from_ref: str, to_ref: str = "HEAD") -> DiffResult:
         """Collect changes between two commits.
 
         Args:
@@ -369,7 +364,9 @@ class GitDiffCollector:
 
         return result
 
-    def _parse_hunk_header(self, header: str) -> tuple[tuple[int, int], tuple[int, int]]:
+    def _parse_hunk_header(
+        self, header: str
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         """Parse @@ -a,b +c,d @@ format.
 
         Args:
@@ -452,9 +449,7 @@ class GitDiffCollector:
         diff = self.collect_all_uncommitted()
 
         for change in diff.changes:
-            if change.file_path == file_path or str(change.file_path) == str(
-                file_path
-            ):
+            if change.file_path == file_path or str(change.file_path) == str(file_path):
                 return change.contains_line(line_number)
 
         return False

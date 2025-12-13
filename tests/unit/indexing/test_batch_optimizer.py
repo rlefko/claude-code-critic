@@ -1,7 +1,8 @@
 """Unit tests for BatchOptimizer."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from claude_indexer.indexing.batch_optimizer import BatchOptimizer
 from claude_indexer.indexing.types import BatchMetrics

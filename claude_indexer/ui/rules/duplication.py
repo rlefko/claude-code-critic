@@ -8,12 +8,12 @@ import re
 from collections import Counter
 from typing import TYPE_CHECKING
 
-from ..models import Evidence, Finding, Severity, SymbolRef
+from ..models import Finding, Severity, SymbolRef
 from ..normalizers.style import StyleNormalizer
 from .base import BaseRule, RuleContext
 
 if TYPE_CHECKING:
-    from ..similarity.clustering import SimilarityClustering
+    pass
 
 
 class StyleDuplicateSetRule(BaseRule):
@@ -71,7 +71,7 @@ class StyleDuplicateSetRule(BaseRule):
 
             # Get source refs for all duplicates
             source_refs = []
-            for idx, style in group:
+            for _idx, style in group:
                 if hasattr(style, "source_refs") and style.source_refs:
                     source_refs.extend(style.source_refs)
 
@@ -90,7 +90,7 @@ class StyleDuplicateSetRule(BaseRule):
                 )
 
             # Build remediation hints
-            files = list(set(ref.file_path for ref in source_refs))
+            files = list({ref.file_path for ref in source_refs})
             hints = [
                 f"Consolidate {len(group)} identical style blocks into a shared class",
                 f"Found in files: {', '.join(files[:3])}",
@@ -181,9 +181,7 @@ class StyleNearDuplicateSetRule(BaseRule):
                 ref2 = style2.source_refs[0]
 
             # Find differences
-            diffs = self._find_declaration_diffs(
-                norm1.declarations, norm2.declarations
-            )
+            diffs = self._find_declaration_diffs(norm1.declarations, norm2.declarations)
 
             evidence = [
                 self._create_static_evidence(
@@ -192,7 +190,7 @@ class StyleNearDuplicateSetRule(BaseRule):
                     data={"declarations": norm1.declarations},
                 ),
                 self._create_static_evidence(
-                    description=f"Near-duplicate style block",
+                    description="Near-duplicate style block",
                     source_ref=ref2,
                     data={"declarations": norm2.declarations},
                 ),
@@ -283,8 +281,7 @@ class UtilityDuplicateSequenceRule(BaseRule):
 
             # Get class-like style refs
             classes = [
-                ref for ref in component.style_refs
-                if self._is_utility_class(ref)
+                ref for ref in component.style_refs if self._is_utility_class(ref)
             ]
 
             if len(classes) >= self.MIN_SEQUENCE_LENGTH:
@@ -407,7 +404,8 @@ class ComponentDuplicateClusterRule(BaseRule):
 
                 # Get components in cluster
                 cluster_components = [
-                    c for c in context.components
+                    c
+                    for c in context.components
                     if self._get_component_id(c) in cluster.items
                 ]
 
@@ -417,7 +415,7 @@ class ComponentDuplicateClusterRule(BaseRule):
                     ref = comp.source_ref if hasattr(comp, "source_ref") else None
                     evidence.append(
                         self._create_static_evidence(
-                            description=f"Similar component",
+                            description="Similar component",
                             source_ref=ref,
                             data={"structure_hash": comp.structure_hash[:16]},
                         )

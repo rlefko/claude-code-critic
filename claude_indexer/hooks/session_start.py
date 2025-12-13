@@ -16,11 +16,11 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..config.config_loader import ConfigLoader
 from ..doctor.checkers import check_collection_exists, check_qdrant_connection
-from ..doctor.types import CheckResult, CheckStatus
+from ..doctor.types import CheckStatus
 from ..session.manager import SessionManager
 
 
@@ -29,12 +29,12 @@ class IndexFreshnessResult:
     """Result of index freshness check."""
 
     is_fresh: bool
-    last_indexed_time: Optional[float] = None
-    last_indexed_commit: Optional[str] = None
-    current_commit: Optional[str] = None
-    hours_since_index: Optional[float] = None
+    last_indexed_time: float | None = None
+    last_indexed_commit: str | None = None
+    current_commit: str | None = None
+    hours_since_index: float | None = None
     commits_behind: int = 0
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
@@ -54,8 +54,8 @@ class SessionStartResult:
     """Result of session start checks."""
 
     # Session context (Milestone 5.2)
-    session_id: Optional[str] = None
-    project_path: Optional[str] = None
+    session_id: str | None = None
+    project_path: str | None = None
 
     # Health checks
     qdrant_status: CheckStatus = CheckStatus.SKIP
@@ -65,16 +65,16 @@ class SessionStartResult:
     collection_vector_count: int = 0
 
     # Index freshness
-    index_freshness: Optional[IndexFreshnessResult] = None
+    index_freshness: IndexFreshnessResult | None = None
 
     # Git context
-    git_branch: Optional[str] = None
+    git_branch: str | None = None
     uncommitted_files: int = 0
     recent_commits: list[str] = field(default_factory=list)
 
     # Execution
     execution_time_ms: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
     def has_warnings(self) -> bool:
         """Check if there are any warnings in the result."""
@@ -82,9 +82,7 @@ class SessionStartResult:
             return True
         if self.collection_status in (CheckStatus.WARN, CheckStatus.FAIL):
             return True
-        if self.index_freshness and not self.index_freshness.is_fresh:
-            return True
-        return False
+        return bool(self.index_freshness and not self.index_freshness.is_fresh)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
@@ -104,9 +102,9 @@ class SessionStartResult:
                 "message": self.collection_message,
                 "vector_count": self.collection_vector_count,
             },
-            "index_freshness": self.index_freshness.to_dict()
-            if self.index_freshness
-            else None,
+            "index_freshness": (
+                self.index_freshness.to_dict() if self.index_freshness else None
+            ),
             "git": {
                 "branch": self.git_branch,
                 "uncommitted_files": self.uncommitted_files,
@@ -116,7 +114,7 @@ class SessionStartResult:
             "error": self.error,
         }
 
-    def to_json(self, indent: Optional[int] = None) -> str:
+    def to_json(self, indent: int | None = None) -> str:
         """Convert to JSON string."""
         return json.dumps(self.to_dict(), indent=indent)
 
@@ -239,7 +237,7 @@ class SessionStartExecutor:
         self,
         project_path: Path,
         collection_name: str,
-        config_loader: Optional[ConfigLoader] = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize session start executor.
 
@@ -251,7 +249,7 @@ class SessionStartExecutor:
         self.project_path = project_path
         self.collection_name = collection_name
         self.config_loader = config_loader or ConfigLoader()
-        self._config: Optional[Any] = None
+        self._config: Any | None = None
 
     def execute(self, timeout_ms: int = 2000) -> SessionStartResult:
         """Execute all session start checks.
@@ -336,10 +334,18 @@ class SessionStartExecutor:
         """
         try:
             check_result = check_qdrant_connection(self._config)
-            collection_count = check_result.details.get("collection_count", 0) if check_result.details else 0
+            collection_count = (
+                check_result.details.get("collection_count", 0)
+                if check_result.details
+                else 0
+            )
 
             if check_result.status == CheckStatus.PASS:
-                url = check_result.details.get("url", "localhost:6333") if check_result.details else "localhost:6333"
+                url = (
+                    check_result.details.get("url", "localhost:6333")
+                    if check_result.details
+                    else "localhost:6333"
+                )
                 return CheckStatus.PASS, f"Connected ({url})", collection_count
             else:
                 return check_result.status, check_result.message, 0
@@ -356,7 +362,11 @@ class SessionStartExecutor:
             check_result = check_collection_exists(self._config, self.collection_name)
 
             if check_result.status == CheckStatus.PASS:
-                vector_count = check_result.details.get("vector_count", 0) if check_result.details else 0
+                vector_count = (
+                    check_result.details.get("vector_count", 0)
+                    if check_result.details
+                    else 0
+                )
                 return CheckStatus.PASS, "Found", vector_count
             elif check_result.status == CheckStatus.WARN:
                 return (
@@ -383,7 +393,9 @@ class SessionStartExecutor:
         result = IndexFreshnessResult(is_fresh=True)
 
         # Look for state file in .claude-indexer directory
-        state_file = self.project_path / ".claude-indexer" / f"{self.collection_name}.json"
+        state_file = (
+            self.project_path / ".claude-indexer" / f"{self.collection_name}.json"
+        )
 
         if not state_file.exists():
             result.is_fresh = False
@@ -395,11 +407,9 @@ class SessionStartExecutor:
         try:
             with open(state_file) as f:
                 state = json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             result.is_fresh = False
-            result.suggestion = (
-                f"Index state corrupted. Run: claude-indexer index -c {self.collection_name}"
-            )
+            result.suggestion = f"Index state corrupted. Run: claude-indexer index -c {self.collection_name}"
             return result
 
         # Check time freshness
@@ -426,19 +436,17 @@ class SessionStartExecutor:
 
         # Generate suggestion if stale
         if not result.is_fresh and not result.suggestion:
-            result.suggestion = (
-                f"Run: claude-indexer index -c {self.collection_name}"
-            )
+            result.suggestion = f"Run: claude-indexer index -c {self.collection_name}"
 
         return result
 
-    def _get_git_context(self) -> tuple[Optional[str], int, list[str]]:
+    def _get_git_context(self) -> tuple[str | None, int, list[str]]:
         """Get current git context.
 
         Returns:
             Tuple of (branch, uncommitted_count, recent_commits)
         """
-        branch: Optional[str] = None
+        branch: str | None = None
         uncommitted_count = 0
         recent_commits: list[str] = []
 
@@ -463,7 +471,7 @@ class SessionStartExecutor:
 
         return branch, uncommitted_count, recent_commits
 
-    def _get_current_commit(self) -> Optional[str]:
+    def _get_current_commit(self) -> str | None:
         """Get current HEAD commit SHA."""
         return self._run_git_command(["git", "rev-parse", "HEAD"])
 
@@ -486,7 +494,7 @@ class SessionStartExecutor:
                 pass
         return 0
 
-    def _run_git_command(self, cmd: list[str]) -> Optional[str]:
+    def _run_git_command(self, cmd: list[str]) -> str | None:
         """Run a git command and return output.
 
         Args:

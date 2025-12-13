@@ -124,14 +124,17 @@ class TestQdrantStore:
                 "claude_indexer.storage.qdrant.QdrantClient"
             ) as mock_client_class:
                 mock_client = MagicMock()
-                mock_collections = MagicMock()
-                # Create mock collection objects with name attributes
-                mock_collection1 = MagicMock()
-                mock_collection1.name = "existing_collection"
-                mock_collection2 = MagicMock()
-                mock_collection2.name = "another_collection"
-                mock_collections.collections = [mock_collection1, mock_collection2]
-                mock_client.get_collections.return_value = mock_collections
+                # get_collections is called for connection test during initialization
+                mock_client.get_collections.return_value = MagicMock()
+
+                # get_collection (singular) is called by collection_exists()
+                # It returns collection info for existing collections, raises for non-existent
+                def get_collection_side_effect(name):
+                    if name in ["existing_collection", "another_collection"]:
+                        return MagicMock()  # Return mock collection info
+                    raise Exception(f"Collection {name} not found")
+
+                mock_client.get_collection.side_effect = get_collection_side_effect
                 mock_client_class.return_value = mock_client
 
                 store = QdrantStore()
@@ -146,11 +149,10 @@ class TestQdrantStore:
                 "claude_indexer.storage.qdrant.QdrantClient"
             ) as mock_client_class:
                 mock_client = MagicMock()
-                # First call (initialization) succeeds, second call (collection_exists) fails
-                mock_client.get_collections.side_effect = [
-                    MagicMock(),
-                    Exception("API Error"),
-                ]
+                # get_collections is called for connection test during initialization
+                mock_client.get_collections.return_value = MagicMock()
+                # get_collection (singular) is called by collection_exists() - make it fail
+                mock_client.get_collection.side_effect = Exception("API Error")
                 mock_client_class.return_value = mock_client
 
                 store = QdrantStore()
@@ -539,13 +541,15 @@ class TestQdrantStore:
                 mock_code_point = MagicMock()
                 mock_code_point.id = "code_point_1"
                 mock_code_point.payload = {
-                    "file_path": "/path/to/file.py",
+                    "metadata": {"file_path": "/path/to/file.py"},
                     "name": "function",
                 }
 
                 mock_manual_point = MagicMock()
                 mock_manual_point.id = "manual_point_1"
-                mock_manual_point.payload = {"name": "manual_memory"}  # No file_path
+                mock_manual_point.payload = {
+                    "name": "manual_memory"
+                }  # No file_path in metadata
 
                 # scroll() returns (points, next_page_offset)
                 mock_client.scroll.return_value = (

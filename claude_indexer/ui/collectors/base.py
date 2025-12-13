@@ -116,7 +116,9 @@ class ExtractionResult:
     def from_dict(cls, data: dict[str, Any]) -> "ExtractionResult":
         """Create from dictionary."""
         return cls(
-            components=[ExtractedComponent.from_dict(c) for c in data.get("components", [])],
+            components=[
+                ExtractedComponent.from_dict(c) for c in data.get("components", [])
+            ],
             styles=[ExtractedStyle.from_dict(s) for s in data.get("styles", [])],
             file_path=Path(data["file_path"]) if data.get("file_path") else None,
             errors=data.get("errors", []),
@@ -213,9 +215,7 @@ class BaseSourceAdapter(ABC):
         """
         ...
 
-    def extract(
-        self, file_path: Path, content: str | None = None
-    ) -> ExtractionResult:
+    def extract(self, file_path: Path, content: str | None = None) -> ExtractionResult:
         """Extract both components and styles from file.
 
         Args:

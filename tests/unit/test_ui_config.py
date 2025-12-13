@@ -1,9 +1,6 @@
 """Unit tests for UI quality configuration."""
 
 import json
-from pathlib import Path
-
-import pytest
 
 from claude_indexer.ui.config import (
     AllowedScales,
@@ -19,7 +16,6 @@ from claude_indexer.ui.config import (
     ViewportConfig,
     load_ui_config,
 )
-from claude_indexer.ui.tokens import ColorToken, SpacingToken, TokenSet
 
 
 class TestViewportConfig:
@@ -315,8 +311,13 @@ class TestUIQualityConfig:
         assert config.is_rule_ignored("COLOR.NON_TOKEN", "/src/Button.tsx") is True
 
         # Rule is only ignored for certain paths
-        assert config.is_rule_ignored("STYLE.DUPLICATE_SET") is True  # No path = applies
-        assert config.is_rule_ignored("STYLE.DUPLICATE_SET", "tests/Button.test.tsx") is True
+        assert (
+            config.is_rule_ignored("STYLE.DUPLICATE_SET") is True
+        )  # No path = applies
+        assert (
+            config.is_rule_ignored("STYLE.DUPLICATE_SET", "tests/Button.test.tsx")
+            is True
+        )
         assert config.is_rule_ignored("STYLE.DUPLICATE_SET", "src/Button.tsx") is False
 
         # Unknown rule is not ignored

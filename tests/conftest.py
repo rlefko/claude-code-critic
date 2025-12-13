@@ -8,6 +8,7 @@ Provides test fixtures for:
 - Configuration management
 """
 
+import json
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -15,15 +16,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams
 
 
 def pytest_addoption(parser):
     """Add custom command line option for watcher mode."""
     parser.addoption(
-        "--watcher", action="store_true", default=False,
-        help="Run tests using watcher mode instead of incremental indexing"
+        "--watcher",
+        action="store_true",
+        default=False,
+        help="Run tests using watcher mode instead of incremental indexing",
     )
+
 
 # Import project components
 try:
@@ -48,7 +51,8 @@ def temp_repo(tmp_path_factory) -> Path:
     repo_path = tmp_path_factory.mktemp("sample_repo")
 
     # Create sample Python files
-    (repo_path / "foo.py").write_text('''"""Sample module with functions."""
+    (repo_path / "foo.py").write_text(
+        '''"""Sample module with functions."""
 
 def add(x, y):
     """Return sum of two numbers."""
@@ -60,9 +64,11 @@ class Calculator:
     def multiply(self, a, b):
         """Multiply two numbers."""
         return a * b
-''')
+'''
+    )
 
-    (repo_path / "bar.py").write_text('''"""Module that imports and uses foo."""
+    (repo_path / "bar.py").write_text(
+        '''"""Module that imports and uses foo."""
 from foo import add, Calculator
 
 def main():
@@ -74,31 +80,57 @@ def main():
 
 if __name__ == "__main__":
     main()
-''')
+'''
+    )
 
     # Create a subdirectory with more code
     subdir = repo_path / "utils"
     subdir.mkdir()
     (subdir / "__init__.py").write_text("")
-    (subdir / "helpers.py").write_text('''"""Helper utilities."""
+    (subdir / "helpers.py").write_text(
+        '''"""Helper utilities."""
 
 def format_output(value):
     """Format value for display."""
     return f"Value: {value}"
 
 LOG_LEVEL = "INFO"
-''')
+'''
+    )
 
     # Create a test file (will be excluded by default)
     test_dir = repo_path / "tests"
     test_dir.mkdir()
-    (test_dir / "test_foo.py").write_text('''"""Tests for foo module."""
+    (test_dir / "test_foo.py").write_text(
+        '''"""Tests for foo module."""
 import pytest
 from foo import add
 
 def test_add():
     assert add(2, 3) == 5
-''')
+'''
+    )
+
+    # Create .claude-indexer/config.json for ProjectConfigManager
+    # This prevents FileNotFoundError in watcher tests
+    config_dir = repo_path / ".claude-indexer"
+    config_dir.mkdir()
+    config_json = {
+        "version": "2.6",
+        "project": {
+            "name": "test-project",
+            "collection": "test-collection",
+            "description": "Test project for integration tests",
+        },
+        "indexing": {
+            "file_patterns": {
+                "include": ["*.py"],
+                "exclude": ["__pycache__/", ".git/", "*test*"],
+            }
+        },
+        "watcher": {"enabled": True, "debounce_seconds": 0.1},
+    }
+    (config_dir / "config.json").write_text(json.dumps(config_json, indent=2))
 
     return repo_path
 
@@ -115,11 +147,26 @@ def empty_repo(tmp_path_factory) -> Path:
 
 
 def get_test_collection_name(base_name: str = "test_collection") -> str:
-    """Generate a unique test collection name with timestamp."""
+    """Generate a unique test collection name with timestamp.
+
+    DEPRECATED: Use get_unique_collection_name() for guaranteed uniqueness.
+    This function uses second-precision timestamps which can cause collisions.
+    """
     import time
 
     timestamp = int(time.time())
     return f"{base_name}_{timestamp}"
+
+
+def get_unique_collection_name(prefix: str = "test") -> str:
+    """Generate guaranteed unique collection name using UUID4.
+
+    This should be used instead of get_test_collection_name() to avoid
+    collection name collisions in rapid test execution scenarios.
+    """
+    import uuid
+
+    return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
 
 def is_production_collection(collection_name: str) -> bool:
@@ -129,7 +176,7 @@ def is_production_collection(collection_name: str) -> bool:
         "memory-project",
         "general",
         "watcher-test",  # Add watcher-test as it's used for debugging
-        "parser-test",   # Used by integration tests - don't cleanup
+        "parser-test",  # Used by integration tests - don't cleanup
     }
     return collection_name in PRODUCTION_COLLECTIONS
 
@@ -154,16 +201,13 @@ def qdrant_client() -> Iterator[QdrantClient]:
         # Fall back to unauthenticated for local testing
         client = QdrantClient("localhost", port=6333)
 
-    # Create test collection with timestamp to ensure uniqueness and easy cleanup
-    collection_name = get_test_collection_name("test_collection")
+    # Verify Qdrant is available without pre-creating collections.
+    # Collections are created by CoreIndexer/QdrantStore via production path
+    # with proper named vector configuration (dense + bm25 sparse vectors).
+    # Pre-creating with unnamed vectors causes search() to fail since it
+    # expects named "dense" vector: query_vector=("dense", query_vector)
     try:
-        collections = client.get_collections().collections
-        if not any(c.name == collection_name for c in collections):
-            client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
-                optimizers_config={"indexing_threshold": 1000},
-            )
+        client.get_collections()
     except Exception as e:
         pytest.skip(f"Qdrant not available: {e}")
 
@@ -212,26 +256,105 @@ def qdrant_store(qdrant_client) -> "QdrantStore":
 
     store = QdrantStore(
         url=config.qdrant_url,
-        api_key=config.qdrant_api_key
-        if config.qdrant_api_key != "default-key"
-        else None,
+        api_key=(
+            config.qdrant_api_key if config.qdrant_api_key != "default-key" else None
+        ),
     )
 
     # Clean up any existing test data
     try:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-        Filter(
-            must=[FieldCondition(key="test", match=MatchValue(value=True))]
-        )
+        Filter(must=[FieldCondition(key="test", match=MatchValue(value=True))])
         # Note: collection_name should be passed from fixture if needed
         # For now, skip cleanup since we use timestamped collections
         pass
-    except Exception:
-        # Skip cleanup if it fails
-        pass
+    except Exception as e:
+        # Log cleanup failures instead of silently ignoring them
+        import warnings
+
+        warnings.warn(f"QdrantStore cleanup failed: {e}", stacklevel=2)
 
     return store
+
+
+@pytest.fixture()
+def ensure_test_collection(qdrant_store):
+    """
+    Helper fixture to create collections with proper named vector configuration.
+
+    This ensures collections are created via the production path with
+    named vectors ("dense" + "bm25" sparse), matching what CoreIndexer expects.
+    Use this when you need to explicitly create a collection for testing
+    without going through CoreIndexer.
+
+    Usage:
+        def test_example(ensure_test_collection, qdrant_store):
+            collection_name = ensure_test_collection("my_test_collection")
+            # Collection now exists with proper configuration
+    """
+    created_collections = []
+
+    def _ensure_collection(collection_name: str) -> str:
+        """Ensure collection exists with proper named vector configuration."""
+        # Delete existing collection to ensure clean state
+        if qdrant_store.collection_exists(collection_name):
+            qdrant_store.delete_collection(collection_name)
+
+        # Create with sparse vector support (production path)
+        vector_size = 1536  # Match dummy_embedder dimension
+        qdrant_store.create_collection_with_sparse_vectors(
+            collection_name=collection_name,
+            dense_vector_size=vector_size,
+            distance_metric="cosine",
+        )
+        created_collections.append(collection_name)
+        return collection_name
+
+    yield _ensure_collection
+
+    # Cleanup created collections
+    for name in created_collections:
+        try:
+            if qdrant_store.collection_exists(name):
+                qdrant_store.delete_collection(name)
+        except Exception:
+            pass  # Best effort cleanup
+
+
+@pytest.fixture()
+def isolated_config(tmp_path):
+    """
+    Create IndexerConfig with isolated state directory for test isolation.
+
+    Each test gets its own state directory via pytest's tmp_path fixture,
+    preventing state file contamination between tests.
+
+    Usage:
+        def test_example(isolated_config, temp_repo, dummy_embedder, qdrant_store):
+            collection_name = get_unique_collection_name("test_example")
+            config = isolated_config(collection_name)
+            indexer = CoreIndexer(config=config, embedder=dummy_embedder,
+                                  vector_store=qdrant_store, project_path=temp_repo)
+    """
+    from claude_indexer.config import IndexerConfig, load_config
+
+    # Load base config for API credentials
+    base_config = load_config()
+
+    def _create_config(collection_name: str, **kwargs) -> IndexerConfig:
+        return IndexerConfig(
+            collection_name=collection_name,
+            embedder_type="dummy",
+            storage_type="qdrant",
+            state_directory=tmp_path / "indexer_state",
+            openai_api_key=base_config.openai_api_key,
+            qdrant_api_key=base_config.qdrant_api_key,
+            qdrant_url=base_config.qdrant_url,
+            **kwargs,
+        )
+
+    return _create_config
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +467,15 @@ qdrant_url={real_config.qdrant_url}
 
     config = load_config(settings_file)
     config.state_directory = state_dir  # Override state directory for tests
+
+    # Override include patterns for tests - only include source files, not config files
+    # Tests primarily create .py files, avoid including *.json which matches cache files
+    config.include_patterns = ["*.py", "*.js", "*.ts", "*.tsx"]
+
+    # Ensure test cache directories are excluded
+    if ".index_cache/" not in config.exclude_patterns:
+        config.exclude_patterns = list(config.exclude_patterns) + [".index_cache/"]
+
     return config
 
 
@@ -356,7 +488,8 @@ qdrant_url={real_config.qdrant_url}
 def sample_python_file(tmp_path) -> Path:
     """Create a single sample Python file for testing."""
     py_file = tmp_path / "sample.py"
-    py_file.write_text('''"""Sample Python file for testing."""
+    py_file.write_text(
+        '''"""Sample Python file for testing."""
 
 class SampleClass:
     """A sample class."""
@@ -374,7 +507,8 @@ def utility_function(data: list) -> int:
 
 # Module-level variable
 DEFAULT_NAME = "World"
-''')
+'''
+    )
     return py_file
 
 
@@ -510,13 +644,18 @@ def cleanup_test_collections_on_failure():
             )  # deletion tests
         ]
 
-        import contextlib
         for collection_name in temp_test_collections:
-            with contextlib.suppress(Exception):
+            try:
                 client.delete_collection(collection_name)
+            except Exception as e:
+                # Log but don't fail - cleanup errors shouldn't break tests
+                print(f"Warning: Failed to cleanup collection {collection_name}: {e}")
 
-    except Exception:
-        pass  # Ignore all cleanup failures to not interfere with test results
+    except Exception as e:
+        # Log cleanup failures so they're visible in test output
+        import warnings
+
+        warnings.warn(f"Test collection cleanup failed: {e}", stacklevel=2)
 
 
 # ---------------------------------------------------------------------------
@@ -541,7 +680,7 @@ def count_python_files(path: Path) -> int:
 def wait_for_eventual_consistency(
     search_func,
     expected_count: int = 0,
-    timeout: float = 15.0,
+    timeout: float = 30.0,  # Increased from 15.0 for CI network latency
     initial_delay: float = 0.5,
     max_delay: float = 3.0,
     backoff_multiplier: float = 1.2,
@@ -595,7 +734,9 @@ def wait_for_eventual_consistency(
                     for i, result in enumerate(results[:3]):  # Show first 3 results
                         if hasattr(result, "payload"):
                             name = result.payload.get("name", "Unknown")
-                            file_path = result.payload.get("file_path", "Unknown")
+                            file_path = (
+                                get_file_path_from_payload(result.payload) or "Unknown"
+                            )
                             print(f"  Still found #{i + 1}: {name} in {file_path}")
                         else:
                             print(f"  Still found #{i + 1}: {result}")
@@ -614,8 +755,8 @@ def wait_for_eventual_consistency(
             last_results = actual_count
 
         except Exception as e:
-            if verbose:
-                print(f"Search attempt {attempt} failed: {e}")
+            # Always log search errors - they indicate real problems
+            print(f"Search attempt {attempt} failed: {e}")
             # Continue retrying on search errors
 
         # Wait before next attempt with exponential backoff
@@ -673,15 +814,49 @@ def wait_for_collection_ready(
                 print(f"Attempt {attempt}: Collection '{collection_name}' not found")
 
         except Exception as e:
-            if verbose:
-                print(f"Attempt {attempt}: Collection check failed: {e}")
+            # Always log errors - they indicate real problems
+            print(f"Attempt {attempt}: Collection check failed: {e}")
 
         time.sleep(delay)
         delay = min(delay * 1.5, max_delay)
 
-    if verbose:
-        print(f"Timeout: Collection '{collection_name}' not ready after {timeout}s")
+    # Always log timeout - this is important for debugging
+    print(f"Timeout: Collection '{collection_name}' not ready after {timeout}s")
     return False
+
+
+def get_file_path_from_payload(payload: dict) -> str:
+    """
+    Extract file_path from a Qdrant payload, handling both legacy and current structures.
+
+    Current structure: file_path is nested inside metadata dict.
+    Legacy structure: file_path was at top level (for backward compatibility).
+    File entities: entity_name may contain the file path.
+
+    Args:
+        payload: Qdrant payload dict
+
+    Returns:
+        file_path string or empty string if not found
+    """
+    # Try top-level first (legacy structure)
+    file_path = payload.get("file_path", "")
+    if file_path:
+        return file_path
+
+    # Try nested in metadata (current structure)
+    metadata = payload.get("metadata", {})
+    if isinstance(metadata, dict):
+        file_path = metadata.get("file_path", "")
+        if file_path:
+            return file_path
+
+    # For file entities, entity_name may contain the path
+    entity_name = payload.get("entity_name", "")
+    if entity_name and "/" in entity_name and entity_name.endswith(".py"):
+        return entity_name
+
+    return ""
 
 
 def verify_entity_searchable(
@@ -723,7 +898,8 @@ def verify_entity_searchable(
                 entity_name_field = hit.payload.get("entity_name", "NO_NAME")
                 name_field = hit.payload.get("name", "NO_NAME")
                 print(
-                    f"DEBUG: Hit {i}: entity_name='{entity_name_field}', name='{name_field}', score={hit.score}"
+                    f"DEBUG: Hit {i}: entity_name='{entity_name_field}', "
+                    f"name='{name_field}', score={hit.score}"
                 )
                 if entity_name in str(hit.payload):
                     print(
@@ -744,12 +920,16 @@ def verify_entity_searchable(
                 continue
 
             # Only match if search term is in the entity name (not just content)
-            if entity_name in entity_name_field and entity_name_field not in unique_entity_names:
+            if (
+                entity_name in entity_name_field
+                and entity_name_field not in unique_entity_names
+            ):
                 unique_entity_names.add(entity_name_field)
                 matching_hits.append(hit)
                 if verbose:
                     print(
-                        f"DEBUG: Unique entity match - entity_name='{entity_name_field}', chunk_type='{chunk_type}'"
+                        f"DEBUG: Unique entity match - "
+                        f"entity_name='{entity_name_field}', chunk_type='{chunk_type}'"
                     )
 
         if verbose:
@@ -764,3 +944,260 @@ def verify_entity_searchable(
         timeout=timeout,
         verbose=verbose,
     )
+
+
+# ---------------------------------------------------------------------------
+# Payload-based query helpers (deterministic, no embedding dependency)
+# ---------------------------------------------------------------------------
+
+
+def get_entities_by_file_path(
+    qdrant_store, collection_name: str, file_path_pattern: str, verbose: bool = False
+) -> list:
+    """
+    Get entities from collection matching a file path pattern using payload filter.
+
+    This bypasses the embedding system entirely, providing deterministic results
+    regardless of what embedder is used. Use this for testing entity existence.
+
+    Args:
+        qdrant_store: QdrantStore instance
+        collection_name: Name of collection to query
+        file_path_pattern: Substring to match in file_path field
+        verbose: Print debug information
+
+    Returns:
+        List of Qdrant points matching the pattern
+    """
+    from qdrant_client.models import FieldCondition, Filter, MatchText
+
+    try:
+        # Query using payload filter - try both top-level and nested file_path
+        results, _ = qdrant_store.client.scroll(
+            collection_name=collection_name,
+            scroll_filter=Filter(
+                should=[
+                    FieldCondition(
+                        key="file_path", match=MatchText(text=file_path_pattern)
+                    ),
+                    FieldCondition(
+                        key="metadata.file_path",
+                        match=MatchText(text=file_path_pattern),
+                    ),
+                ]
+            ),
+            limit=100,
+            with_payload=True,
+        )
+
+        if verbose:
+            print(
+                f"DEBUG: get_entities_by_file_path('{file_path_pattern}') "
+                f"found {len(results)} entities"
+            )
+            for i, point in enumerate(results[:5]):
+                entity_name = point.payload.get("entity_name", "N/A")
+                file_path = get_file_path_from_payload(point.payload)
+                print(f"  {i}: entity_name='{entity_name}', file_path='{file_path}'")
+
+        return results
+
+    except Exception as e:
+        if verbose:
+            print(f"DEBUG: get_entities_by_file_path failed: {e}")
+        return []
+
+
+def get_entities_by_name(
+    qdrant_store, collection_name: str, entity_name: str, verbose: bool = False
+) -> list:
+    """
+    Get entities from collection matching an entity name using payload filter.
+
+    This bypasses the embedding system entirely, providing deterministic results
+    regardless of what embedder is used. Use this for testing entity existence.
+
+    Args:
+        qdrant_store: QdrantStore instance
+        collection_name: Name of collection to query
+        entity_name: Substring to match in entity_name or name field
+        verbose: Print debug information
+
+    Returns:
+        List of Qdrant points matching the name
+    """
+    from qdrant_client.models import FieldCondition, Filter, MatchText
+
+    try:
+        # Query using payload filter - try both entity_name and name fields
+        results, _ = qdrant_store.client.scroll(
+            collection_name=collection_name,
+            scroll_filter=Filter(
+                should=[
+                    FieldCondition(
+                        key="entity_name", match=MatchText(text=entity_name)
+                    ),
+                    FieldCondition(key="name", match=MatchText(text=entity_name)),
+                ]
+            ),
+            limit=100,
+            with_payload=True,
+        )
+
+        if verbose:
+            print(
+                f"DEBUG: get_entities_by_name('{entity_name}') "
+                f"found {len(results)} entities"
+            )
+            for i, point in enumerate(results[:5]):
+                name_field = point.payload.get("entity_name", "N/A")
+                chunk_type = point.payload.get("chunk_type", "N/A")
+                print(f"  {i}: entity_name='{name_field}', chunk_type='{chunk_type}'")
+
+        return results
+
+    except Exception as e:
+        if verbose:
+            print(f"DEBUG: get_entities_by_name failed: {e}")
+        return []
+
+
+def verify_entities_exist_by_path(
+    qdrant_store,
+    collection_name: str,
+    path_pattern: str,
+    min_expected: int = 1,
+    timeout: float = 15.0,
+    verbose: bool = False,
+) -> bool:
+    """
+    Verify that entities from a file path exist in the collection.
+
+    Uses payload-based queries for deterministic verification without
+    relying on embedding similarity.
+
+    Args:
+        qdrant_store: QdrantStore instance
+        collection_name: Name of collection to query
+        path_pattern: Substring to match in file_path
+        min_expected: Minimum number of entities expected (default: 1).
+                      Use 0 to verify entities are deleted.
+        timeout: Maximum time to wait for eventual consistency
+        verbose: Print debug information
+
+    Returns:
+        True if condition is met, False if timeout
+    """
+    import time
+
+    start_time = time.time()
+    delay = 0.5
+
+    while time.time() - start_time < timeout:
+        results = get_entities_by_file_path(
+            qdrant_store, collection_name, path_pattern, verbose=False
+        )
+        actual_count = len(results)
+
+        if verbose:
+            print(
+                f"verify_entities_exist_by_path: min_expected={min_expected}, "
+                f"actual={actual_count}"
+            )
+
+        if min_expected > 0:
+            # For existence check: at least min_expected entities
+            if actual_count >= min_expected:
+                if verbose:
+                    print(
+                        f"Found {actual_count} entities (>= {min_expected}) "
+                        f"after {time.time() - start_time:.2f}s"
+                    )
+                return True
+        else:
+            # For deletion check: exactly 0 entities
+            if actual_count == 0:
+                if verbose:
+                    print(f"Verified 0 entities after {time.time() - start_time:.2f}s")
+                return True
+
+        time.sleep(delay)
+        delay = min(delay * 1.2, 3.0)
+
+    if verbose:
+        print(
+            f"Timeout: expected {'>=' if min_expected > 0 else '=='} "
+            f"{min_expected}, got {actual_count}"
+        )
+    return False
+
+
+def verify_entities_exist_by_name(
+    qdrant_store,
+    collection_name: str,
+    entity_name: str,
+    min_expected: int = 1,
+    timeout: float = 15.0,
+    verbose: bool = False,
+) -> bool:
+    """
+    Verify that entities with a given name exist in the collection.
+
+    Uses payload-based queries for deterministic verification without
+    relying on embedding similarity. This is a drop-in replacement for
+    verify_entity_searchable that doesn't depend on DummyEmbedder.
+
+    Args:
+        qdrant_store: QdrantStore instance
+        collection_name: Name of collection to query
+        entity_name: Substring to match in entity_name or name field
+        min_expected: Minimum number of entities expected (default: 1).
+                      Use 0 to verify entities are deleted.
+        timeout: Maximum time to wait for eventual consistency
+        verbose: Print debug information
+
+    Returns:
+        True if condition is met, False if timeout
+    """
+    import time
+
+    start_time = time.time()
+    delay = 0.5
+
+    while time.time() - start_time < timeout:
+        results = get_entities_by_name(
+            qdrant_store, collection_name, entity_name, verbose=False
+        )
+        actual_count = len(results)
+
+        if verbose:
+            print(
+                f"verify_entities_exist_by_name('{entity_name}'): "
+                f"min_expected={min_expected}, actual={actual_count}"
+            )
+
+        if min_expected > 0:
+            # For existence check: at least min_expected entities
+            if actual_count >= min_expected:
+                if verbose:
+                    print(
+                        f"Found {actual_count} entities (>= {min_expected}) "
+                        f"after {time.time() - start_time:.2f}s"
+                    )
+                return True
+        else:
+            # For deletion check: exactly 0 entities
+            if actual_count == 0:
+                if verbose:
+                    print(f"Verified 0 entities after {time.time() - start_time:.2f}s")
+                return True
+
+        time.sleep(delay)
+        delay = min(delay * 1.2, 3.0)
+
+    if verbose:
+        print(
+            f"Timeout: expected {'>=' if min_expected > 0 else '=='} "
+            f"{min_expected}, got {actual_count}"
+        )
+    return False

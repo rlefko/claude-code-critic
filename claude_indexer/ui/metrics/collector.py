@@ -9,7 +9,7 @@ import subprocess
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from .models import (
     MetricSnapshot,
@@ -62,7 +62,7 @@ class MetricsCollector:
             return self._report
 
         try:
-            with open(self.metrics_path, "r") as f:
+            with open(self.metrics_path) as f:
                 data = json.load(f)
                 self._report = MetricsReport.from_dict(data)
                 return self._report
@@ -264,8 +264,7 @@ class MetricsCollector:
         suppression_rate = 0.0
         if result.baseline_findings:
             suppressed = sum(
-                1 for f in result.baseline_findings
-                if self._is_finding_suppressed(f)
+                1 for f in result.baseline_findings if self._is_finding_suppressed(f)
             )
             suppression_rate = suppressed / len(result.baseline_findings)
 
@@ -317,9 +316,7 @@ class MetricsCollector:
             branch_name=branch_name,
         )
 
-    def _extract_token_drift_metrics(
-        self, findings: list["Finding"]
-    ) -> dict[str, int]:
+    def _extract_token_drift_metrics(self, findings: list["Finding"]) -> dict[str, int]:
         """Extract unique token drift values from findings.
 
         Counts unique hardcoded values by analyzing finding evidence.
@@ -431,9 +428,7 @@ class MetricsCollector:
             time_ms: Analysis time in milliseconds.
         """
         # Get all times for this tier
-        times = [
-            s.analysis_time_ms for s in report.snapshots if s.tier == tier
-        ]
+        times = [s.analysis_time_ms for s in report.snapshots if s.tier == tier]
 
         if not times:
             return

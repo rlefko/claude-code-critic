@@ -47,7 +47,8 @@ class IndexingEventHandler(FileSystemEventHandler):
         # File filtering - use patterns from settings or fallback to defaults
         self.watch_patterns = self.settings.get("watch_patterns", ["*.py", "*.md"])
         self.ignore_patterns = self.settings.get(
-            "ignore_patterns", [
+            "ignore_patterns",
+            [
                 "*.pyc",
                 "__pycache__/",
                 ".git/",
@@ -62,7 +63,7 @@ class IndexingEventHandler(FileSystemEventHandler):
                 ".claude/",
                 "memory_guard_debug.txt",
                 "memory_guard_debug_*.txt",
-            ]
+            ],
         )
         self.max_file_size = self.settings.get("max_file_size", 1048576)  # 1MB
 
@@ -99,7 +100,9 @@ class IndexingEventHandler(FileSystemEventHandler):
             self._handle_file_event(event.src_path, "deleted")
             self._handle_file_event(event.dest_path, "created")
 
-    def _handle_file_event(self, file_path: str, event_type: str) -> None:  # noqa: ARG002
+    def _handle_file_event(
+        self, file_path: str, event_type: str
+    ) -> None:  # noqa: ARG002
         """Process a file system event by adding it to the coalescer."""
         self.events_received += 1
 
@@ -107,7 +110,7 @@ class IndexingEventHandler(FileSystemEventHandler):
             path = Path(file_path)
 
             # Fast exclude check for .claude-indexer/ files before expensive pattern matching
-            if '.claude-indexer/' in file_path:
+            if ".claude-indexer/" in file_path:
                 self.events_ignored += 1
                 return
 
@@ -328,9 +331,11 @@ class IndexingEventHandler(FileSystemEventHandler):
             "events_ignored": self.events_ignored,
             "processed_files": len(self.processed_files),
             "debounce_seconds": self.debounce_seconds,
-            "coalescer_stats": self.coalescer.get_stats()
-            if hasattr(self.coalescer, "get_stats")
-            else {},
+            "coalescer_stats": (
+                self.coalescer.get_stats()
+                if hasattr(self.coalescer, "get_stats")
+                else {}
+            ),
         }
 
     def cleanup(self):
@@ -353,7 +358,6 @@ class IndexingEventHandler(FileSystemEventHandler):
         if len(self.processed_files) > 10000:
             # Keep only the most recent 5000
             self.processed_files = set(list(self.processed_files)[-5000:])
-
 
 
 class Watcher:

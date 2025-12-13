@@ -60,7 +60,9 @@ class CSSVariablesAdapter(TokenAdapter):
         token_set.source_files.append(str(file_path))
         return token_set
 
-    def extract_from_content(self, content: str, source_name: str = "inline") -> TokenSet:
+    def extract_from_content(
+        self, content: str, source_name: str = "inline"
+    ) -> TokenSet:
         """Extract tokens from CSS content string.
 
         Args:

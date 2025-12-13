@@ -64,7 +64,9 @@ class FastDuplicateDetectorRegistry:
         """
         with cls._lock:
             if collection not in cls._detectors:
-                cls._detectors[collection] = FastDuplicateDetector(collection, project_root)
+                cls._detectors[collection] = FastDuplicateDetector(
+                    collection, project_root
+                )
             return cls._detectors[collection]
 
     @classmethod
@@ -103,7 +105,9 @@ class FastDuplicateDetector:
     # Confidence thresholds (v4.1 - optimized for fast mode)
     # Tighter thresholds to reduce Tier 3 escalations while maintaining quality
     THRESHOLD_HIGH_BM25 = 0.85  # BM25 score to auto-block
-    THRESHOLD_HIGH_SEMANTIC = 0.95  # Semantic score to auto-block (unchanged - high confidence)
+    THRESHOLD_HIGH_SEMANTIC = (
+        0.95  # Semantic score to auto-block (unchanged - high confidence)
+    )
     THRESHOLD_MEDIUM_SEMANTIC = 0.85  # Was 0.80 - narrower escalation band
     THRESHOLD_APPROVE = 0.55  # Was 0.60 - more aggressive approval
 
@@ -119,9 +123,7 @@ class FastDuplicateDetector:
     # Singleton instance (for backward compatibility)
     _instance: "FastDuplicateDetector | None" = None
 
-    def __init__(
-        self, collection: str | None = None, project_root: Path | None = None
-    ):
+    def __init__(self, collection: str | None = None, project_root: Path | None = None):
         """Initialize with lazy-loaded components.
 
         Args:
@@ -175,7 +177,6 @@ class FastDuplicateDetector:
             from claude_indexer.config.config_loader import ConfigLoader
             from claude_indexer.embeddings.registry import create_embedder_from_config
             from claude_indexer.storage.qdrant import QdrantStore
-
             from utils.signature_hash import SignatureHashTable
 
             # Load configuration
@@ -191,7 +192,9 @@ class FastDuplicateDetector:
 
             # Initialize embedder with caching
             cache_dir = effective_root / ".index_cache"
-            self._embedder = create_embedder_from_config(self._config, cache_dir=cache_dir)
+            self._embedder = create_embedder_from_config(
+                self._config, cache_dir=cache_dir
+            )
 
             # Initialize signature hash table with collection-specific path
             # Use per-collection cache for multi-repo support

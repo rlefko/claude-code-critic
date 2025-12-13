@@ -165,10 +165,7 @@ class MissingDocstringRule(BaseRule):
     def _is_excluded_name(self, name: str, language: str) -> bool:
         """Check if the name is excluded from documentation requirements."""
         patterns = self.EXCLUDED_NAMES.get(language, [])
-        for pattern in patterns:
-            if re.match(pattern, name):
-                return True
-        return False
+        return any(re.match(pattern, name) for pattern in patterns)
 
     def _has_python_docstring(self, lines: list[str], def_line: int) -> bool:
         """Check if Python function/class has a docstring."""
@@ -217,10 +214,7 @@ class MissingDocstringRule(BaseRule):
             # Found JSDoc end
             if line.endswith("*/"):
                 # Scan up to find JSDoc start
-                for j in range(i, max(-1, i - 30), -1):
-                    if "/**" in lines[j]:
-                        return True
-                return False
+                return any("/**" in lines[j] for j in range(i, max(-1, i - 30), -1))
             # Found non-comment code
             if not line.startswith("*") and not line.startswith("//"):
                 return False

@@ -26,35 +26,51 @@ class MissingAuthRule(BaseRule):
                 r'@app\.route\s*\(\s*["\'][^"\']+["\']\s*(?:,\s*methods\s*=\s*\[[^\]]+\])?\s*\)',
                 "Flask route",
                 0.60,
-                [r'@login_required', r'@auth', r'@jwt_required', r'@requires_auth', r'@permission', r'@protected'],
+                [
+                    r"@login_required",
+                    r"@auth",
+                    r"@jwt_required",
+                    r"@requires_auth",
+                    r"@permission",
+                    r"@protected",
+                ],
             ),
             # Flask blueprint routes
             (
                 r'@\w+\.route\s*\(\s*["\'][^"\']+["\']\s*(?:,\s*methods\s*=\s*\[[^\]]+\])?\s*\)',
                 "Flask blueprint route",
                 0.60,
-                [r'@login_required', r'@auth', r'@jwt_required', r'@requires_auth'],
+                [r"@login_required", r"@auth", r"@jwt_required", r"@requires_auth"],
             ),
             # Django REST Framework views
             (
-                r'class\s+\w+\s*\([^)]*(?:APIView|ViewSet|ModelViewSet)',
+                r"class\s+\w+\s*\([^)]*(?:APIView|ViewSet|ModelViewSet)",
                 "Django REST view",
                 0.55,
-                [r'permission_classes', r'authentication_classes', r'IsAuthenticated', r'@permission'],
+                [
+                    r"permission_classes",
+                    r"authentication_classes",
+                    r"IsAuthenticated",
+                    r"@permission",
+                ],
             ),
             # FastAPI routes
             (
-                r'@(?:app|router)\.(get|post|put|patch|delete)\s*\(',
+                r"@(?:app|router)\.(get|post|put|patch|delete)\s*\(",
                 "FastAPI endpoint",
                 0.55,
-                [r'Depends\s*\([^)]*(?:auth|user|token|current)', r'@requires', r'Security\s*\('],
+                [
+                    r"Depends\s*\([^)]*(?:auth|user|token|current)",
+                    r"@requires",
+                    r"Security\s*\(",
+                ],
             ),
             # Django view functions
             (
-                r'def\s+\w+\s*\(\s*request\s*(?:,|\))',
+                r"def\s+\w+\s*\(\s*request\s*(?:,|\))",
                 "Django view function",
                 0.50,
-                [r'@login_required', r'@permission_required', r'@user_passes_test'],
+                [r"@login_required", r"@permission_required", r"@user_passes_test"],
             ),
         ],
         "javascript": [
@@ -63,28 +79,36 @@ class MissingAuthRule(BaseRule):
                 r'(?:app|router)\.(get|post|put|patch|delete)\s*\(\s*["\'][^"\']+["\']',
                 "Express route",
                 0.55,
-                [r'auth', r'passport', r'jwt', r'authenticate', r'isAuthenticated', r'requireAuth', r'protect'],
+                [
+                    r"auth",
+                    r"passport",
+                    r"jwt",
+                    r"authenticate",
+                    r"isAuthenticated",
+                    r"requireAuth",
+                    r"protect",
+                ],
             ),
             # NestJS controllers
             (
                 r'@(Get|Post|Put|Patch|Delete)\s*\(\s*["\']?[^)]*\)',
                 "NestJS endpoint",
                 0.55,
-                [r'@UseGuards', r'AuthGuard', r'@ApiBearerAuth', r'@Auth'],
+                [r"@UseGuards", r"AuthGuard", r"@ApiBearerAuth", r"@Auth"],
             ),
             # Koa routes
             (
-                r'router\.(get|post|put|patch|delete)\s*\(',
+                r"router\.(get|post|put|patch|delete)\s*\(",
                 "Koa route",
                 0.55,
-                [r'auth', r'jwt', r'isAuthenticated'],
+                [r"auth", r"jwt", r"isAuthenticated"],
             ),
             # Hapi routes
             (
-                r'server\.route\s*\(\s*\{[^}]*path\s*:',
+                r"server\.route\s*\(\s*\{[^}]*path\s*:",
                 "Hapi route",
                 0.55,
-                [r'auth\s*:', r'strategy\s*:'],
+                [r"auth\s*:", r"strategy\s*:"],
             ),
         ],
         "typescript": [
@@ -93,37 +117,50 @@ class MissingAuthRule(BaseRule):
                 r'(?:app|router)\.(get|post|put|patch|delete)\s*\(\s*["\'][^"\']+["\']',
                 "Express route",
                 0.55,
-                [r'auth', r'passport', r'jwt', r'authenticate', r'isAuthenticated', r'requireAuth'],
+                [
+                    r"auth",
+                    r"passport",
+                    r"jwt",
+                    r"authenticate",
+                    r"isAuthenticated",
+                    r"requireAuth",
+                ],
             ),
             # NestJS controllers
             (
                 r'@(Get|Post|Put|Patch|Delete)\s*\(\s*["\']?[^)]*\)',
                 "NestJS endpoint",
                 0.55,
-                [r'@UseGuards', r'AuthGuard', r'@ApiBearerAuth', r'@Auth'],
+                [r"@UseGuards", r"AuthGuard", r"@ApiBearerAuth", r"@Auth"],
             ),
             # tRPC procedures
             (
-                r'\.(query|mutation)\s*\(',
+                r"\.(query|mutation)\s*\(",
                 "tRPC procedure",
                 0.50,
-                [r'protectedProcedure', r'authMiddleware', r'isAuthed'],
+                [r"protectedProcedure", r"authMiddleware", r"isAuthed"],
             ),
         ],
         "java": [
             # Spring MVC controllers
             (
-                r'@(GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping)\s*\(',
+                r"@(GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping)\s*\(",
                 "Spring endpoint",
                 0.55,
-                [r'@PreAuthorize', r'@Secured', r'@RolesAllowed', r'SecurityContext', r'@AuthenticationPrincipal'],
+                [
+                    r"@PreAuthorize",
+                    r"@Secured",
+                    r"@RolesAllowed",
+                    r"SecurityContext",
+                    r"@AuthenticationPrincipal",
+                ],
             ),
             # JAX-RS resources
             (
-                r'@(GET|POST|PUT|DELETE)\s*\n\s*@Path',
+                r"@(GET|POST|PUT|DELETE)\s*\n\s*@Path",
                 "JAX-RS endpoint",
                 0.55,
-                [r'@RolesAllowed', r'@PermitAll', r'@DenyAll', r'SecurityContext'],
+                [r"@RolesAllowed", r"@PermitAll", r"@DenyAll", r"SecurityContext"],
             ),
         ],
         "go": [
@@ -132,82 +169,88 @@ class MissingAuthRule(BaseRule):
                 r'http\.HandleFunc\s*\(\s*["\'][^"\']+["\']',
                 "HTTP handler",
                 0.50,
-                [r'auth', r'middleware', r'jwt', r'session', r'token'],
+                [r"auth", r"middleware", r"jwt", r"session", r"token"],
             ),
             # Gin routes
             (
-                r'(?:router|r|g)\.(GET|POST|PUT|DELETE|PATCH)\s*\(',
+                r"(?:router|r|g)\.(GET|POST|PUT|DELETE|PATCH)\s*\(",
                 "Gin route",
                 0.55,
-                [r'AuthMiddleware', r'JWTAuth', r'RequireAuth'],
+                [r"AuthMiddleware", r"JWTAuth", r"RequireAuth"],
             ),
             # Echo routes
             (
-                r'e\.(GET|POST|PUT|DELETE|PATCH)\s*\(',
+                r"e\.(GET|POST|PUT|DELETE|PATCH)\s*\(",
                 "Echo route",
                 0.55,
-                [r'middleware\.JWT', r'AuthMiddleware', r'RequireAuth'],
+                [r"middleware\.JWT", r"AuthMiddleware", r"RequireAuth"],
             ),
         ],
         "ruby": [
             # Rails controller actions
             (
-                r'def\s+(index|show|create|update|destroy|new|edit)\b',
+                r"def\s+(index|show|create|update|destroy|new|edit)\b",
                 "Rails controller action",
                 0.50,
-                [r'before_action.*authenticate', r'authenticate_user', r'current_user', r'authorize', r'pundit'],
+                [
+                    r"before_action.*authenticate",
+                    r"authenticate_user",
+                    r"current_user",
+                    r"authorize",
+                    r"pundit",
+                ],
             ),
             # Sinatra routes
             (
                 r'(get|post|put|patch|delete)\s+["\'][^"\']+["\']',
                 "Sinatra route",
                 0.55,
-                [r'authenticate', r'authorized', r'protected', r'login_required'],
+                [r"authenticate", r"authorized", r"protected", r"login_required"],
             ),
         ],
         "php": [
             # Laravel routes
             (
-                r'Route::(get|post|put|patch|delete)\s*\(',
+                r"Route::(get|post|put|patch|delete)\s*\(",
                 "Laravel route",
                 0.55,
-                [r'->middleware\s*\(\s*["\']auth', r'auth:', r'can:', r'@can'],
+                [r'->middleware\s*\(\s*["\']auth', r"auth:", r"can:", r"@can"],
             ),
             # Symfony controllers
             (
-                r'#\[Route\s*\(',
+                r"#\[Route\s*\(",
                 "Symfony endpoint",
                 0.55,
-                [r'#\[IsGranted', r'@Security', r'$this->denyAccessUnlessGranted'],
+                [r"#\[IsGranted", r"@Security", r"$this->denyAccessUnlessGranted"],
             ),
         ],
     }
 
     # Public route patterns that typically don't need auth
     PUBLIC_ROUTE_PATTERNS = [
-        r'/health',
-        r'/ping',
-        r'/status',
-        r'/ready',
-        r'/live',
-        r'/metrics',
-        r'/public',
-        r'/static',
-        r'/assets',
-        r'/login',
-        r'/signin',
-        r'/signup',
-        r'/register',
-        r'/logout',
-        r'/forgot',
-        r'/reset',
-        r'/webhook',
-        r'/callback',
-        r'/oauth',
-        r'/\.well-known',
-        r'/robots\.txt',
-        r'/sitemap',
-        r'/favicon',
+        r"/health",
+        r"/ping",
+        r"/status",
+        r"/ready",
+        r"/live",
+        r"/metrics",
+        r"/public",
+        r"/static",
+        r"/assets",
+        r"/login",
+        r"/signin",
+        r"/signup",
+        r"/register",
+        r"/logout",
+        r"/forgot",
+        r"/reset",
+        r"/webhook",
+        r"/callback",
+        r"/oauth",
+        r"/\.well-known",
+        r"/robots\.txt",
+        r"/sitemap",
+        r"/favicon",
     ]
 
     @property
@@ -252,13 +295,12 @@ class MissingAuthRule(BaseRule):
                 return True
         return False
 
-    def _has_auth_check(self, surrounding_lines: list[str], auth_patterns: list[str]) -> bool:
+    def _has_auth_check(
+        self, surrounding_lines: list[str], auth_patterns: list[str]
+    ) -> bool:
         """Check if authentication is present in surrounding code."""
         text = " ".join(surrounding_lines)
-        for pattern in auth_patterns:
-            if re.search(pattern, text, re.IGNORECASE):
-                return True
-        return False
+        return any(re.search(pattern, text, re.IGNORECASE) for pattern in auth_patterns)
 
     def check(self, context: RuleContext) -> list[Finding]:
         """Check for missing authentication.
@@ -380,8 +422,11 @@ class MissingAuthRule(BaseRule):
                 "Implement authentication gates and policies",
             ],
         }
-        return hints.get(language, [
-            "Add authentication middleware or decorator to this endpoint",
-            "Verify this endpoint should be publicly accessible",
-            "If intentionally public, add a comment explaining why",
-        ])
+        return hints.get(
+            language,
+            [
+                "Add authentication middleware or decorator to this endpoint",
+                "Verify this endpoint should be publicly accessible",
+                "If intentionally public, add a comment explaining why",
+            ],
+        )

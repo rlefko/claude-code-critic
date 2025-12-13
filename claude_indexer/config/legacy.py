@@ -48,7 +48,9 @@ def load_legacy_settings(settings_file: Path) -> dict[str, Any]:
                     # Convert numeric values (more robust check)
                     elif value.replace(".", "", 1).replace("-", "", 1).isdigit():
                         with contextlib.suppress(ValueError):
-                            value = float(raw_value) if "." in raw_value else int(raw_value)
+                            value = (
+                                float(raw_value) if "." in raw_value else int(raw_value)
+                            )
 
                     # Map uppercase keys to lowercase field names
                     mapped_key = key_mapping.get(key, key)
@@ -87,8 +89,8 @@ include_tests=false
 max_file_size=1048576
 
 # Performance Settings
-batch_size=50
-max_concurrent_files=10
+batch_size=100
+max_concurrent_files=5
 """
 
     try:

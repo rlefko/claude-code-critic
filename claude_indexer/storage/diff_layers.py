@@ -191,7 +191,7 @@ class EnhancedOrphanCleanup:
             if point.payload and point.payload.get("entity_name"):
                 entity_name = point.payload.get("entity_name")
                 existing_entities.add(entity_name)
-                
+
                 # Handle markdown grouped headers: extract all headers from metadata
                 if " (+" in entity_name and entity_name.endswith(" more)"):
                     # Get headers from metadata.headers field (same as comprehensive cleanup)
@@ -235,7 +235,9 @@ class EnhancedOrphanCleanup:
                     FieldCondition(
                         key="chunk_type", match=MatchValue(value="relation")
                     ),
-                    FieldCondition(key="metadata.file_path", match=MatchValue(value=file_path)),
+                    FieldCondition(
+                        key="metadata.file_path", match=MatchValue(value=file_path)
+                    ),
                 ]
                 all_relations = qdrant_store._scroll_collection(
                     collection_name=collection_name,

@@ -22,10 +22,11 @@ Example usage:
 
 import os
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from threading import local
-from typing import Any, Generator
+from typing import Any
 
 # Environment variable to enable profiling (disabled by default for production)
 PROFILING_ENABLED = os.environ.get("CLAUDE_INDEXER_PROFILE", "0") == "1"

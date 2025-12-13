@@ -24,10 +24,11 @@ Example usage:
 
 import time
 from collections import deque
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import Any, Generator
-from contextlib import contextmanager
+from typing import Any
 
 
 @dataclass

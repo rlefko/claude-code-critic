@@ -86,35 +86,47 @@ class EntityChunk:
         # Build content with observation-based field weighting for BM25
         # Since parsers don't populate signature/docstring, weight observations by content patterns
         weighted_parts = []
-        
+
         # Legacy signature/docstring handling (rarely populated by parsers)
         if entity.signature:
             signature_text = f"Signature: {entity.signature}"
             weighted_parts.extend([signature_text] * 3)
-        
+
         if entity.docstring:
             description_text = f"Description: {entity.docstring}"
             weighted_parts.extend([description_text] * 2)
-        
+
         # Observation-based field weighting (main approach)
         for observation in entity.observations:
             observation_lower = observation.lower()
-            
+
             # HIGH WEIGHT (3x): Direct entity type declarations
-            if any(keyword in observation_lower for keyword in ['class:', 'function:', 'method:', 'interface:', 'signature:']):
+            if any(
+                keyword in observation_lower
+                for keyword in [
+                    "class:",
+                    "function:",
+                    "method:",
+                    "interface:",
+                    "signature:",
+                ]
+            ):
                 weighted_parts.extend([observation] * 3)
-            
-            # MEDIUM WEIGHT (2x): Purpose/responsibility descriptions  
-            elif any(keyword in observation_lower for keyword in ['purpose:', 'responsibility:', 'description:']):
+
+            # MEDIUM WEIGHT (2x): Purpose/responsibility descriptions
+            elif any(
+                keyword in observation_lower
+                for keyword in ["purpose:", "responsibility:", "description:"]
+            ):
                 weighted_parts.extend([observation] * 2)
-            
+
             # BASE WEIGHT (1x): All other observations (details, attributes, locations)
             else:
                 weighted_parts.append(observation)
-        
+
         # Restore rich content for semantic embeddings
         content = " | ".join(weighted_parts)
-        
+
         # Generate optimized BM25 content separately
         content_bm25 = cls._format_bm25_content(entity, weighted_parts)
 
@@ -123,7 +135,9 @@ class EntityChunk:
 
         # Enhanced ID generation to prevent collisions for same-named entities on same line
         # Include end_line_number and observations hash for true uniqueness
-        observations_hash = hashlib.md5(str(entity.observations).encode()).hexdigest()[:8]
+        observations_hash = hashlib.md5(str(entity.observations).encode()).hexdigest()[
+            :8
+        ]
         unique_content = (
             f"{str(entity.file_path)}::"
             f"{entity.entity_type.value}::"
@@ -133,7 +147,9 @@ class EntityChunk:
             f"{entity.end_line_number}::"  # Differentiates inline vs multi-line entities
             f"{observations_hash}"  # Uses content hash for uniqueness even at same position
         )
-        unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[:16]  # Longer hash for better collision resistance
+        unique_hash = hashlib.md5(unique_content.encode()).hexdigest()[
+            :16
+        ]  # Longer hash for better collision resistance
         base_id = f"{str(entity.file_path)}::{entity.entity_type.value}::{entity.name}::metadata"
         collision_resistant_id = f"{base_id}::{unique_hash}"
 
@@ -157,44 +173,64 @@ class EntityChunk:
     def _format_bm25_content(cls, entity: "Entity", weighted_parts: list[str]) -> str:
         """Format entity for enhanced BM25 searchability with 6-component structure."""
         import re
-        
+
         # 1. Entity name 2x frequency boost
         # For file entities, use just filename instead of full path for cleaner BM25 content
         if entity.entity_type.value == "file":
             entity_name = Path(entity.file_path).name
         else:
             entity_name = entity.name
-        
+
         # 2. CamelCase spaced version for natural language search
-        spaced_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', entity_name)
-        spaced_name = re.sub(r'[_-]', ' ', spaced_name)
-        
+        spaced_name = re.sub(r"([a-z])([A-Z])", r"\1 \2", entity_name)
+        spaced_name = re.sub(r"[_-]", " ", spaced_name)
+
         # 3. Primary content - extract first clean description only
         primary_content = ""
         for observation in entity.observations:
             obs_lower = observation.lower()
-            if any(prefix in obs_lower for prefix in ['purpose:', 'responsibility:', 'description:']):
+            if any(
+                prefix in obs_lower
+                for prefix in ["purpose:", "responsibility:", "description:"]
+            ):
                 # Extract the description part after the colon
-                if ':' in observation:
-                    primary_content = observation.split(':', 1)[1].strip()
+                if ":" in observation:
+                    primary_content = observation.split(":", 1)[1].strip()
                     break
-            elif observation and not any(skip in obs_lower for skip in ['class:', 'function:', 'method:', 'signature:', 'calls:', 'parameters:', 'returns:', 'behaviors:', 'attributes:', 'complexity:', 'async:', 'line:', 'key methods:']):
+            elif observation and not any(
+                skip in obs_lower
+                for skip in [
+                    "class:",
+                    "function:",
+                    "method:",
+                    "signature:",
+                    "calls:",
+                    "parameters:",
+                    "returns:",
+                    "behaviors:",
+                    "attributes:",
+                    "complexity:",
+                    "async:",
+                    "line:",
+                    "key methods:",
+                ]
+            ):
                 # Use first non-technical observation as description
                 primary_content = observation.strip()
                 break
-        
+
         # Fallback to entity docstring if available
         if not primary_content and entity.docstring:
             primary_content = entity.docstring
-        
+
         # 4. Entity type for filtering and context
         entity_type = entity.entity_type.value
-        
+
         # 5. File name extraction for location-based search
         file_name = ""
         if entity.file_path:
             file_name = Path(entity.file_path).name
-        
+
         # 6. Key methods extraction from observations (first 3-4 methods)
         key_methods = []
         for observation in entity.observations:
@@ -206,18 +242,25 @@ class EntityChunk:
                     methods_part = parts[1]
                     # Extract method names (comma-separated, take first 4)
                     methods = [m.strip() for m in methods_part.split(",")[:4]]
-                    key_methods.extend([m for m in methods if m and not m.startswith("(")])
+                    key_methods.extend(
+                        [m for m in methods if m and not m.startswith("(")]
+                    )
                     break
-            elif "methods:" in observation_lower and "key methods:" not in observation_lower:
+            elif (
+                "methods:" in observation_lower
+                and "key methods:" not in observation_lower
+            ):
                 # Extract method names after "methods:"
                 parts = observation.split("methods:")
                 if len(parts) > 1:
                     methods_part = parts[1]
                     # Extract method names (comma-separated, take first 4)
                     methods = [m.strip() for m in methods_part.split(",")[:4]]
-                    key_methods.extend([m for m in methods if m and not m.startswith("(")])
+                    key_methods.extend(
+                        [m for m in methods if m and not m.startswith("(")]
+                    )
                     break
-        
+
         # Combine all 6 components for enhanced searchability
         components = [
             f"{entity_name} {entity_name}",  # 2x frequency boost
@@ -225,9 +268,9 @@ class EntityChunk:
             primary_content,
             entity_type,
             file_name,
-            " ".join(key_methods)
+            " ".join(key_methods),
         ]
-        
+
         # Filter empty components and join
         return " ".join(filter(None, components))
 

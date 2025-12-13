@@ -16,7 +16,12 @@ if TYPE_CHECKING:
     from ..config import UIQualityConfig
     from ..similarity.engine import SimilarityEngine
 
-from ..models import Evidence, EvidenceType, RuntimeElementFingerprint, Severity, SymbolRef
+from ..models import (
+    Evidence,
+    EvidenceType,
+    RuntimeElementFingerprint,
+    Severity,
+)
 from .affordance import AffordanceAnalyzer
 from .consistency import ConsistencyAnalyzer
 from .hierarchy import HierarchyAnalyzer
@@ -273,11 +278,13 @@ class CritiqueEngine:
         # Build evidence list from raw evidence
         evidence_list: list[Evidence] = []
         for ev in raw.get("evidence", []):
-            evidence_list.append(Evidence(
-                evidence_type=EvidenceType.RUNTIME,
-                description=str(ev),
-                data=ev if isinstance(ev, dict) else {"value": ev},
-            ))
+            evidence_list.append(
+                Evidence(
+                    evidence_type=EvidenceType.RUNTIME,
+                    description=str(ev),
+                    data=ev if isinstance(ev, dict) else {"value": ev},
+                )
+            )
 
         # Get remediation hints for subcategory
         hints = self.REMEDIATION_HINTS.get(subcategory, [])
@@ -330,9 +337,7 @@ class CritiqueEngine:
             summary.token_adherence_rate = consistency_metrics.get(
                 "token_adherence_rate", 1.0
             )
-            summary.role_variant_counts = consistency_metrics.get(
-                "role_variants", {}
-            )
+            summary.role_variant_counts = consistency_metrics.get("role_variants", {})
 
         return summary
 
@@ -360,6 +365,7 @@ class CritiqueEngine:
             CritiqueReport with all critiques and summary.
         """
         import time
+
         start_time = time.time()
 
         self._critique_counter = 0  # Reset counter
@@ -415,22 +421,24 @@ class CritiqueEngine:
                 elif "TOKEN" in finding.rule_id or "SCALE" in finding.rule_id:
                     subcategory = "token_adherence"
 
-                all_critiques.append(CritiqueItem(
-                    id=self._generate_critique_id(category, subcategory),
-                    category=category,
-                    subcategory=subcategory,
-                    severity=finding.severity,
-                    title=f"Static Analysis: {finding.rule_id}",
-                    description=finding.summary,
-                    evidence=[
-                        Evidence(
-                            evidence_type=EvidenceType.STATIC,
-                            description=f"From static analysis: {finding.rule_id}",
-                            source_ref=finding.source_ref,
-                        )
-                    ],
-                    remediation_hints=finding.remediation_hints,
-                ))
+                all_critiques.append(
+                    CritiqueItem(
+                        id=self._generate_critique_id(category, subcategory),
+                        category=category,
+                        subcategory=subcategory,
+                        severity=finding.severity,
+                        title=f"Static Analysis: {finding.rule_id}",
+                        description=finding.summary,
+                        evidence=[
+                            Evidence(
+                                evidence_type=EvidenceType.STATIC,
+                                description=f"From static analysis: {finding.rule_id}",
+                                source_ref=finding.source_ref,
+                            )
+                        ],
+                        remediation_hints=finding.remediation_hints,
+                    )
+                )
 
         # Sort critiques by severity (FAIL first, then WARN, then INFO)
         severity_order = {Severity.FAIL: 0, Severity.WARN: 1, Severity.INFO: 2}

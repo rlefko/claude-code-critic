@@ -3,12 +3,9 @@
 import json
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_indexer.session.context import SessionContext
-from claude_indexer.session.lock import LockConflictError
 from claude_indexer.session.manager import (
     SessionManager,
     clear_session,
@@ -81,12 +78,16 @@ class TestSessionManager:
         collection_name = "test_resume_collection"
 
         # Create first session
-        manager1 = SessionManager(project_path=tmp_path, collection_name=collection_name)
+        manager1 = SessionManager(
+            project_path=tmp_path, collection_name=collection_name
+        )
         context1 = manager1.initialize()
         session_id = context1.session_id
 
         # Create second manager - should load existing
-        manager2 = SessionManager(project_path=tmp_path, collection_name=collection_name)
+        manager2 = SessionManager(
+            project_path=tmp_path, collection_name=collection_name
+        )
         context2 = manager2.initialize()
 
         assert context2.session_id == session_id
@@ -180,7 +181,9 @@ class TestSessionManager:
         assert parts[1].isdigit()  # Timestamp
         assert len(parts[2]) == 4  # 4 hex chars
 
-    def test_auto_detect_project_from_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_auto_detect_project_from_cwd(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should auto-detect project from CWD."""
         (tmp_path / ".git").mkdir()
         monkeypatch.chdir(tmp_path)

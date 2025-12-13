@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import List, Optional
 
 from ..config.project_config import ProjectConfigManager
 from ..indexer_logging import get_logger
@@ -80,7 +79,7 @@ class FileGenerator:
                     message=f"Created {target_path} (minimal template)",
                     warning="Template not found, used minimal defaults",
                 )
-            except IOError as e:
+            except OSError as e:
                 return InitStepResult(
                     step_name="claudeignore",
                     success=False,
@@ -156,7 +155,7 @@ debug/
                     message=f"Created {target_path}",
                     warning="Template not found, used defaults",
                 )
-            except IOError as e:
+            except OSError as e:
                 return InitStepResult(
                     step_name="claude_settings",
                     success=False,
@@ -228,8 +227,10 @@ debug/
                     success=True,
                     message=f"Created {target_path} ({self.project_type.value} template)",
                 )
-            except IOError as e:
-                logger.warning(f"Failed to write template: {e}, falling back to default")
+            except OSError as e:
+                logger.warning(
+                    f"Failed to write template: {e}, falling back to default"
+                )
 
         # Fallback: generate programmatically
         try:
@@ -243,7 +244,7 @@ debug/
                 message=f"Created {target_path}",
                 warning="No template found, used default configuration",
             )
-        except IOError as e:
+        except OSError as e:
             return InitStepResult(
                 step_name="guard_config",
                 success=False,
@@ -319,18 +320,19 @@ debug/
         existing_entries: set = set()
         if gitignore_path.exists():
             try:
-                with open(gitignore_path, "r") as f:
+                with open(gitignore_path) as f:
                     existing_entries = {line.strip() for line in f}
-            except IOError:
+            except OSError:
                 pass
 
         # Find entries to add
-        new_entries: List[str] = []
+        new_entries: list[str] = []
         for entry in self.GITIGNORE_ENTRIES:
             if entry and entry.strip() not in existing_entries:
-                if not entry.startswith("#"):  # Don't check comments
-                    new_entries.append(entry)
-                elif "# Claude Code Memory" not in existing_entries:
+                if (
+                    not entry.startswith("#")
+                    or "# Claude Code Memory" not in existing_entries
+                ):  # Don't check comments
                     new_entries.append(entry)
 
         if not new_entries:
@@ -349,7 +351,7 @@ debug/
                 success=True,
                 message=f"Updated {gitignore_path} with Claude entries",
             )
-        except IOError as e:
+        except OSError as e:
             return InitStepResult(
                 step_name="gitignore",
                 success=False,
@@ -369,7 +371,7 @@ debug/
                 success=True,
                 message=f"Created {claude_dir}",
             )
-        except IOError as e:
+        except OSError as e:
             return InitStepResult(
                 step_name="claude_directory",
                 success=False,

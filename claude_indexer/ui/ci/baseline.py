@@ -310,7 +310,7 @@ class BaselineManager:
             return self._baseline
 
         try:
-            with open(self.baseline_path, "r") as f:
+            with open(self.baseline_path) as f:
                 data = json.load(f)
                 self._baseline = BaselineReport.from_dict(data)
 
@@ -472,9 +472,7 @@ class BaselineManager:
             approach = self.APPROACH_MAP.get(rule_id, "Review and fix manually")
 
             # Sample up to 3 locations
-            sample_locations = [
-                f"{e.file_path}:{e.line_number}" for e in entries[:3]
-            ]
+            sample_locations = [f"{e.file_path}:{e.line_number}" for e in entries[:3]]
 
             # Calculate priority based on count and effort
             priority = self._calculate_priority(count, effort, rule_id)

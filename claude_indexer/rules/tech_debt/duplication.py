@@ -10,7 +10,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ..base import BaseRule, Evidence, RuleContext, Severity, Trigger
 
@@ -209,9 +209,7 @@ class ComponentDuplicationRule(BaseRule):
         normalized = self._normalize_for_hash(content)
         return hashlib.sha256(normalized.encode()).hexdigest()
 
-    def _extract_structural_features(
-        self, content: str, language: str
-    ) -> list[str]:
+    def _extract_structural_features(self, content: str, language: str) -> list[str]:
         """Extract structural features from code for SimHash."""
         features = []
         patterns = self.STRUCTURAL_PATTERNS.get(language, [])
@@ -406,9 +404,8 @@ class ComponentDuplicationRule(BaseRule):
 
         for result in results:
             # Skip self-match
-            if (
-                result.get("name") == entity.name
-                and result.get("file_path") == str(context.file_path)
+            if result.get("name") == entity.name and result.get("file_path") == str(
+                context.file_path
             ):
                 continue
 
@@ -532,9 +529,7 @@ class ComponentDuplicationRule(BaseRule):
         # Determine severity based on duplicate type
         if duplicate.duplication_type == DuplicationType.EXACT:
             severity_override = Severity.HIGH
-            summary = (
-                f"Exact duplicate of '{duplicate.target_name}' in {duplicate.target_file}"
-            )
+            summary = f"Exact duplicate of '{duplicate.target_name}' in {duplicate.target_file}"
         elif duplicate.duplication_type == DuplicationType.STRUCTURAL:
             severity_override = Severity.MEDIUM
             summary = (

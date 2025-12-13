@@ -1,9 +1,6 @@
 """Unit tests for configuration validation."""
 
 import json
-from pathlib import Path
-
-import pytest
 
 from claude_indexer.config.validation import (
     ConfigError,
@@ -172,7 +169,9 @@ class TestConfigValidator:
 
         # Should warn about missing API key
         api_key_warnings = [
-            w for w in result.warnings if "voyage" in w.path.lower() and "api_key" in w.path
+            w
+            for w in result.warnings
+            if "voyage" in w.path.lower() and "api_key" in w.path
         ]
         assert len(api_key_warnings) > 0
 
@@ -188,7 +187,9 @@ class TestConfigValidator:
 
         # Should warn about missing API key
         api_key_warnings = [
-            w for w in result.warnings if "openai" in w.path.lower() and "api_key" in w.path
+            w
+            for w in result.warnings
+            if "openai" in w.path.lower() and "api_key" in w.path
         ]
         assert len(api_key_warnings) > 0
 
@@ -244,7 +245,9 @@ class TestConfigValidator:
 
         # Should warn about .env
         env_warnings = [
-            w for w in result.warnings if ".env" in w.message or "sensitive" in w.message.lower()
+            w
+            for w in result.warnings
+            if ".env" in w.message or "sensitive" in w.message.lower()
         ]
         assert len(env_warnings) > 0
 
@@ -264,7 +267,9 @@ class TestConfigValidator:
 
         # Should warn about conflicting pattern
         conflict_warnings = [
-            w for w in result.warnings if "*.py" in w.message and "both" in w.message.lower()
+            w
+            for w in result.warnings
+            if "*.py" in w.message and "both" in w.message.lower()
         ]
         assert len(conflict_warnings) > 0
 
@@ -331,10 +336,14 @@ class TestValidateConfigFile:
     def test_validate_valid_file(self, tmp_path):
         """Test validation of valid config file."""
         config_file = tmp_path / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "project": {"name": "test", "collection": "test"},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "project": {"name": "test", "collection": "test"},
+                }
+            )
+        )
 
         result = validate_config_file(config_file)
         assert result.valid is True

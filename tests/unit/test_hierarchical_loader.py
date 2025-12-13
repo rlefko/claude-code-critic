@@ -1,10 +1,7 @@
 """Unit tests for the HierarchicalConfigLoader."""
 
 import json
-import os
 from pathlib import Path
-
-import pytest
 
 from claude_indexer.config.hierarchical_loader import (
     ConfigPaths,
@@ -19,8 +16,10 @@ class TestConfigPaths:
 
     def test_global_paths(self):
         """Test global configuration paths."""
-        assert ConfigPaths.GLOBAL_DIR == Path.home() / ".claude-indexer"
-        assert ConfigPaths.GLOBAL_CONFIG == Path.home() / ".claude-indexer" / "config.json"
+        assert Path.home() / ".claude-indexer" == ConfigPaths.GLOBAL_DIR
+        assert (
+            Path.home() / ".claude-indexer" / "config.json" == ConfigPaths.GLOBAL_CONFIG
+        )
 
     def test_project_paths(self):
         """Test project configuration path constants."""
@@ -120,12 +119,16 @@ class TestHierarchicalConfigLoader:
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         config_file = config_dir / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "project": {"name": "test", "collection": "test-collection"},
-            "embedding": {"provider": "openai"},
-            "logging": {"debug": True},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "project": {"name": "test", "collection": "test-collection"},
+                    "embedding": {"provider": "openai"},
+                    "logging": {"debug": True},
+                }
+            )
+        )
 
         loader = HierarchicalConfigLoader(tmp_path)
         config = loader.load()
@@ -135,17 +138,23 @@ class TestHierarchicalConfigLoader:
         assert config.embedding.provider == "openai"
         assert config.logging.debug is True
 
-    def test_load_from_legacy_settings_txt(self, tmp_path):
+    def test_load_from_legacy_settings_txt(self, tmp_path, monkeypatch):
         """Test loading from legacy settings.txt."""
+        # Clear environment variables that might override settings.txt
+        for var in ["OPENAI_API_KEY", "VOYAGE_API_KEY", "QDRANT_URL", "QDRANT_API_KEY"]:
+            monkeypatch.delenv(var, raising=False)
+
         settings_file = tmp_path / "settings.txt"
-        settings_file.write_text("""
+        settings_file.write_text(
+            """
 openai_api_key=sk-test123
 voyage_api_key=va-test456
 qdrant_url=https://test.qdrant.com
 debounce_seconds=3.5
 batch_size=75
 indexer_debug=true
-""")
+"""
+        )
 
         loader = HierarchicalConfigLoader(tmp_path)
         config = loader.load()
@@ -164,16 +173,24 @@ indexer_debug=true
 
         # Create main config
         main_config = config_dir / "settings.json"
-        main_config.write_text(json.dumps({
-            "version": "3.0",
-            "logging": {"debug": False, "verbose": True},
-        }))
+        main_config.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "logging": {"debug": False, "verbose": True},
+                }
+            )
+        )
 
         # Create local overrides
         local_config = config_dir / "settings.local.json"
-        local_config.write_text(json.dumps({
-            "logging": {"debug": True},
-        }))
+        local_config.write_text(
+            json.dumps(
+                {
+                    "logging": {"debug": True},
+                }
+            )
+        )
 
         loader = HierarchicalConfigLoader(tmp_path)
         config = loader.load()
@@ -188,10 +205,14 @@ indexer_debug=true
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         config_file = config_dir / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "api": {"qdrant": {"url": "https://file.qdrant.com"}},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "api": {"qdrant": {"url": "https://file.qdrant.com"}},
+                }
+            )
+        )
 
         monkeypatch.setenv("QDRANT_URL", "https://env.qdrant.com")
         monkeypatch.setenv("CLAUDE_INDEXER_DEBUG", "true")
@@ -208,10 +229,14 @@ indexer_debug=true
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         config_file = config_dir / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "logging": {"debug": False},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "logging": {"debug": False},
+                }
+            )
+        )
 
         loader = HierarchicalConfigLoader(tmp_path)
         config = loader.load(logging={"debug": True})
@@ -230,16 +255,20 @@ indexer_debug=true
         config_dir = tmp_path / ".claude-indexer"
         config_dir.mkdir()
         config_file = config_dir / "config.json"
-        config_file.write_text(json.dumps({
-            "version": "2.6",
-            "project": {"name": "legacy", "collection": "legacy-coll"},
-            "indexing": {
-                "enabled": True,
-                "max_file_size": 2097152,
-                "file_patterns": {"include": ["*.py"], "exclude": ["tests/"]},
-            },
-            "watcher": {"debounce_seconds": 3.0},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "2.6",
+                    "project": {"name": "legacy", "collection": "legacy-coll"},
+                    "indexing": {
+                        "enabled": True,
+                        "max_file_size": 2097152,
+                        "file_patterns": {"include": ["*.py"], "exclude": ["tests/"]},
+                    },
+                    "watcher": {"debounce_seconds": 3.0},
+                }
+            )
+        )
 
         loader = HierarchicalConfigLoader(tmp_path)
         config = loader.load()
@@ -293,18 +322,26 @@ indexer_debug=true
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         project_config = config_dir / "settings.json"
-        project_config.write_text(json.dumps({
-            "version": "3.0",
-            "watcher": {"debounce_seconds": 2.0},
-            "logging": {"debug": False, "verbose": False},
-        }))
+        project_config.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "watcher": {"debounce_seconds": 2.0},
+                    "logging": {"debug": False, "verbose": False},
+                }
+            )
+        )
 
         # 3. Create local overrides
         local_config = config_dir / "settings.local.json"
-        local_config.write_text(json.dumps({
-            "watcher": {"debounce_seconds": 3.0},
-            "logging": {"verbose": True},
-        }))
+        local_config.write_text(
+            json.dumps(
+                {
+                    "watcher": {"debounce_seconds": 3.0},
+                    "logging": {"verbose": True},
+                }
+            )
+        )
 
         # 4. Set environment variable
         monkeypatch.setenv("CLAUDE_INDEXER_DEBUG", "true")
@@ -329,10 +366,14 @@ class TestLoadUnifiedConfigFunction:
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         config_file = config_dir / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "project": {"name": "test", "collection": "test"},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "project": {"name": "test", "collection": "test"},
+                }
+            )
+        )
 
         config = load_unified_config(tmp_path)
 
@@ -386,8 +427,12 @@ class TestValueConversion:
 class TestLegacyMappings:
     """Tests for legacy settings.txt key mappings."""
 
-    def test_all_legacy_mappings(self, tmp_path):
+    def test_all_legacy_mappings(self, tmp_path, monkeypatch):
         """Test that all legacy mappings work correctly."""
+        # Clear environment variables that might override settings.txt
+        for var in ["OPENAI_API_KEY", "VOYAGE_API_KEY", "QDRANT_URL", "QDRANT_API_KEY"]:
+            monkeypatch.delenv(var, raising=False)
+
         settings_content = """
 openai_api_key=sk-openai
 voyage_api_key=va-voyage

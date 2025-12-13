@@ -1,6 +1,5 @@
 """Unit tests for CI fingerprint caching."""
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -16,8 +15,6 @@ from claude_indexer.ui.config import UIQualityConfig
 from claude_indexer.ui.models import (
     StaticComponentFingerprint,
     StyleFingerprint,
-    SymbolKind,
-    SymbolRef,
 )
 
 

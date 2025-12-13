@@ -187,9 +187,7 @@ class ImportantNewUsageRule(BaseRule):
                 # Check if this is in new code
                 is_new = True
                 if context.diff_result and ref:
-                    is_new = context.is_line_in_diff(
-                        ref.file_path, ref.start_line
-                    )
+                    is_new = context.is_line_in_diff(ref.file_path, ref.start_line)
 
                 if not is_new:
                     continue  # Skip baseline !important
@@ -328,12 +326,14 @@ class SuppressionNoRationaleRule(BaseRule):
                     # Check if there's a rationale (text after -- or :)
                     has_rationale = self._has_rationale(line, pattern)
 
-                    suppressions.append({
-                        "line": line_num,
-                        "pattern": pattern,
-                        "comment": line.strip(),
-                        "has_rationale": has_rationale,
-                    })
+                    suppressions.append(
+                        {
+                            "line": line_num,
+                            "pattern": pattern,
+                            "comment": line.strip(),
+                            "has_rationale": has_rationale,
+                        }
+                    )
                     break  # Only count once per line
 
         return suppressions
@@ -349,7 +349,7 @@ class SuppressionNoRationaleRule(BaseRule):
             return False
 
         # Get text after pattern
-        after = line[idx + len(pattern):]
+        after = line[idx + len(pattern) :]
 
         # Check for rationale markers
         if "--" in after:

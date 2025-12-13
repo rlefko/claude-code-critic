@@ -7,7 +7,7 @@ over time, indicating one may need updating to match the other.
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ..base import BaseRule, Evidence, RuleContext, Severity, Trigger
 
@@ -300,9 +300,8 @@ class TokenDriftRule(BaseRule):
 
         for result in results:
             # Skip self-match
-            if (
-                result.get("name") == entity.name
-                and result.get("file_path") == str(context.file_path)
+            if result.get("name") == entity.name and result.get("file_path") == str(
+                context.file_path
             ):
                 continue
 
@@ -338,29 +337,25 @@ class TokenDriftRule(BaseRule):
                 return len([p for p in params.split(",") if p.strip()])
         return 0
 
-    def _compare_structure(
-        self, source: str, target: str, language: str
-    ) -> float:
+    def _compare_structure(self, source: str, target: str, language: str) -> float:
         """Compare structural elements (params, returns)."""
         # Count parameters
         source_params = self._count_parameters(source, language)
         target_params = self._count_parameters(target, language)
-        param_diff = (
-            abs(source_params - target_params) / max(source_params, target_params, 1)
+        param_diff = abs(source_params - target_params) / max(
+            source_params, target_params, 1
         )
 
         # Count return statements
         source_returns = len(re.findall(r"\breturn\b", source))
         target_returns = len(re.findall(r"\breturn\b", target))
-        return_diff = (
-            abs(source_returns - target_returns) / max(source_returns, target_returns, 1)
+        return_diff = abs(source_returns - target_returns) / max(
+            source_returns, target_returns, 1
         )
 
         return (param_diff + return_diff) / 2
 
-    def _compare_logic_patterns(
-        self, source: str, target: str, language: str
-    ) -> float:
+    def _compare_logic_patterns(self, source: str, target: str, language: str) -> float:
         """Compare control flow patterns."""
         patterns = [
             r"\bif\b",
@@ -373,15 +368,11 @@ class TokenDriftRule(BaseRule):
             src_count = len(re.findall(pattern, source, re.IGNORECASE))
             tgt_count = len(re.findall(pattern, target, re.IGNORECASE))
             if src_count > 0 or tgt_count > 0:
-                diffs.append(
-                    abs(src_count - tgt_count) / max(src_count, tgt_count, 1)
-                )
+                diffs.append(abs(src_count - tgt_count) / max(src_count, tgt_count, 1))
 
         return sum(diffs) / max(len(diffs), 1)
 
-    def _compare_error_handling(
-        self, source: str, target: str, language: str
-    ) -> float:
+    def _compare_error_handling(self, source: str, target: str, language: str) -> float:
         """Compare error handling patterns."""
         if language == "python":
             src_has_try = bool(re.search(r"\btry\b", source))

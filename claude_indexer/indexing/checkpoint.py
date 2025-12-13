@@ -7,7 +7,7 @@ enabling recovery from interruptions without re-processing completed files.
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from logging import Logger
 from pathlib import Path
 from typing import Any
@@ -164,11 +164,11 @@ class IndexingCheckpoint:
                 entities_created=0,
                 relations_created=0,
                 chunks_created=0,
-                started_at=datetime.now(timezone.utc).isoformat(),
-                updated_at=datetime.now(timezone.utc).isoformat(),
+                started_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         pending = [str(f.relative_to(project_path)) for f in all_files]
 
         config_dict: dict[str, Any] = {}
@@ -272,7 +272,7 @@ class IndexingCheckpoint:
 
         # Update timestamp
         if self._dirty:
-            self._state.updated_at = datetime.now(timezone.utc).isoformat()
+            self._state.updated_at = datetime.now(UTC).isoformat()
 
     def update_batch(
         self,
@@ -318,9 +318,7 @@ class IndexingCheckpoint:
 
         try:
             # Atomic write: write to temp file, then rename
-            fd, temp_path = tempfile.mkstemp(
-                dir=self.cache_dir, suffix=".tmp"
-            )
+            fd, temp_path = tempfile.mkstemp(dir=self.cache_dir, suffix=".tmp")
             try:
                 with os.fdopen(fd, "w") as f:
                     json.dump(self._state.to_dict(), f, indent=2)
@@ -415,7 +413,7 @@ class IndexingCheckpoint:
         """
         try:
             updated = datetime.fromisoformat(state.updated_at)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             hours_old = (now - updated).total_seconds() / 3600
             return hours_old > self.STALE_HOURS
         except Exception:
@@ -424,10 +422,7 @@ class IndexingCheckpoint:
     @property
     def has_pending(self) -> bool:
         """Check if there are pending files."""
-        return (
-            self._state is not None
-            and len(self._state.pending_files) > 0
-        )
+        return self._state is not None and len(self._state.pending_files) > 0
 
     @property
     def progress_percent(self) -> float:

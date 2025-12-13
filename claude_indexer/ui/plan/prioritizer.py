@@ -6,7 +6,7 @@ to create an optimal execution order.
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .task import Task
@@ -139,9 +139,12 @@ class TaskPrioritizer:
         """
         quick_wins = []
         for task in tasks:
-            if task.impact >= 0.7 and task.estimated_effort == "low":
-                quick_wins.append(task)
-            elif task.impact >= 0.8 and task.estimated_effort == "medium":
+            if (
+                task.impact >= 0.7
+                and task.estimated_effort == "low"
+                or task.impact >= 0.8
+                and task.estimated_effort == "medium"
+            ):
                 quick_wins.append(task)
 
         # Sort by impact descending
@@ -171,7 +174,7 @@ class TaskPrioritizer:
 
         # Topological sort
         visited: set[str] = set()
-        result: list["Task"] = []
+        result: list[Task] = []
 
         def visit(task_id: str) -> None:
             if task_id in visited:
@@ -192,9 +195,7 @@ class TaskPrioritizer:
 
         return result
 
-    def group_by_scope(
-        self, tasks: list["Task"]
-    ) -> dict[str, list["Task"]]:
+    def group_by_scope(self, tasks: list["Task"]) -> dict[str, list["Task"]]:
         """Group tasks by scope.
 
         Args:
@@ -203,7 +204,7 @@ class TaskPrioritizer:
         Returns:
             Dict mapping scope to list of tasks.
         """
-        groups: dict[str, list["Task"]] = defaultdict(list)
+        groups: dict[str, list[Task]] = defaultdict(list)
         for task in tasks:
             groups[task.scope].append(task)
 
@@ -225,10 +226,7 @@ class TaskPrioritizer:
             Capped dict.
         """
         max_tasks = self.config.max_tasks_per_scope
-        return {
-            scope: tasks[:max_tasks]
-            for scope, tasks in grouped_tasks.items()
-        }
+        return {scope: tasks[:max_tasks] for scope, tasks in grouped_tasks.items()}
 
     def full_prioritization(self, tasks: list["Task"]) -> list["Task"]:
         """Run full prioritization pipeline.

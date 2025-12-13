@@ -6,12 +6,12 @@ lifecycle of workspace sessions, including detection, initialization,
 collection management, and state persistence.
 """
 
+import contextlib
 import json
 import secrets
 import socket
 import time
 from pathlib import Path
-from typing import List, Optional
 
 from ..config.config_loader import ConfigLoader
 from ..indexer_logging import get_logger
@@ -59,8 +59,8 @@ class WorkspaceManager:
 
     def __init__(
         self,
-        workspace_path: Optional[Path] = None,
-        config_loader: Optional[ConfigLoader] = None,
+        workspace_path: Path | None = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize workspace manager.
 
@@ -70,9 +70,9 @@ class WorkspaceManager:
         """
         self._explicit_path = workspace_path
         self.config_loader = config_loader or ConfigLoader()
-        self._context: Optional[WorkspaceContext] = None
-        self._workspace_config: Optional[WorkspaceConfig] = None
-        self._ws_config_loader: Optional[WorkspaceConfigLoader] = None
+        self._context: WorkspaceContext | None = None
+        self._workspace_config: WorkspaceConfig | None = None
+        self._ws_config_loader: WorkspaceConfigLoader | None = None
 
     def detect(self) -> WorkspaceConfig:
         """Detect workspace configuration.
@@ -178,7 +178,7 @@ class WorkspaceManager:
 
     def _load_existing_context(
         self, workspace_config: WorkspaceConfig
-    ) -> Optional[WorkspaceContext]:
+    ) -> WorkspaceContext | None:
         """Load existing workspace context if valid.
 
         Validates that the saved context matches the current workspace
@@ -236,10 +236,8 @@ class WorkspaceManager:
         except OSError as e:
             logger.debug(f"Could not save workspace context: {e}")
             if temp_file.exists():
-                try:
+                with contextlib.suppress(OSError):
                     temp_file.unlink()
-                except OSError:
-                    pass
 
     def get_config_loader(self) -> WorkspaceConfigLoader:
         """Get workspace configuration loader.
@@ -253,7 +251,7 @@ class WorkspaceManager:
             )
         return self._ws_config_loader
 
-    def get_indexing_paths(self) -> List[Path]:
+    def get_indexing_paths(self) -> list[Path]:
         """Get all paths that should be indexed.
 
         For monorepos, returns the workspace root path.
@@ -271,7 +269,7 @@ class WorkspaceManager:
             # Return individual member paths
             return [m.path for m in context.members]
 
-    def get_member_by_name(self, name: str) -> Optional[WorkspaceMember]:
+    def get_member_by_name(self, name: str) -> WorkspaceMember | None:
         """Get workspace member by name.
 
         Args:
@@ -286,7 +284,7 @@ class WorkspaceManager:
                 return member
         return None
 
-    def get_member_by_path(self, path: Path) -> Optional[WorkspaceMember]:
+    def get_member_by_path(self, path: Path) -> WorkspaceMember | None:
         """Get workspace member containing a path.
 
         Args:
@@ -307,7 +305,7 @@ class WorkspaceManager:
 
         return None
 
-    def get_collection_for_member(self, member_name: str) -> Optional[str]:
+    def get_collection_for_member(self, member_name: str) -> str | None:
         """Get collection name for a member.
 
         Args:
@@ -323,7 +321,7 @@ class WorkspaceManager:
         workspace_config = self.detect()
         return workspace_config.get_effective_collection(member)
 
-    def get_all_collections(self) -> List[str]:
+    def get_all_collections(self) -> list[str]:
         """Get all collection names for the workspace.
 
         Returns:
@@ -396,8 +394,8 @@ class WorkspaceManager:
 
 
 def get_workspace_context(
-    workspace_path: Optional[str] = None,
-) -> Optional[WorkspaceContext]:
+    workspace_path: str | None = None,
+) -> WorkspaceContext | None:
     """Get workspace context if in a workspace.
 
     Convenience function for quickly checking if the current or specified
@@ -422,7 +420,7 @@ def get_workspace_context(
         return None
 
 
-def detect_workspace(path: Optional[str] = None) -> WorkspaceConfig:
+def detect_workspace(path: str | None = None) -> WorkspaceConfig:
     """Detect workspace configuration.
 
     Convenience function for detecting workspace type and members.

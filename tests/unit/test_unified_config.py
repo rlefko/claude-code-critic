@@ -324,7 +324,9 @@ class TestUnifiedConfig:
             indexer_debug=True,
         )
 
-        unified = UnifiedConfig.from_indexer_config(legacy, project_name="legacy-project")
+        unified = UnifiedConfig.from_indexer_config(
+            legacy, project_name="legacy-project"
+        )
 
         assert unified.project.name == "legacy-project"
         assert unified.project.collection == "legacy-collection"

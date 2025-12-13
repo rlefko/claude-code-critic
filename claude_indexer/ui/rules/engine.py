@@ -5,7 +5,7 @@ evaluation and manages rule registration.
 """
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ..models import Finding, Severity, UIAnalysisResult
@@ -86,7 +86,8 @@ class RuleEngine:
 
             if rule.category in self._rules_by_category:
                 self._rules_by_category[rule.category] = [
-                    r for r in self._rules_by_category[rule.category]
+                    r
+                    for r in self._rules_by_category[rule.category]
                     if r.rule_id != rule_id
                 ]
 

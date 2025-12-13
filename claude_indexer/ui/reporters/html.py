@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..critique.engine import CritiqueItem, CritiqueReport
@@ -331,16 +331,22 @@ class HTMLReporter:
                     link = self._render_file_link(
                         ev.source_ref.file_path, ev.source_ref.start_line
                     )
-                    evidence_items.append(f"<li>{link}: {self._escape(ev.description)}</li>")
+                    evidence_items.append(
+                        f"<li>{link}: {self._escape(ev.description)}</li>"
+                    )
                 else:
                     evidence_items.append(f"<li>{self._escape(ev.description)}</li>")
             if evidence_items:
-                evidence_html = f'<ul class="evidence-list">{"".join(evidence_items)}</ul>'
+                evidence_html = (
+                    f'<ul class="evidence-list">{"".join(evidence_items)}</ul>'
+                )
 
         # Build screenshot gallery
         gallery_html = ""
         if self.config.include_screenshots and critique.screenshots:
-            screenshots = critique.screenshots[: self.config.max_screenshots_per_gallery]
+            screenshots = critique.screenshots[
+                : self.config.max_screenshots_per_gallery
+            ]
             gallery_items = "".join(
                 f'<div class="gallery-item"><img src="{self._escape(s)}" alt="Screenshot"></div>'
                 for s in screenshots
@@ -426,12 +432,14 @@ class HTMLReporter:
             icon = self.CATEGORY_ICONS.get(category, "")
             critique_items = "".join(self._render_critique(c) for c in critiques)
 
-            sections.append(f"""
+            sections.append(
+                f"""
             <section>
                 <h2>{icon} {category.title()} Issues ({len(critiques)})</h2>
                 {critique_items}
             </section>
-            """)
+            """
+            )
 
         return "".join(sections)
 
@@ -440,7 +448,9 @@ class HTMLReporter:
         criteria_items = "".join(
             f"<li>{self._escape(c)}</li>" for c in task.acceptance_criteria
         )
-        criteria_html = f'<ul class="task-criteria">{criteria_items}</ul>' if criteria_items else ""
+        criteria_html = (
+            f'<ul class="task-criteria">{criteria_items}</ul>' if criteria_items else ""
+        )
 
         quick_win_badge = (
             '<span class="badge" style="background-color: #22c55e; margin-left: 0.5rem;">Quick Win</span>'

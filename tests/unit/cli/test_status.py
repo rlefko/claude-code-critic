@@ -7,8 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from claude_indexer.cli.status import (
     StatusCollector,
     StatusLevel,
@@ -170,7 +168,9 @@ class TestStatusCollector:
         mock_client_class.return_value = mock_client
 
         collector = StatusCollector()
-        collector._config = MagicMock(qdrant_url="http://localhost:6333", qdrant_api_key=None)
+        collector._config = MagicMock(
+            qdrant_url="http://localhost:6333", qdrant_api_key=None
+        )
         status = collector.collect_qdrant()
 
         assert status.level == StatusLevel.OK
@@ -241,10 +241,14 @@ class TestStatusCollector:
         cache_dir = tmp_path / ".index_cache"
         cache_dir.mkdir()
         state_file = cache_dir / "state.json"
-        state_file.write_text(json.dumps({
-            "_file_count": 100,
-            "_last_indexed_time": datetime.now().isoformat(),
-        }))
+        state_file.write_text(
+            json.dumps(
+                {
+                    "_file_count": 100,
+                    "_last_indexed_time": datetime.now().isoformat(),
+                }
+            )
+        )
 
         collector = StatusCollector(
             project_path=tmp_path,
@@ -295,16 +299,22 @@ class TestStatusCollector:
         collector = StatusCollector()
 
         # Mock all collect methods
-        with patch.object(collector, "collect_qdrant") as mock_qdrant, \
-             patch.object(collector, "collect_service") as mock_service, \
-             patch.object(collector, "collect_hooks") as mock_hooks, \
-             patch.object(collector, "collect_index") as mock_index, \
-             patch.object(collector, "collect_health") as mock_health:
+        with (
+            patch.object(collector, "collect_qdrant") as mock_qdrant,
+            patch.object(collector, "collect_service") as mock_service,
+            patch.object(collector, "collect_hooks") as mock_hooks,
+            patch.object(collector, "collect_index") as mock_index,
+            patch.object(collector, "collect_health") as mock_health,
+        ):
 
             mock_qdrant.return_value = SubsystemStatus("Qdrant", StatusLevel.OK, "OK")
-            mock_service.return_value = SubsystemStatus("Service", StatusLevel.WARN, "Warn")
+            mock_service.return_value = SubsystemStatus(
+                "Service", StatusLevel.WARN, "Warn"
+            )
             mock_hooks.return_value = SubsystemStatus("Hooks", StatusLevel.OK, "OK")
-            mock_index.return_value = SubsystemStatus("Index", StatusLevel.UNKNOWN, "Unknown")
+            mock_index.return_value = SubsystemStatus(
+                "Index", StatusLevel.UNKNOWN, "Unknown"
+            )
             mock_health.return_value = SubsystemStatus("Health", StatusLevel.OK, "OK")
 
             status = collector.collect_all()

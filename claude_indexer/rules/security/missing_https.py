@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from ..base import BaseRule, Evidence, Finding, RuleContext, Severity, Trigger
 
 if TYPE_CHECKING:
-    pass
+    from ..fix import AutoFix
 
 
 class MissingHTTPSRule(BaseRule):
@@ -54,19 +54,19 @@ class MissingHTTPSRule(BaseRule):
 
     # Patterns to exclude (false positives)
     EXCLUDE_PATTERNS = [
-        r'localhost',
-        r'127\.0\.0\.1',
-        r'0\.0\.0\.0',
-        r'192\.168\.',
-        r'10\.',
-        r'172\.(1[6-9]|2[0-9]|3[01])\.',
-        r'example\.com',
-        r'example\.org',
-        r'test\.com',
-        r'\[::1\]',  # IPv6 localhost
-        r'\.local\b',
-        r'\.internal\b',
-        r'\.dev\.local',
+        r"localhost",
+        r"127\.0\.0\.1",
+        r"0\.0\.0\.0",
+        r"192\.168\.",
+        r"10\.",
+        r"172\.(1[6-9]|2[0-9]|3[01])\.",
+        r"example\.com",
+        r"example\.org",
+        r"test\.com",
+        r"\[::1\]",  # IPv6 localhost
+        r"\.local\b",
+        r"\.internal\b",
+        r"\.dev\.local",
     ]
 
     @property
@@ -152,7 +152,9 @@ class MissingHTTPSRule(BaseRule):
                         continue
 
                     # Adjust confidence for test files
-                    confidence = base_confidence * 0.6 if is_test_file else base_confidence
+                    confidence = (
+                        base_confidence * 0.6 if is_test_file else base_confidence
+                    )
 
                     findings.append(
                         self._create_finding(
@@ -185,9 +187,7 @@ class MissingHTTPSRule(BaseRule):
     def can_auto_fix(self) -> bool:
         return True
 
-    def auto_fix(
-        self, finding: Finding, context: RuleContext
-    ) -> "AutoFix | None":
+    def auto_fix(self, finding: Finding, context: RuleContext) -> "AutoFix | None":
         """Generate auto-fix to replace http:// with https://.
 
         Args:

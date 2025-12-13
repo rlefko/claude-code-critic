@@ -102,7 +102,15 @@ class MagicNumbersRule(BaseRule):
         file_path_lower = file_path.lower()
         return any(
             marker in file_path_lower
-            for marker in ["test_", "_test", "tests/", "spec/", "__tests__/", ".test.", ".spec."]
+            for marker in [
+                "test_",
+                "_test",
+                "tests/",
+                "spec/",
+                "__tests__/",
+                ".test.",
+                ".spec.",
+            ]
         )
 
     def check(self, context: RuleContext) -> list["Finding"]:
@@ -158,10 +166,7 @@ class MagicNumbersRule(BaseRule):
                 try:
                     number_str = match.group(1)
                     # Try to parse as int or float
-                    if "." in number_str:
-                        number = float(number_str)
-                    else:
-                        number = int(number_str)
+                    number = float(number_str) if "." in number_str else int(number_str)
 
                     # Skip allowed numbers
                     if number in allowed_numbers:

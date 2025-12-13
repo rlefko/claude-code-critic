@@ -8,7 +8,6 @@ import pytest
 
 from claude_indexer.ui.cli.guard import UIGuard, is_ui_file, run_guard
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import Severity
 
 
 class TestIsUIFile:
@@ -126,7 +125,7 @@ class TestUIGuardHookInput:
             "tool_name": "Edit",
             "tool_input": {
                 "file_path": "src/Button.tsx",
-                "new_string": "className=\"btn-primary\"",
+                "new_string": 'className="btn-primary"',
             },
             "hook_event_name": "PreToolUse",
         }
@@ -226,7 +225,7 @@ class TestRunGuard:
         output_stream = StringIO()
         error_stream = StringIO()
 
-        exit_code = run_guard(
+        run_guard(
             input_stream=input_stream,
             output_stream=output_stream,
             error_stream=error_stream,
@@ -276,10 +275,12 @@ class TestUIGuardPerformance:
     def test_fast_mode_timing(self, guard):
         """Fast mode should complete quickly."""
         # Generate some CSS content
-        content = "\n".join([
-            f".class-{i} {{ padding: {i * 4}px; color: #{i:02x}{i:02x}{i:02x}; }}"
-            for i in range(100)
-        ])
+        content = "\n".join(
+            [
+                f".class-{i} {{ padding: {i * 4}px; color: #{i:02x}{i:02x}{i:02x}; }}"
+                for i in range(100)
+            ]
+        )
 
         result = guard.check_file(Path("test.css"), content, fast_mode=True)
 

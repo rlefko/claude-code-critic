@@ -93,7 +93,7 @@ class PseudoStateStyles:
             "transform",
             "opacity",
         }
-        return any(prop in meaningful_props for prop in diff.keys())
+        return any(prop in meaningful_props for prop in diff)
 
     def has_focus_ring(self) -> bool:
         """Check if element shows visible focus indication.
@@ -123,7 +123,9 @@ class PseudoStateStyles:
             if prop in diff:
                 old_val, new_val = diff[prop]
                 # Check if we gained a visible indicator
-                if self._is_visible_value(new_val) and not self._is_visible_value(old_val):
+                if self._is_visible_value(new_val) and not self._is_visible_value(
+                    old_val
+                ):
                     return True
 
         return False
@@ -165,17 +167,25 @@ class PseudoStateStyles:
         """Create from dictionary."""
         return cls(
             default=CapturedStyles.from_dict(data.get("default", {})),
-            hover=CapturedStyles.from_dict(data["hover"]) if data.get("hover") else None,
-            focus=CapturedStyles.from_dict(data["focus"]) if data.get("focus") else None,
-            focus_visible=CapturedStyles.from_dict(data["focus_visible"])
-            if data.get("focus_visible")
-            else None,
-            active=CapturedStyles.from_dict(data["active"])
-            if data.get("active")
-            else None,
-            disabled=CapturedStyles.from_dict(data["disabled"])
-            if data.get("disabled")
-            else None,
+            hover=(
+                CapturedStyles.from_dict(data["hover"]) if data.get("hover") else None
+            ),
+            focus=(
+                CapturedStyles.from_dict(data["focus"]) if data.get("focus") else None
+            ),
+            focus_visible=(
+                CapturedStyles.from_dict(data["focus_visible"])
+                if data.get("focus_visible")
+                else None
+            ),
+            active=(
+                CapturedStyles.from_dict(data["active"]) if data.get("active") else None
+            ),
+            disabled=(
+                CapturedStyles.from_dict(data["disabled"])
+                if data.get("disabled")
+                else None
+            ),
         )
 
 
@@ -238,7 +248,9 @@ class PseudoStateCapture:
                 elif state == PseudoState.FOCUS:
                     result.focus = await self.capture_focus(element, page)
                 elif state == PseudoState.FOCUS_VISIBLE:
-                    result.focus_visible = await self.capture_focus_visible(element, page)
+                    result.focus_visible = await self.capture_focus_visible(
+                        element, page
+                    )
                 elif state == PseudoState.ACTIVE:
                     result.active = await self.capture_active(element, page)
                 elif state == PseudoState.DISABLED:

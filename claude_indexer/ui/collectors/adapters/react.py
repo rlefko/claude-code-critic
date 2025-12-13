@@ -62,7 +62,9 @@ class ReactAdapter(BaseSourceAdapter):
             end_line = self._find_component_end(content, body_start)
 
             # Extract JSX structure from the component body
-            component_body = content[body_start : self._get_char_position(content, end_line)]
+            component_body = content[
+                body_start : self._get_char_position(content, end_line)
+            ]
             jsx_structure = self._extract_jsx_structure(component_body)
             style_refs = self._extract_style_refs(component_body)
 
@@ -77,7 +79,9 @@ class ReactAdapter(BaseSourceAdapter):
                         end_line=end_line,
                         name=name,
                         kind=SymbolKind.COMPONENT,
-                        visibility=Visibility.EXPORTED if is_exported else Visibility.LOCAL,
+                        visibility=(
+                            Visibility.EXPORTED if is_exported else Visibility.LOCAL
+                        ),
                     ),
                     tag_name=name,
                     props=self._parse_props(props),
@@ -99,7 +103,9 @@ class ReactAdapter(BaseSourceAdapter):
             body_start = match.end()
             end_line = self._find_component_end(content, body_start - 1)
 
-            component_body = content[body_start : self._get_char_position(content, end_line)]
+            component_body = content[
+                body_start : self._get_char_position(content, end_line)
+            ]
             jsx_structure = self._extract_jsx_structure(component_body)
             style_refs = self._extract_style_refs(component_body)
 
@@ -114,7 +120,9 @@ class ReactAdapter(BaseSourceAdapter):
                         end_line=end_line,
                         name=name,
                         kind=SymbolKind.COMPONENT,
-                        visibility=Visibility.EXPORTED if is_exported else Visibility.LOCAL,
+                        visibility=(
+                            Visibility.EXPORTED if is_exported else Visibility.LOCAL
+                        ),
                     ),
                     tag_name=name,
                     props={},  # Would need more complex parsing
@@ -138,7 +146,9 @@ class ReactAdapter(BaseSourceAdapter):
                 body_start = match.end() + body_match.end()
                 end_line = self._find_component_end(content, body_start)
 
-                component_body = content[body_start : self._get_char_position(content, end_line)]
+                component_body = content[
+                    body_start : self._get_char_position(content, end_line)
+                ]
                 jsx_structure = self._extract_jsx_structure(component_body)
                 style_refs = self._extract_style_refs(component_body)
 
@@ -153,7 +163,9 @@ class ReactAdapter(BaseSourceAdapter):
                             end_line=end_line,
                             name=name,
                             kind=SymbolKind.COMPONENT,
-                            visibility=Visibility.EXPORTED if is_exported else Visibility.LOCAL,
+                            visibility=(
+                                Visibility.EXPORTED if is_exported else Visibility.LOCAL
+                            ),
                         ),
                         tag_name=name,
                         props={},

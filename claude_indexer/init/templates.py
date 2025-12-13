@@ -1,11 +1,10 @@
 """Template loading and variable substitution for initialization."""
 
-import re
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..indexer_logging import get_logger
 from .types import ProjectType
@@ -26,7 +25,7 @@ class TemplateManager:
     TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
 
     # Map project types to template directories
-    TYPE_DIR_MAP: Dict[ProjectType, str] = {
+    TYPE_DIR_MAP: dict[ProjectType, str] = {
         ProjectType.PYTHON: "python",
         ProjectType.JAVASCRIPT: "javascript",
         ProjectType.TYPESCRIPT: "typescript",
@@ -47,7 +46,7 @@ class TemplateManager:
         self.project_type = project_type
         self.variables = self._build_variables()
 
-    def _build_variables(self) -> Dict[str, str]:
+    def _build_variables(self) -> dict[str, str]:
         """Build template variable dictionary."""
         # Try to find the venv python
         venv_python = self._find_venv_python()
@@ -111,7 +110,7 @@ class TemplateManager:
         )
         return root_path
 
-    def load_template(self, template_name: str) -> Optional[str]:
+    def load_template(self, template_name: str) -> str | None:
         """Load template file content with project-type awareness.
 
         Resolution order:
@@ -126,13 +125,15 @@ class TemplateManager:
         """
         template_path = self._resolve_template_path(template_name)
         if not template_path.exists():
-            logger.warning(f"Template not found: {template_name} (tried {template_path})")
+            logger.warning(
+                f"Template not found: {template_name} (tried {template_path})"
+            )
             return None
 
         try:
-            with open(template_path, "r", encoding="utf-8") as f:
+            with open(template_path, encoding="utf-8") as f:
                 return f.read()
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to read template {template_name}: {e}")
             return None
 
@@ -154,7 +155,7 @@ class TemplateManager:
 
         return result
 
-    def load_and_process(self, template_name: str) -> Optional[str]:
+    def load_and_process(self, template_name: str) -> str | None:
         """Load a template and process variable substitution.
 
         Args:
@@ -196,7 +197,7 @@ class TemplateManager:
                 with open(destination, "w", encoding="utf-8") as f:
                     f.write(content)
                 return True
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Failed to write to {destination}: {e}")
                 return False
         else:
@@ -209,7 +210,7 @@ class TemplateManager:
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
                 return True
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Failed to copy template to {destination}: {e}")
                 return False
 
@@ -219,8 +220,8 @@ class TemplateManager:
 
     @classmethod
     def get_available_templates(
-        cls, project_type: Optional[ProjectType] = None
-    ) -> Dict[str, List[str]]:
+        cls, project_type: ProjectType | None = None
+    ) -> dict[str, list[str]]:
         """Get available templates organized by location.
 
         Args:
@@ -230,7 +231,7 @@ class TemplateManager:
             Dictionary with 'root' key for root templates and
             project-type keys for type-specific templates.
         """
-        result: Dict[str, List[str]] = {"root": []}
+        result: dict[str, list[str]] = {"root": []}
 
         if not cls.TEMPLATES_DIR.exists():
             return result

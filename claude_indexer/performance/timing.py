@@ -8,8 +8,9 @@ This module provides tools for measuring and logging execution times:
 
 import functools
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from ..indexer_logging import get_logger
 
@@ -17,7 +18,9 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def timed(operation_name: str | None = None, log_args: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def timed(
+    operation_name: str | None = None, log_args: bool = False
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator to time function execution and log results.
 
     Measures the execution time of a function and logs it at DEBUG level.

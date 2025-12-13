@@ -6,6 +6,7 @@ code quality rules including security, tech debt, resilience,
 documentation, and git safety checks.
 """
 
+import contextlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -183,10 +184,8 @@ class RuleContext:
     def ast_tree(self) -> Any:
         """Lazy-load AST tree."""
         if self._ast_tree is None and self._parser is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._ast_tree = self._parser.parse(self.content.encode())
-            except Exception:
-                pass
         return self._ast_tree
 
     @property
@@ -352,9 +351,7 @@ class BaseRule(ABC):
         """Whether this rule supports automatic fixes."""
         return False
 
-    def auto_fix(
-        self, finding: Finding, context: RuleContext
-    ) -> "AutoFix | None":
+    def auto_fix(self, finding: Finding, context: RuleContext) -> "AutoFix | None":
         """Generate an auto-fix for a finding.
 
         Override this method in subclasses that support auto-fix.

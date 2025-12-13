@@ -178,7 +178,7 @@ class UICollectionManager:
         # Create payload indexes
         self._create_style_payload_indexes(collection_name)
 
-        logger.info(f"Created UI styles collection")
+        logger.info("Created UI styles collection")
         return True
 
     def create_ui_runtime_collection(
@@ -219,7 +219,7 @@ class UICollectionManager:
         # Create payload indexes
         self._create_runtime_payload_indexes(collection_name)
 
-        logger.info(f"Created UI runtime collection")
+        logger.info("Created UI runtime collection")
         return True
 
     def _create_ui_payload_indexes(self, collection_name: str) -> None:

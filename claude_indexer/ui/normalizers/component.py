@@ -205,7 +205,7 @@ class ComponentNormalizer:
             quote = match.group(2)
             classes = match.group(3)
             sorted_classes = " ".join(sorted(classes.split()))
-            return f'{attr_name}={quote}{sorted_classes}{quote}'
+            return f"{attr_name}={quote}{sorted_classes}{quote}"
 
         # Handle class="..." and className="..."
         result = re.sub(
@@ -238,7 +238,7 @@ class ComponentNormalizer:
         structure = re.sub(r'(\s\w+)=["\'][^"\']*["\']', r"\1", structure)
 
         # Remove expression placeholders in attributes
-        structure = re.sub(r'(\s\w+)=\{EXPR\}', r"\1", structure)
+        structure = re.sub(r"(\s\w+)=\{EXPR\}", r"\1", structure)
 
         return structure.strip()
 

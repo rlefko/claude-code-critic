@@ -180,9 +180,7 @@ class ComplexityRule(BaseRule):
 
         return complexity
 
-    def _find_functions(
-        self, context: RuleContext
-    ) -> list[FunctionInfo]:
+    def _find_functions(self, context: RuleContext) -> list[FunctionInfo]:
         """Find all functions in the file with their complexity."""
         functions = []
         language = context.language
@@ -264,11 +262,11 @@ class ComplexityRule(BaseRule):
 
             if func.complexity > max_complexity:
                 # Adjust severity based on how complex
-                severity = self.default_severity
-                if func.complexity > max_complexity * 2:
-                    severity = Severity.HIGH
-                elif func.complexity > max_complexity * 3:
-                    severity = Severity.CRITICAL
+                if (
+                    func.complexity > max_complexity * 2
+                    or func.complexity > max_complexity * 3
+                ):
+                    pass
 
                 # Get function snippet (first few lines)
                 snippet_lines = context.lines[func.start_line - 1 : func.start_line + 2]

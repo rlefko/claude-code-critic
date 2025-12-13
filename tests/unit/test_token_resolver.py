@@ -371,7 +371,8 @@ class TestTokenResolverDeclarations:
         """Test property categorization for radius."""
         assert resolver.categorize_property("border-radius") == TokenCategory.RADIUS
         assert (
-            resolver.categorize_property("border-top-left-radius") == TokenCategory.RADIUS
+            resolver.categorize_property("border-top-left-radius")
+            == TokenCategory.RADIUS
         )
 
     def test_categorize_unknown_property(self, resolver: TokenResolver):

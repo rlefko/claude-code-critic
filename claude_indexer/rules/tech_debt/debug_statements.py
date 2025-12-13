@@ -146,9 +146,7 @@ class DebugStatementsRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: Finding, context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: Finding, context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to remove debug statement.
 
         For simple cases, we can remove or comment out the line.

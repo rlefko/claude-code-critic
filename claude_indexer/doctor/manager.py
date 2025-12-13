@@ -1,7 +1,6 @@
 """Main orchestrator for system health checks."""
 
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..config.config_loader import ConfigLoader
 from ..indexer_logging import get_logger
@@ -26,7 +25,7 @@ class DoctorManager:
     def __init__(
         self,
         options: DoctorOptions,
-        config_loader: Optional[ConfigLoader] = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize the doctor manager.
 
@@ -36,9 +35,9 @@ class DoctorManager:
         """
         self.options = options
         self.config_loader = config_loader or ConfigLoader()
-        self._config: Optional[Any] = None
+        self._config: Any | None = None
 
-    def _load_config(self) -> Optional[Any]:
+    def _load_config(self) -> Any | None:
         """Load configuration, gracefully handling failures."""
         if self._config is not None:
             return self._config

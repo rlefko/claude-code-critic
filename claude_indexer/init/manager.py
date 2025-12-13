@@ -1,8 +1,5 @@
 """Main orchestrator for project initialization."""
 
-from pathlib import Path
-from typing import Optional
-
 from ..config.config_loader import ConfigLoader
 from ..indexer_logging import get_logger
 from .collection_manager import CollectionManager
@@ -22,7 +19,7 @@ class InitManager:
     def __init__(
         self,
         options: InitOptions,
-        config_loader: Optional[ConfigLoader] = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize the manager.
 
@@ -34,12 +31,12 @@ class InitManager:
         self.config_loader = config_loader or ConfigLoader()
 
         # Initialize components lazily
-        self._detector: Optional[ProjectDetector] = None
-        self._template_manager: Optional[TemplateManager] = None
-        self._file_generator: Optional[FileGenerator] = None
-        self._hooks_installer: Optional[HooksInstaller] = None
-        self._collection_manager: Optional[CollectionManager] = None
-        self._mcp_configurator: Optional[MCPConfigurator] = None
+        self._detector: ProjectDetector | None = None
+        self._template_manager: TemplateManager | None = None
+        self._file_generator: FileGenerator | None = None
+        self._hooks_installer: HooksInstaller | None = None
+        self._collection_manager: CollectionManager | None = None
+        self._mcp_configurator: MCPConfigurator | None = None
 
     @property
     def detector(self) -> ProjectDetector:
@@ -48,9 +45,7 @@ class InitManager:
             self._detector = ProjectDetector(self.options.project_path)
         return self._detector
 
-    def _init_components(
-        self, collection_name: str, project_type: ProjectType
-    ) -> None:
+    def _init_components(self, collection_name: str, project_type: ProjectType) -> None:
         """Initialize all components after detection phase."""
         self._template_manager = TemplateManager(
             self.options.project_path,
@@ -197,8 +192,8 @@ class InitManager:
             InitStepResult indicating success or failure.
         """
         try:
-            from ..indexer import CoreIndexer
             from ..config.project_config import ProjectConfigManager
+            from ..indexer import CoreIndexer
 
             # Load project config
             project_manager = ProjectConfigManager(self.options.project_path)
@@ -243,7 +238,9 @@ class InitManager:
                     },
                 )
             else:
-                error_msg = ", ".join(result.errors) if result.errors else "Unknown error"
+                error_msg = (
+                    ", ".join(result.errors) if result.errors else "Unknown error"
+                )
                 return InitStepResult(
                     step_name="indexing",
                     success=False,

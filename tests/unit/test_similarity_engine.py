@@ -7,7 +7,13 @@ similarity scores and classifications.
 import pytest
 
 from claude_indexer.ui.config import UIQualityConfig
-from claude_indexer.ui.models import StaticComponentFingerprint, StyleFingerprint, SymbolKind, SymbolRef, Visibility
+from claude_indexer.ui.models import (
+    StaticComponentFingerprint,
+    StyleFingerprint,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
 from claude_indexer.ui.similarity.engine import (
     SimilarityClassification,
     SimilarityEngine,
@@ -161,15 +167,25 @@ class TestSimilarityEngine:
         engine = SimilarityEngine(config=config)
 
         # Should use thresholds from config
-        assert engine.engine_config.duplicate_threshold == config.gating.similarity_thresholds.duplicate
-        assert engine.engine_config.near_duplicate_threshold == config.gating.similarity_thresholds.near_duplicate
+        assert (
+            engine.engine_config.duplicate_threshold
+            == config.gating.similarity_thresholds.duplicate
+        )
+        assert (
+            engine.engine_config.near_duplicate_threshold
+            == config.gating.similarity_thresholds.near_duplicate
+        )
 
     def test_compute_component_similarity_identical(self, engine):
         """Test similarity between identical components."""
         # Use same valid hex hash
         same_hash = "abc123def456abc123def456abc12345"
-        comp1 = create_component("Button", structure_hash=same_hash, style_refs=["btn", "primary"])
-        comp2 = create_component("Button2", structure_hash=same_hash, style_refs=["btn", "primary"])
+        comp1 = create_component(
+            "Button", structure_hash=same_hash, style_refs=["btn", "primary"]
+        )
+        comp2 = create_component(
+            "Button2", structure_hash=same_hash, style_refs=["btn", "primary"]
+        )
 
         result = engine.compute_component_similarity(comp1, comp2)
 
@@ -180,8 +196,16 @@ class TestSimilarityEngine:
 
     def test_compute_component_similarity_different(self, engine):
         """Test similarity between different components."""
-        comp1 = create_component("Button", structure_hash="abc123def456abc123def456abc12345", style_refs=["btn"])
-        comp2 = create_component("Card", structure_hash="123456789abcdef0123456789abcdef0", style_refs=["card"])
+        comp1 = create_component(
+            "Button",
+            structure_hash="abc123def456abc123def456abc12345",
+            style_refs=["btn"],
+        )
+        comp2 = create_component(
+            "Card",
+            structure_hash="123456789abcdef0123456789abcdef0",
+            style_refs=["card"],
+        )
 
         result = engine.compute_component_similarity(comp1, comp2)
 
@@ -230,8 +254,16 @@ class TestSimilarityEngine:
 
     def test_compute_style_similarity_different(self, engine):
         """Test style similarity for different styles."""
-        style1 = create_style("a.css", "abc123def456abc123def456abc12345", "abc123def456abc123def456abc12345")
-        style2 = create_style("b.css", "123456789abcdef0123456789abcdef0", "123456789abcdef0123456789abcdef0")
+        style1 = create_style(
+            "a.css",
+            "abc123def456abc123def456abc12345",
+            "abc123def456abc123def456abc12345",
+        )
+        style2 = create_style(
+            "b.css",
+            "123456789abcdef0123456789abcdef0",
+            "123456789abcdef0123456789abcdef0",
+        )
 
         result = engine.compute_style_similarity(style1, style2)
 
@@ -241,9 +273,13 @@ class TestSimilarityEngine:
         """Test finding similar components."""
         same_hash = "abc123def456abc123def456abc12345"
         diff_hash = "123456789abcdef0123456789abcdef0"
-        target = create_component("Button", structure_hash=same_hash, style_refs=["btn", "primary"])
+        target = create_component(
+            "Button", structure_hash=same_hash, style_refs=["btn", "primary"]
+        )
         candidates = [
-            create_component("Button2", structure_hash=same_hash, style_refs=["btn", "primary"]),
+            create_component(
+                "Button2", structure_hash=same_hash, style_refs=["btn", "primary"]
+            ),
             create_component("Card", structure_hash=diff_hash, style_refs=["card"]),
             create_component("Button3", structure_hash=same_hash, style_refs=["btn"]),
         ]
@@ -253,8 +289,10 @@ class TestSimilarityEngine:
         # Should find similar components
         assert len(results) >= 1
         # Results should be sorted by score descending
-        assert all(results[i].combined_score >= results[i+1].combined_score
-                   for i in range(len(results)-1))
+        assert all(
+            results[i].combined_score >= results[i + 1].combined_score
+            for i in range(len(results) - 1)
+        )
 
     def test_find_similar_components_empty(self, engine):
         """Test with empty candidates."""
@@ -374,7 +412,9 @@ class TestSimilarityEngine:
         engine.engine_config.max_neighbors = 2
 
         same_hash = "abc123def456abc123def456abc12345"
-        target = create_component("Target", structure_hash=same_hash, style_refs=["btn"])
+        target = create_component(
+            "Target", structure_hash=same_hash, style_refs=["btn"]
+        )
         candidates = [
             create_component(f"Comp{i}", structure_hash=same_hash, style_refs=["btn"])
             for i in range(5)

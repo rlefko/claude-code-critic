@@ -1,11 +1,11 @@
 """Unit tests for PipelineProgress."""
 
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from claude_indexer.indexing.progress import PipelineProgress
-from claude_indexer.indexing.types import ProgressState
 
 
 class TestPipelineProgress:
@@ -208,6 +208,7 @@ class TestPipelineProgress:
 
     def test_callback_exception_handled(self, progress):
         """Test callback exceptions are handled gracefully."""
+
         def bad_callback(state):
             raise ValueError("Test error")
 

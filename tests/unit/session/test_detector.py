@@ -1,6 +1,5 @@
 """Tests for ProjectRootDetector."""
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -103,7 +102,9 @@ class TestProjectRootDetector:
         # Result might be None or a Path depending on test environment
         assert result is None or isinstance(result, Path)
 
-    def test_detect_from_cwd_with_project(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_detect_from_cwd_with_project(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should find project root from CWD."""
         # Create project marker
         (tmp_path / ".git").mkdir()
@@ -114,7 +115,9 @@ class TestProjectRootDetector:
         result = ProjectRootDetector.detect_from_cwd()
         assert result == tmp_path
 
-    def test_detect_from_cwd_fallback(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_detect_from_cwd_fallback(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should fall back to CWD when no project found."""
         # Create empty directory
         empty = tmp_path / "empty"

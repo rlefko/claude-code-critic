@@ -16,7 +16,7 @@ import json
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..indexer_logging import get_logger
 from .legacy import load_legacy_settings
@@ -47,7 +47,9 @@ class ConfigPaths:
     PROJECT_LOCAL = "settings.local.json"
 
     @classmethod
-    def get_project_config_dir(cls, project_path: Path, prefer_new: bool = True) -> Path:
+    def get_project_config_dir(
+        cls, project_path: Path, prefer_new: bool = True
+    ) -> Path:
         """Get the project configuration directory.
 
         Checks for both new (.claude) and legacy (.claude-indexer) locations.
@@ -70,7 +72,7 @@ class ConfigPaths:
         return new_dir
 
     @classmethod
-    def find_project_config(cls, project_path: Path) -> Optional[Path]:
+    def find_project_config(cls, project_path: Path) -> Path | None:
         """Find the project configuration file.
 
         Checks new location first, then legacy.
@@ -87,7 +89,9 @@ class ConfigPaths:
             return new_config
 
         # Check legacy location
-        legacy_config = project_path / cls.LEGACY_PROJECT_DIR / cls.LEGACY_PROJECT_CONFIG
+        legacy_config = (
+            project_path / cls.LEGACY_PROJECT_DIR / cls.LEGACY_PROJECT_CONFIG
+        )
         if legacy_config.exists():
             return legacy_config
 
@@ -141,7 +145,7 @@ class HierarchicalConfigLoader:
         "include_tests": ("indexing", "include_tests"),
     }
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize the configuration loader.
 
         Args:
@@ -304,9 +308,7 @@ class HierarchicalConfigLoader:
             else:
                 config_dict[key] = value
 
-    def _load_optional_config(
-        self, path: Path, config_dict: dict, key: str
-    ) -> None:
+    def _load_optional_config(self, path: Path, config_dict: dict, key: str) -> None:
         """Load an optional config file into a specific key."""
         if path.exists():
             try:
@@ -483,7 +485,7 @@ class HierarchicalConfigLoader:
 
 
 def load_unified_config(
-    project_path: Optional[Path] = None, **overrides: Any
+    project_path: Path | None = None, **overrides: Any
 ) -> UnifiedConfig:
     """Load unified configuration from all sources.
 

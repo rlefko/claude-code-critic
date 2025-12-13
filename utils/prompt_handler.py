@@ -18,43 +18,43 @@ class PromptHandler:
         if project_root is None:
             project_root = self._detect_project_root() or Path.cwd()
         self.bypass_manager = BypassManager(project_root)
-    
+
     def _detect_project_root(self, file_path: str | None = None) -> Path | None:
         """Detect the project root directory using Claude-first weighted scoring."""
         try:
             marker_weights = {
-                "CLAUDE.md": 100,      # Strongest: Claude project marker
-                ".claude": 90,         # Second: Claude config directory  
-                ".git": 80,            # Third: Git repository
+                "CLAUDE.md": 100,  # Strongest: Claude project marker
+                ".claude": 90,  # Second: Claude config directory
+                ".git": 80,  # Third: Git repository
                 "pyproject.toml": 70,  # Python project
-                "package.json": 60,    # Node.js project
-                "setup.py": 50,        # Legacy Python
-                "Cargo.toml": 40,      # Rust project
-                "go.mod": 30,          # Go project
+                "package.json": 60,  # Node.js project
+                "setup.py": 50,  # Legacy Python
+                "Cargo.toml": 40,  # Rust project
+                "go.mod": 30,  # Go project
             }
-            
+
             # Start from target file's directory if provided, otherwise current working directory
-            if file_path:
-                current = Path(file_path).resolve().parent
-            else:
-                current = Path.cwd()
-            
+            current = Path(file_path).resolve().parent if file_path else Path.cwd()
+
             best_score = 0
             best_path = None
-            
+
             # Traverse upward, score each directory
             while current != current.parent:
-                score = sum(weight for marker, weight in marker_weights.items() 
-                           if (current / marker).exists())
-                
+                score = sum(
+                    weight
+                    for marker, weight in marker_weights.items()
+                    if (current / marker).exists()
+                )
+
                 if score > best_score:
                     best_score = score
                     best_path = current
-                    
+
                 current = current.parent
-            
+
             return best_path or Path.cwd()
-            
+
         except Exception:
             return None
 
@@ -100,7 +100,9 @@ if __name__ == "__main__":
         hook_data = json.loads(sys.stdin.read())
 
         # Debug log the received data
-        with open("/Users/Duracula 1/Python-Projects/memory/debug/hook_debug.log", "a") as f:
+        with open(
+            "/Users/Duracula 1/Python-Projects/memory/debug/hook_debug.log", "a"
+        ) as f:
             f.write(f"HOOK RECEIVED: {json.dumps(hook_data)}\n")
 
         # Initialize handler with correct project root from hook data
@@ -111,7 +113,9 @@ if __name__ == "__main__":
         result = handler.process_hook(hook_data)
 
         # Debug log the result
-        with open("/Users/Duracula 1/Python-Projects/memory/debug/hook_debug.log", "a") as f:
+        with open(
+            "/Users/Duracula 1/Python-Projects/memory/debug/hook_debug.log", "a"
+        ) as f:
             f.write(f"HOOK RESULT: {json.dumps(result)}\n")
 
         # Output result
@@ -126,7 +130,7 @@ if __name__ == "__main__":
         # Fallback error handling
         result = {
             "continue": True,
-            "notification": f"Error in prompt handler: {str(e)}"
+            "notification": f"Error in prompt handler: {str(e)}",
         }
         print(json.dumps(result))
         print(result["notification"], file=sys.stderr)

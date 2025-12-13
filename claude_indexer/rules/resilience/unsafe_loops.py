@@ -27,7 +27,11 @@ class UnsafeLoopRule(BaseRule):
         "python": [
             (r"^\s*while\s+True\s*:", "while True", 0.70),
             (r"^\s*while\s+1\s*:", "while 1", 0.75),
-            (r'^\s*while\s+["\'][^"\']+["\']\s*:', "while with constant truthy string", 0.85),
+            (
+                r'^\s*while\s+["\'][^"\']+["\']\s*:',
+                "while with constant truthy string",
+                0.85,
+            ),
         ],
         "javascript": [
             (r"\bwhile\s*\(\s*true\s*\)", "while(true)", 0.70),
@@ -228,7 +232,7 @@ class UnsafeLoopRule(BaseRule):
 
                     # Get loop snippet
                     loop_lines = lines[line_num : min(end_line + 1, line_num + 5)]
-                    snippet = "\n".join(l.strip() for l in loop_lines)
+                    snippet = "\n".join(line.strip() for line in loop_lines)
                     if end_line - line_num > 4:
                         snippet += "\n..."
 

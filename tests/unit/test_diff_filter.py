@@ -9,8 +9,18 @@ from pathlib import Path
 import pytest
 
 from claude_indexer.ui.collectors.git_diff import DiffResult, FileChange
-from claude_indexer.ui.models import Evidence, EvidenceType, Finding, Severity, SymbolKind, SymbolRef, Visibility
-from claude_indexer.ui.rules.diff_filter import DiffFilter, FilterResult, create_diff_filter
+from claude_indexer.ui.models import (
+    Finding,
+    Severity,
+    SymbolKind,
+    SymbolRef,
+    Visibility,
+)
+from claude_indexer.ui.rules.diff_filter import (
+    DiffFilter,
+    FilterResult,
+    create_diff_filter,
+)
 
 
 @pytest.fixture
@@ -237,7 +247,9 @@ class TestFilterResult:
         # No fails = should not block
         result1 = FilterResult(
             new_findings=[
-                Finding(rule_id="T", severity=Severity.WARN, confidence=0.9, summary="W"),
+                Finding(
+                    rule_id="T", severity=Severity.WARN, confidence=0.9, summary="W"
+                ),
             ],
         )
         assert result1.should_block is False
@@ -245,7 +257,9 @@ class TestFilterResult:
         # Has fail = should block
         result2 = FilterResult(
             new_findings=[
-                Finding(rule_id="T", severity=Severity.FAIL, confidence=0.9, summary="F"),
+                Finding(
+                    rule_id="T", severity=Severity.FAIL, confidence=0.9, summary="F"
+                ),
             ],
         )
         assert result2.should_block is True

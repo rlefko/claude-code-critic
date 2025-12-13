@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class CheckStatus(Enum):
@@ -32,16 +32,16 @@ class CheckResult:
     category: CheckCategory
     status: CheckStatus
     message: str
-    suggestion: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
+    suggestion: str | None = None
+    details: dict[str, Any] | None = None
 
 
 @dataclass
 class DoctorOptions:
     """Configuration options for the doctor command."""
 
-    project_path: Optional[Path] = None
-    collection_name: Optional[str] = None
+    project_path: Path | None = None
+    collection_name: str | None = None
     verbose: bool = False
     json_output: bool = False
 
@@ -50,7 +50,7 @@ class DoctorOptions:
 class DoctorResult:
     """Complete result of all health checks."""
 
-    checks: List[CheckResult] = field(default_factory=list)
+    checks: list[CheckResult] = field(default_factory=list)
 
     @property
     def passed(self) -> int:
@@ -81,7 +81,7 @@ class DoctorResult:
         """Add a check result."""
         self.checks.append(check)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "checks": [

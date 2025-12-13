@@ -276,7 +276,9 @@ class UnsafeResourceRule(BaseRule):
 
         return False
 
-    def _has_try_finally(self, lines: list[str], start: int, end: int, language: str) -> bool:
+    def _has_try_finally(
+        self, lines: list[str], start: int, end: int, language: str
+    ) -> bool:
         """Check if the resource is in a try/finally block."""
         if language == "python":
             for i in range(max(0, start - 10), start):

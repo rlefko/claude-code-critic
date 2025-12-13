@@ -100,18 +100,12 @@ class CommentedCodeRule(BaseRule):
     def _is_comment_line(self, line: str, language: str) -> bool:
         """Check if a line is a comment."""
         prefixes = self.COMMENT_PREFIXES.get(language, [])
-        for prefix in prefixes:
-            if re.match(prefix, line):
-                return True
-        return False
+        return any(re.match(prefix, line) for prefix in prefixes)
 
     def _looks_like_code(self, line: str, language: str) -> bool:
         """Check if a comment line looks like it contains code."""
         patterns = self.CODE_PATTERNS.get(language, [])
-        for pattern in patterns:
-            if re.search(pattern, line):
-                return True
-        return False
+        return any(re.search(pattern, line) for pattern in patterns)
 
     def check(self, context: RuleContext) -> list["Finding"]:
         """Check for commented-out code blocks.
@@ -129,7 +123,9 @@ class CommentedCodeRule(BaseRule):
         min_lines = self.DEFAULT_MIN_CONSECUTIVE_LINES
         if context.config:
             min_lines = context.config.get_rule_parameter(
-                self.rule_id, "min_consecutive_lines", self.DEFAULT_MIN_CONSECUTIVE_LINES
+                self.rule_id,
+                "min_consecutive_lines",
+                self.DEFAULT_MIN_CONSECUTIVE_LINES,
             )
 
         # Skip unsupported languages
@@ -140,7 +136,7 @@ class CommentedCodeRule(BaseRule):
         i = 0
 
         while i < len(lines):
-            line_num = i + 1  # 1-indexed
+            i + 1  # 1-indexed
 
             # Check if this line is a comment with code
             if self._is_comment_line(lines[i], language) and self._looks_like_code(
@@ -207,9 +203,7 @@ class CommentedCodeRule(BaseRule):
 
         return findings
 
-    def auto_fix(
-        self, finding: "Finding", context: RuleContext
-    ) -> AutoFix | None:
+    def auto_fix(self, finding: "Finding", context: RuleContext) -> AutoFix | None:
         """Generate auto-fix to remove commented code block.
 
         Args:
@@ -247,10 +241,7 @@ class CommentedCodeRule(BaseRule):
 
         # Get the comment prefix for this language
         language = context.language
-        if language == "python":
-            comment = "# "
-        else:
-            comment = "// "
+        comment = "# " if language == "python" else "// "
 
         # Generate replacement: single comment indicating removal
         indent = len(old_lines[0]) - len(old_lines[0].lstrip())

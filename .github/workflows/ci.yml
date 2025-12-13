@@ -1,0 +1,323 @@
+# CI Pipeline for claude-indexer
+# Milestone 6.4: Test Coverage Complete (v2.9.20)
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  QDRANT_URL: "http://localhost:6333"
+
+jobs:
+  # ============================================
+  # Linting (fast feedback, ~1 min)
+  # ============================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-lint-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-lint-
+            ${{ runner.os }}-pip-
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 ruff
+
+      - name: Run black (formatting check)
+        run: black --check --diff .
+
+      - name: Run isort (import sorting check)
+        run: isort --check-only --diff .
+
+      - name: Run flake8 (linting)
+        run: flake8 claude_indexer/ tests/ --max-line-length=88 --extend-ignore=E203,W503,E501,F401,F811,F841,F541,F402,E741,F821
+
+      - name: Run ruff (modern linting)
+        run: ruff check .
+
+  # ============================================
+  # Type Checking (~2 min)
+  # ============================================
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-mypy-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-mypy-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy types-requests
+          pip install -e ".[dev]"
+
+      - name: Run mypy
+        run: mypy claude_indexer/ --ignore-missing-imports --no-error-summary
+
+  # ============================================
+  # Unit Tests (~3 min)
+  # ============================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-test-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-test-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/unit/ \
+            --cov=claude_indexer \
+            --cov-report=xml:coverage-unit.xml \
+            --cov-report=term-missing \
+            -v \
+            --tb=short \
+            --durations=10
+
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-unit
+          path: coverage-unit.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ============================================
+  # Integration Tests (~5 min)
+  # ============================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        # Note: Removed container health check - using external wait step instead
+        # The Qdrant container starts quickly and the wait step handles readiness
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-integration-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-integration-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Wait for Qdrant to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:6333/ > /dev/null; then
+              echo "Qdrant is ready!"
+              break
+            fi
+            echo "Waiting for Qdrant... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ \
+            --cov=claude_indexer \
+            --cov-report=xml:coverage-integration.xml \
+            --cov-report=term-missing \
+            -v \
+            --tb=short \
+            -m "integration or not slow"
+
+      - name: Upload integration test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-integration
+          path: coverage-integration.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ============================================
+  # E2E Tests (runs after unit tests pass)
+  # ============================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    services:
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        # Note: Removed container health check - using external wait step instead
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-e2e-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-e2e-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Wait for Qdrant to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:6333/ > /dev/null; then
+              echo "Qdrant is ready!"
+              break
+            fi
+            echo "Waiting for Qdrant... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run E2E tests
+        run: |
+          pytest tests/e2e/ \
+            -v \
+            --tb=short \
+            -m "e2e or not slow"
+
+  # ============================================
+  # Combined Coverage Report
+  # ============================================
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install coverage tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage
+
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-unit
+          path: coverage-reports/
+
+      - name: Download integration test coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-integration
+          path: coverage-reports/
+
+      - name: Display coverage summary
+        run: |
+          echo "=== Coverage Reports ==="
+          ls -la coverage-reports/
+          echo ""
+          echo "Unit test coverage and integration test coverage uploaded."
+          echo "Review the XML reports for detailed coverage analysis."
+
+  # ============================================
+  # Security Scan (optional, runs in parallel)
+  # ============================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit security scan
+        run: bandit -r claude_indexer/ -ll -ii --exclude tests -c pyproject.toml

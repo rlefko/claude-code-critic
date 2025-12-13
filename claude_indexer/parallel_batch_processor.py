@@ -5,19 +5,15 @@ This module provides a replacement method that can be integrated into CoreIndexe
 """
 
 from pathlib import Path
-from typing import List, Tuple, Dict, Any, Optional
-import logging
 
-from .analysis.entities import Entity, EntityChunk as ChunkMetadata, Relation
-from .parallel_processor import ParallelFileProcessor
+from .analysis.entities import Entity
+from .analysis.entities import EntityChunk as ChunkMetadata
+from .analysis.entities import Relation
 
 
 def process_file_batch_with_parallel(
-    self,
-    files: List[Path],
-    collection_name: str,
-    _verbose: bool = False
-) -> Tuple[List[Entity], List[Relation], List[ChunkMetadata], List[str], List[Path]]:
+    self, files: list[Path], collection_name: str, _verbose: bool = False
+) -> tuple[list[Entity], list[Relation], list[ChunkMetadata], list[str], list[Path]]:
     """
     Enhanced version of _process_file_batch with parallel processing support.
 
@@ -49,17 +45,17 @@ def process_file_batch_with_parallel(
         self.logger.debug(f"🚨   existing_points_check_failed: {e}")
 
     # Initialize result containers
-    all_entities: List[Entity] = []
-    all_relations: List[Relation] = []
-    all_implementation_chunks: List[ChunkMetadata] = []
-    errors: List[str] = []
-    successfully_processed_files: List[Path] = []
+    all_entities: list[Entity] = []
+    all_relations: list[Relation] = []
+    all_implementation_chunks: list[ChunkMetadata] = []
+    errors: list[str] = []
+    successfully_processed_files: list[Path] = []
 
     # Determine whether to use parallel processing
     use_parallel = (
-        self.parallel_processor is not None and
-        self.config.use_parallel_processing and
-        len(files) >= 3  # Only parallelize for 3+ files
+        self.parallel_processor is not None
+        and self.config.use_parallel_processing
+        and len(files) >= 3  # Only parallelize for 3+ files
     )
 
     if use_parallel:
@@ -67,15 +63,13 @@ def process_file_batch_with_parallel(
 
         # Prepare processing configuration
         processing_config = {
-            'max_file_size': self.config.max_file_size,
-            'include_tests': self.config.include_tests,
+            "max_file_size": self.config.max_file_size,
+            "include_tests": self.config.include_tests,
         }
 
         # Process files in parallel
         results = self.parallel_processor.process_files_parallel(
-            files,
-            collection_name,
-            processing_config
+            files, collection_name, processing_config
         )
 
         # Get tier statistics
@@ -88,41 +82,41 @@ def process_file_batch_with_parallel(
 
         # Convert results back to entities/relations/chunks
         for result in results:
-            file_path = Path(result['file_path'])
+            file_path = Path(result["file_path"])
 
-            if result['status'] == 'success':
+            if result["status"] == "success":
                 # Reconstruct entities from dictionaries
-                for entity_dict in result['entities']:
+                for entity_dict in result["entities"]:
                     entity = Entity(
-                        name=entity_dict['name'],
-                        type=entity_dict['type'],
-                        file_path=entity_dict['file_path'],
-                        content=entity_dict['content'],
-                        collection_name=entity_dict['collection_name'],
-                        metadata=entity_dict.get('metadata', {})
+                        name=entity_dict["name"],
+                        type=entity_dict["type"],
+                        file_path=entity_dict["file_path"],
+                        content=entity_dict["content"],
+                        collection_name=entity_dict["collection_name"],
+                        metadata=entity_dict.get("metadata", {}),
                     )
                     all_entities.append(entity)
 
                 # Reconstruct relations
-                for relation_dict in result['relations']:
+                for relation_dict in result["relations"]:
                     relation = Relation(
-                        source=relation_dict['source'],
-                        target=relation_dict['target'],
-                        type=relation_dict['type'],
-                        metadata=relation_dict.get('metadata', {})
+                        source=relation_dict["source"],
+                        target=relation_dict["target"],
+                        type=relation_dict["type"],
+                        metadata=relation_dict.get("metadata", {}),
                     )
                     all_relations.append(relation)
 
                 # Reconstruct chunks
-                for chunk_dict in result['chunks']:
+                for chunk_dict in result["chunks"]:
                     chunk = ChunkMetadata(
-                        file_path=chunk_dict['file_path'],
-                        entity_names=chunk_dict['entity_names'],
-                        chunk_type=chunk_dict['chunk_type'],
-                        content=chunk_dict['content'],
-                        start_line=chunk_dict['start_line'],
-                        end_line=chunk_dict['end_line'],
-                        metadata=chunk_dict.get('metadata', {})
+                        file_path=chunk_dict["file_path"],
+                        entity_names=chunk_dict["entity_names"],
+                        chunk_type=chunk_dict["chunk_type"],
+                        content=chunk_dict["content"],
+                        start_line=chunk_dict["start_line"],
+                        end_line=chunk_dict["end_line"],
+                        metadata=chunk_dict.get("metadata", {}),
                     )
                     all_implementation_chunks.append(chunk)
 
@@ -135,13 +129,15 @@ def process_file_batch_with_parallel(
                     f"{result['stats']['chunk_count']} implementation chunks"
                 )
 
-            elif result['status'] in ['error', 'timeout']:
+            elif result["status"] in ["error", "timeout"]:
                 error_msg = f"Error processing {file_path}: {result.get('error', 'Unknown error')}"
                 errors.append(error_msg)
                 self.logger.error(f"❌ {error_msg}")
 
-            elif result['status'] == 'skipped':
-                self.logger.debug(f"⏭️ Skipped {file_path}: {result.get('reason', 'Unknown reason')}")
+            elif result["status"] == "skipped":
+                self.logger.debug(
+                    f"⏭️ Skipped {file_path}: {result.get('reason', 'Unknown reason')}"
+                )
 
     else:
         # Fall back to sequential processing (existing logic)
@@ -150,14 +146,16 @@ def process_file_batch_with_parallel(
         # Use the original sequential processing logic
         # (This would be the existing code from _process_file_batch)
         # For now, we'll call the original method if it exists
-        if hasattr(self, '_process_file_batch_original'):
+        if hasattr(self, "_process_file_batch_original"):
             return self._process_file_batch_original(files, collection_name, _verbose)
         else:
             # If no original method saved, use basic sequential processing
             for file_path in files:
                 try:
                     # Get processing config
-                    processing_config = self.categorizer.get_processing_config(file_path)
+                    processing_config = self.categorizer.get_processing_config(
+                        file_path
+                    )
                     tier = processing_config["tier"]
 
                     # Parse file
@@ -165,15 +163,15 @@ def process_file_batch_with_parallel(
                         result = self._parse_light_tier(file_path, set())
                     else:
                         result = self.parser_registry.parse_file(
-                            file_path,
-                            None,
-                            global_entity_names=set()
+                            file_path, None, global_entity_names=set()
                         )
 
                     if result.success:
                         all_entities.extend(result.entities)
                         all_relations.extend(result.relations)
-                        all_implementation_chunks.extend(result.implementation_chunks or [])
+                        all_implementation_chunks.extend(
+                            result.implementation_chunks or []
+                        )
                         successfully_processed_files.append(file_path)
 
                         self.logger.info(
@@ -191,4 +189,10 @@ def process_file_batch_with_parallel(
                     errors.append(error_msg)
                     self.logger.error(f"❌ {error_msg}")
 
-    return all_entities, all_relations, all_implementation_chunks, errors, successfully_processed_files
+    return (
+        all_entities,
+        all_relations,
+        all_implementation_chunks,
+        errors,
+        successfully_processed_files,
+    )

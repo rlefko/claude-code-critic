@@ -1,6 +1,7 @@
 """Unit tests for configuration management."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -11,6 +12,44 @@ from claude_indexer.config import (
     load_config,
     load_legacy_settings,
 )
+
+
+@pytest.fixture
+def isolated_config(tmp_path, monkeypatch):
+    """Fixture to isolate config tests from real settings.txt.
+
+    This patches load_legacy_settings to return empty dict when called
+    with the global settings.txt path, while allowing test settings files to work.
+    """
+    original_load_legacy = load_legacy_settings
+    global_settings_path = (
+        Path(__file__).parent.parent.parent / "settings.txt"
+    ).resolve()
+
+    def mock_load_legacy_settings(settings_file: Path):
+        # Return empty for the global settings.txt to isolate tests
+        resolved = settings_file.resolve()
+        if resolved == global_settings_path:
+            return {}
+        # Allow test settings files to load normally
+        return original_load_legacy(settings_file)
+
+    # Clear environment variables that might interfere
+    for var in [
+        "OPENAI_API_KEY",
+        "VOYAGE_API_KEY",
+        "QDRANT_API_KEY",
+        "QDRANT_URL",
+        "EMBEDDING_PROVIDER",
+        "VOYAGE_MODEL",
+    ]:
+        monkeypatch.delenv(var, raising=False)
+
+    with patch(
+        "claude_indexer.config.config_loader.load_legacy_settings",
+        mock_load_legacy_settings,
+    ):
+        yield tmp_path
 
 
 class TestIndexerConfig:
@@ -29,8 +68,8 @@ class TestIndexerConfig:
         assert config.include_markdown is True
         assert config.include_tests is False
         assert config.max_file_size == 1048576
-        assert config.batch_size == 50
-        assert config.max_concurrent_files == 10
+        assert config.batch_size == 100
+        assert config.max_concurrent_files == 5
 
     def test_environment_variable_override(self, monkeypatch):
         """Test that environment variables can be used in config creation."""
@@ -91,21 +130,17 @@ class TestIndexerConfig:
         assert config.batch_size == 25
         assert config.max_concurrent_files == 5
 
-        # Test constraint validation
+        # Test constraint validation (only test constraints that exist in model)
+        # max_file_size: ge=1024 (min 1KB)
         with pytest.raises(ValidationError):
-            IndexerConfig(debounce_seconds=0.05)  # Too small
+            IndexerConfig(max_file_size=500)  # Too small (< 1024)
+
+        # batch_size: ge=1, le=1000
+        with pytest.raises(ValidationError):
+            IndexerConfig(batch_size=0)  # Too small (< 1)
 
         with pytest.raises(ValidationError):
-            IndexerConfig(debounce_seconds=35.0)  # Too large
-
-        with pytest.raises(ValidationError):
-            IndexerConfig(max_file_size=500)  # Too small
-
-        with pytest.raises(ValidationError):
-            IndexerConfig(batch_size=0)  # Too small
-
-        with pytest.raises(ValidationError):
-            IndexerConfig(batch_size=1500)  # Too large
+            IndexerConfig(batch_size=1500)  # Too large (> 1000)
 
 
 class TestLegacySettingsLoader:
@@ -230,7 +265,7 @@ key_without_value=
 class TestConfigLoader:
     """Test the main config loading function."""
 
-    def test_load_config_defaults_only(self):
+    def test_load_config_defaults_only(self, isolated_config):
         """Test loading config with only default values."""
         config = load_config(settings_file=Path("/nonexistent/path"))
 
@@ -238,9 +273,9 @@ class TestConfigLoader:
         assert config.openai_api_key == ""
         assert config.qdrant_url == "http://localhost:6333"
 
-    def test_load_config_with_legacy_file(self, tmp_path):
+    def test_load_config_with_legacy_file(self, isolated_config):
         """Test loading config with legacy settings file."""
-        settings_file = tmp_path / "settings.txt"
+        settings_file = isolated_config / "settings.txt"
         settings_content = """openai_api_key=sk-legacy123
 qdrant_url=https://legacy.qdrant.com
 batch_size=75
@@ -253,9 +288,9 @@ batch_size=75
         assert config.qdrant_url == "https://legacy.qdrant.com"
         assert config.batch_size == 75
 
-    def test_load_config_with_overrides(self, tmp_path):
+    def test_load_config_with_overrides(self, isolated_config):
         """Test that explicit overrides take precedence."""
-        settings_file = tmp_path / "settings.txt"
+        settings_file = isolated_config / "settings.txt"
         settings_content = """openai_api_key=sk-file123
 qdrant_url=https://file.qdrant.com
 """
@@ -274,9 +309,9 @@ qdrant_url=https://file.qdrant.com
         # File value used where no override
         assert config.qdrant_url == "https://file.qdrant.com"
 
-    def test_load_config_validation_fallback(self, tmp_path):
+    def test_load_config_validation_fallback(self, isolated_config):
         """Test fallback to defaults when validation fails."""
-        settings_file = tmp_path / "settings.txt"
+        settings_file = isolated_config / "settings.txt"
         settings_content = """openai_api_key=valid-key
 debounce_seconds=invalid-number
 max_file_size=not-a-number
@@ -293,14 +328,15 @@ max_file_size=not-a-number
         assert config.debounce_seconds == 2.0  # Default
         assert config.max_file_size == 1048576  # Default
 
-    def test_load_config_environment_precedence(self, tmp_path, monkeypatch):
+    def test_load_config_environment_precedence(self, isolated_config, monkeypatch):
         """Test that environment variables have precedence over file."""
-        settings_file = tmp_path / "settings.txt"
+        settings_file = isolated_config / "settings.txt"
         settings_content = """openai_api_key=sk-file123
 qdrant_url=https://file.qdrant.com
 """
         settings_file.write_text(settings_content)
 
+        # Set env var after the fixture clears them
         monkeypatch.setenv("QDRANT_URL", "https://env.qdrant.com")
 
         config = load_config(settings_file=settings_file)
@@ -329,7 +365,7 @@ class TestCreateDefaultSettingsFile:
         assert "qdrant_api_key=" in content
         assert "qdrant_url=http://localhost:6333" in content
         assert "indexer_debug=false" in content
-        assert "batch_size=50" in content
+        assert "batch_size=100" in content
 
     def test_create_file_error_handling(self, tmp_path, monkeypatch):
         """Test handling of file creation errors."""

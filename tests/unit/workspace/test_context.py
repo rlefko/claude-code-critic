@@ -1,8 +1,8 @@
 """Unit tests for workspace context module."""
 
 import time
+
 import pytest
-from pathlib import Path
 
 from claude_indexer.workspace.context import WorkspaceContext
 from claude_indexer.workspace.types import (

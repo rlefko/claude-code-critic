@@ -269,9 +269,7 @@ class SimilarityClustering:
 
             # Find all items within eps distance
             neighbors = [
-                j
-                for j in range(n)
-                if distance_matrix[i, j] <= self.eps and i != j
+                j for j in range(n) if distance_matrix[i, j] <= self.eps and i != j
             ]
 
             if len(neighbors) >= self.min_samples - 1:

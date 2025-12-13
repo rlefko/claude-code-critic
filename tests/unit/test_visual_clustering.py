@@ -1,9 +1,9 @@
 """Unit tests for screenshot capture and visual clustering."""
 
-import pytest
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 import tempfile
+from pathlib import Path
+
+import pytest
 
 
 class TestElementScreenshot:
@@ -171,9 +171,7 @@ class TestVisualClusteringResult:
         from claude_indexer.ui.collectors.screenshots import VisualClusteringResult
 
         data = {
-            "clusters": [
-                {"cluster_id": 0, "elements": [], "representative": None}
-            ],
+            "clusters": [{"cluster_id": 0, "elements": [], "representative": None}],
             "identical_different_code": [],
             "inconsistent_variants": [],
         }

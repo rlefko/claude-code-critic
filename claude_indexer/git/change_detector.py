@@ -223,7 +223,9 @@ class GitChangeDetector:
             self.logger.warning(f"Could not find merge base with {base_branch}")
             return ChangeSet(is_git_repo=True, base_commit=base_branch)
 
-        self.logger.debug(f"Detecting branch diff against {base_branch} (base: {merge_base})")
+        self.logger.debug(
+            f"Detecting branch diff against {base_branch} (base: {merge_base})"
+        )
         return self._detect_via_git(
             ["diff", "--name-status", "-M", f"{merge_base}..HEAD"]
         )
@@ -393,7 +395,7 @@ class GitChangeDetector:
 
         # Find deleted files
         previous_paths = {
-            k for k in previous_state.keys() if not k.startswith("_")
+            k for k in previous_state if not k.startswith("_")
         }  # Exclude metadata keys
         deleted = previous_paths - current_paths
         deleted_files.extend(deleted)

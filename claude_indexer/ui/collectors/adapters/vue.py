@@ -102,12 +102,18 @@ class VueAdapter(BaseSourceAdapter):
         template = self._extract_section(content, "template")
         if template:
             template_start = content.find("<template")
-            template_line_offset = content[:template_start].count("\n") if template_start >= 0 else 0
+            template_line_offset = (
+                content[:template_start].count("\n") if template_start >= 0 else 0
+            )
 
             # Find class bindings
-            for match in re.finditer(r'(?:class|:class)\s*=\s*["\']([^"\']+)["\']', template):
+            for match in re.finditer(
+                r'(?:class|:class)\s*=\s*["\']([^"\']+)["\']', template
+            ):
                 class_names = match.group(1).split()
-                line_number = template_line_offset + template[: match.start()].count("\n") + 1
+                line_number = (
+                    template_line_offset + template[: match.start()].count("\n") + 1
+                )
 
                 styles.append(
                     ExtractedStyle(
@@ -126,8 +132,10 @@ class VueAdapter(BaseSourceAdapter):
 
             # Find inline style bindings
             for match in re.finditer(r':style\s*=\s*["\']([^"\']+)["\']', template):
-                style_expr = match.group(1)
-                line_number = template_line_offset + template[: match.start()].count("\n") + 1
+                match.group(1)
+                line_number = (
+                    template_line_offset + template[: match.start()].count("\n") + 1
+                )
 
                 styles.append(
                     ExtractedStyle(
@@ -148,7 +156,9 @@ class VueAdapter(BaseSourceAdapter):
         style_section = self._extract_section(content, "style")
         if style_section:
             style_start = content.find("<style")
-            style_line_offset = content[:style_start].count("\n") if style_start >= 0 else 0
+            style_line_offset = (
+                content[:style_start].count("\n") if style_start >= 0 else 0
+            )
 
             # Parse CSS rules
             for match in self._find_css_rules(style_section):
@@ -206,7 +216,9 @@ class VueAdapter(BaseSourceAdapter):
                 return match.group(1)
 
             # defineComponent with name
-            match = re.search(r"defineComponent\(\s*\{[^}]*name\s*:\s*['\"]([^'\"]+)['\"]", script)
+            match = re.search(
+                r"defineComponent\(\s*\{[^}]*name\s*:\s*['\"]([^'\"]+)['\"]", script
+            )
             if match:
                 return match.group(1)
 

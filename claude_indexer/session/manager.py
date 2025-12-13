@@ -6,13 +6,12 @@ lifecycle management, including project detection, context creation,
 lock acquisition, and cleanup.
 """
 
+import contextlib
 import json
-import os
 import secrets
 import socket
 import time
 from pathlib import Path
-from typing import Optional
 
 from ..config.config_loader import ConfigLoader
 from ..config.models import IndexerConfig
@@ -57,9 +56,9 @@ class SessionManager:
 
     def __init__(
         self,
-        project_path: Optional[Path] = None,
-        collection_name: Optional[str] = None,
-        config_loader: Optional[ConfigLoader] = None,
+        project_path: Path | None = None,
+        collection_name: str | None = None,
+        config_loader: ConfigLoader | None = None,
     ):
         """Initialize session manager.
 
@@ -71,11 +70,11 @@ class SessionManager:
         self.project_path = self._resolve_project_path(project_path)
         self._explicit_collection = collection_name
         self.config_loader = config_loader or ConfigLoader()
-        self._context: Optional[SessionContext] = None
-        self._lock: Optional[LockManager] = None
-        self._config: Optional[IndexerConfig] = None
+        self._context: SessionContext | None = None
+        self._lock: LockManager | None = None
+        self._config: IndexerConfig | None = None
 
-    def _resolve_project_path(self, explicit_path: Optional[Path] = None) -> Path:
+    def _resolve_project_path(self, explicit_path: Path | None = None) -> Path:
         """Resolve project path from explicit or CWD detection.
 
         Args:
@@ -209,7 +208,7 @@ class SessionManager:
     def _load_existing_session(
         self,
         collection_name: str,
-    ) -> Optional[SessionContext]:
+    ) -> SessionContext | None:
         """Load existing session if valid.
 
         Args:
@@ -243,7 +242,7 @@ class SessionManager:
 
             return SessionContext.from_dict(data, self._config)
 
-        except (json.JSONDecodeError, KeyError, IOError) as e:
+        except (OSError, json.JSONDecodeError, KeyError) as e:
             logger.debug(f"Could not load existing session: {e}")
             return None
 
@@ -262,13 +261,11 @@ class SessionManager:
             with open(temp_file, "w") as f:
                 json.dump(self._context.to_dict(), f, indent=2)
             temp_file.replace(session_file)
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.debug(f"Could not save session: {e}")
             if temp_file.exists():
-                try:
+                with contextlib.suppress(OSError):
                     temp_file.unlink()
-                except OSError:
-                    pass
 
     def acquire_lock(self, exclusive: bool = True) -> LockManager:
         """Acquire session lock for this collection.
@@ -349,9 +346,9 @@ class SessionManager:
 
 
 def get_session_context(
-    project: Optional[str] = None,
-    collection: Optional[str] = None,
-    config_loader: Optional[ConfigLoader] = None,
+    project: str | None = None,
+    collection: str | None = None,
+    config_loader: ConfigLoader | None = None,
 ) -> SessionContext:
     """Get or create session context for CLI commands.
 
@@ -374,7 +371,7 @@ def get_session_context(
     return manager.initialize()
 
 
-def clear_session(project: Optional[str] = None) -> bool:
+def clear_session(project: str | None = None) -> bool:
     """Clear session state for a project.
 
     Removes the session.json file to force a new session on next use.
@@ -395,13 +392,13 @@ def clear_session(project: Optional[str] = None) -> bool:
             session_file.unlink()
             logger.info(f"Cleared session for {project_path}")
             return True
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.debug(f"Could not clear session: {e}")
             return False
     return False
 
 
-def list_active_sessions(base_path: Optional[Path] = None) -> list[dict]:
+def list_active_sessions(base_path: Path | None = None) -> list[dict]:
     """List all active sessions.
 
     Scans for session.json files in .claude-indexer directories.
@@ -437,7 +434,7 @@ def list_active_sessions(base_path: Optional[Path] = None) -> list[dict]:
                 data["_is_stale"] = age_hours > SessionManager.SESSION_TTL_HOURS
 
                 sessions.append(data)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 continue
     except (OSError, PermissionError):
         pass

@@ -26,24 +26,21 @@ Example:
 """
 
 # Backward-compatible re-exports from the performance package
-from .performance import (
-    # Core timing (original exports)
-    PerformanceAggregator,
-    PerformanceTimer,
-    timed,
-    # New profiler exports
+from .performance import (  # Core timing (original exports); New profiler exports; New metrics exports
     PROFILING_ENABLED,
     EndToEndProfiler,
+    MetricWindow,
+    PerformanceAggregator,
+    PerformanceMetricsCollector,
+    PerformanceTimer,
     ProfileResult,
     ProfilerStack,
-    profile,
-    # New metrics exports
-    MetricWindow,
-    PerformanceMetricsCollector,
     get_all_stats,
     get_stats,
     measure,
+    profile,
     record,
+    timed,
 )
 
 __all__ = [

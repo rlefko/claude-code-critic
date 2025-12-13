@@ -135,11 +135,11 @@ class TestComponentNormalizer:
 
     def test_extract_style_refs(self, normalizer: ComponentNormalizer):
         """Test style reference extraction."""
-        template = '''
+        template = """
         <div className="container flex-row">
             <span className={styles.text}>Hello</span>
         </div>
-        '''
+        """
         result = normalizer.normalize(template)
 
         assert "container" in result.style_refs
@@ -148,11 +148,11 @@ class TestComponentNormalizer:
 
     def test_extract_css_module_refs(self, normalizer: ComponentNormalizer):
         """Test CSS module reference extraction."""
-        template = '''
+        template = """
         <div className={styles.container}>
             <span className={styles["text-bold"]}>Text</span>
         </div>
-        '''
+        """
         result = normalizer.normalize(template)
 
         assert "container" in result.style_refs
@@ -160,7 +160,7 @@ class TestComponentNormalizer:
 
     def test_structure_hash_deterministic(self, normalizer: ComponentNormalizer):
         """Test that same structure produces same hash."""
-        template = '<div><span>Text</span></div>'
+        template = "<div><span>Text</span></div>"
 
         result1 = normalizer.normalize(template)
         result2 = normalizer.normalize(template)
@@ -169,8 +169,8 @@ class TestComponentNormalizer:
 
     def test_different_structure_different_hash(self, normalizer: ComponentNormalizer):
         """Test that different structures produce different hashes."""
-        template1 = '<div><span></span></div>'
-        template2 = '<div><p></p></div>'
+        template1 = "<div><span></span></div>"
+        template2 = "<div><p></p></div>"
 
         result1 = normalizer.normalize(template1)
         result2 = normalizer.normalize(template2)
@@ -179,7 +179,7 @@ class TestComponentNormalizer:
 
     def test_compute_similarity_identical(self, normalizer: ComponentNormalizer):
         """Test similarity of identical components."""
-        comp = normalizer.normalize('<div><span></span></div>')
+        comp = normalizer.normalize("<div><span></span></div>")
 
         similarity = normalizer.compute_similarity(comp, comp)
 
@@ -197,8 +197,8 @@ class TestComponentNormalizer:
 
     def test_compute_similarity_different(self, normalizer: ComponentNormalizer):
         """Test similarity of different components."""
-        comp1 = normalizer.normalize('<div><span></span></div>')
-        comp2 = normalizer.normalize('<table><tr><td></td></tr></table>')
+        comp1 = normalizer.normalize("<div><span></span></div>")
+        comp2 = normalizer.normalize("<table><tr><td></td></tr></table>")
 
         similarity = normalizer.compute_similarity(comp1, comp2)
 
@@ -215,9 +215,9 @@ class TestComponentNormalizer:
     def test_find_duplicates(self, normalizer: ComponentNormalizer):
         """Test finding exact duplicates."""
         components = [
-            normalizer.normalize('<div>A</div>'),
-            normalizer.normalize('<span>B</span>'),
-            normalizer.normalize('<div>C</div>'),  # Same structure as first
+            normalizer.normalize("<div>A</div>"),
+            normalizer.normalize("<span>B</span>"),
+            normalizer.normalize("<div>C</div>"),  # Same structure as first
         ]
 
         duplicates = normalizer.find_duplicates(components)
@@ -230,14 +230,18 @@ class TestComponentNormalizer:
         # Use components with different but similar structures
         # Structure difference is needed to avoid exact hash match
         components = [
-            normalizer.normalize('<div><span></span><p></p></div>'),  # div with span and p
-            normalizer.normalize('<div><span></span><strong></strong></div>'),  # div with span and strong
-            normalizer.normalize('<table><tr><td></td></tr></table>'),  # Very different
+            normalizer.normalize(
+                "<div><span></span><p></p></div>"
+            ),  # div with span and p
+            normalizer.normalize(
+                "<div><span></span><strong></strong></div>"
+            ),  # div with span and strong
+            normalizer.normalize("<table><tr><td></td></tr></table>"),  # Very different
         ]
 
         # Both first two have div>span but with different second child
         # This should produce similar but not identical structures
-        near_duplicates = normalizer.find_near_duplicates(components, threshold=0.3)
+        normalizer.find_near_duplicates(components, threshold=0.3)
 
         # There should be near duplicates found (0,1) should be more similar than (0,2) or (1,2)
         # If no near duplicates found, verify the similarity behavior is correct
@@ -250,7 +254,7 @@ class TestComponentNormalizer:
     def test_props_in_result(self, normalizer: ComponentNormalizer):
         """Test that props are included in result."""
         result = normalizer.normalize(
-            '<Button>Click</Button>',
+            "<Button>Click</Button>",
             props={"onClick": "function", "disabled": "boolean"},
         )
 
@@ -259,13 +263,13 @@ class TestComponentNormalizer:
 
     def test_vue_template(self, normalizer: ComponentNormalizer):
         """Test normalizing Vue template syntax."""
-        template = '''
+        template = """
         <template>
             <div v-if="show" :class="{ active: isActive }">
                 <span v-for="item in items">{{ item }}</span>
             </div>
         </template>
-        '''
+        """
         result = normalizer.normalize(template, framework="vue")
 
         assert "div" in result.tag_sequence
@@ -273,13 +277,13 @@ class TestComponentNormalizer:
 
     def test_svelte_template(self, normalizer: ComponentNormalizer):
         """Test normalizing Svelte template syntax."""
-        template = '''
+        template = """
         <div class:active={isActive}>
             {#if show}
                 <span>{text}</span>
             {/if}
         </div>
-        '''
+        """
         result = normalizer.normalize(template, framework="svelte")
 
         assert "div" in result.tag_sequence

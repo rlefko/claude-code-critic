@@ -10,7 +10,6 @@ import pytest
 
 from claude_indexer.rules.base import RuleContext, Severity
 
-
 # =============================================================================
 # Test Fixtures
 # =============================================================================
@@ -537,7 +536,7 @@ class TestTechDebtRuleDiscovery:
         discovery = RuleDiscovery()
         rule_classes = discovery.discover_category("tech_debt")
 
-        for rule_id, rule_cls in rule_classes.items():
+        for _rule_id, rule_cls in rule_classes.items():
             rule_instance = rule_cls()
             assert rule_instance.category == "tech_debt"
 
@@ -576,7 +575,6 @@ MAX = 500
         assert result.rules_executed > 0
 
     def test_engine_result_filters_by_category(self):
-        from claude_indexer.rules.base import Trigger
         from claude_indexer.rules.engine import RuleEngine
 
         engine = RuleEngine()

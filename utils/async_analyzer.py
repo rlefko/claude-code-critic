@@ -15,10 +15,11 @@ import signal
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -33,7 +34,7 @@ class AsyncAnalysisRequest:
     mcp_collection: str
     created_at: float = field(default_factory=time.time)
     prompt: str = ""
-    callback: Optional[Callable[[dict[str, Any]], None]] = None
+    callback: Callable[[dict[str, Any]], None] | None = None
 
 
 @dataclass
@@ -65,7 +66,7 @@ class AsyncAnalyzerManager:
     ANALYSIS_TIMEOUT = 60  # Seconds before killing analysis
     LOG_RETENTION_HOURS = 24  # Hours to keep analysis logs
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         """Initialize async analyzer manager.
 
         Args:
@@ -77,10 +78,10 @@ class AsyncAnalyzerManager:
         self._callbacks: dict[str, Callable] = {}
         self._request_counter = 0
         self._process_lock = threading.Lock()
-        self._log_path: Optional[Path] = None
+        self._log_path: Path | None = None
 
     @classmethod
-    def get_instance(cls, project_root: Optional[Path] = None) -> "AsyncAnalyzerManager":
+    def get_instance(cls, project_root: Path | None = None) -> "AsyncAnalyzerManager":
         """Get singleton instance."""
         with cls._lock:
             if cls._instance is None:
@@ -110,8 +111,8 @@ class AsyncAnalyzerManager:
         prompt: str,
         project_root: Path,
         mcp_collection: str,
-        callback: Optional[Callable[[dict[str, Any]], None]] = None,
-    ) -> Optional[str]:
+        callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> str | None:
         """Submit code for async Tier 3 analysis.
 
         Args:
@@ -311,7 +312,10 @@ class AsyncAnalyzerManager:
             cli_response = json.loads(stdout)
 
             # Check for errors
-            if cli_response.get("is_error") or cli_response.get("subtype") == "error_max_turns":
+            if (
+                cli_response.get("is_error")
+                or cli_response.get("subtype") == "error_max_turns"
+            ):
                 return AsyncAnalysisResult(
                     request_id=request_id,
                     success=False,
@@ -390,7 +394,9 @@ Reason: {result.reason}
                 if result.analysis.get("test_coverage"):
                     log_entry += f"Test Coverage: {result.analysis['test_coverage']}\n"
                 if result.analysis.get("quality_markers"):
-                    log_entry += f"Quality Markers: {result.analysis['quality_markers']}\n"
+                    log_entry += (
+                        f"Quality Markers: {result.analysis['quality_markers']}\n"
+                    )
 
             log_entry += f"{'=' * 60}\n"
 
@@ -400,7 +406,7 @@ Reason: {result.reason}
         except Exception:
             pass
 
-    def get_result(self, request_id: str) -> Optional[AsyncAnalysisResult]:
+    def get_result(self, request_id: str) -> AsyncAnalysisResult | None:
         """Get result for a completed analysis.
 
         Args:
@@ -439,7 +445,7 @@ Reason: {result.reason}
                 return False
 
     def get_pending_results(
-        self, since_timestamp: Optional[float] = None
+        self, since_timestamp: float | None = None
     ) -> list[AsyncAnalysisResult]:
         """Get all completed results, optionally since a timestamp.
 

@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from claude_indexer.config.migration import (
     ConfigMigration,
     MigrationAnalysis,
@@ -97,8 +95,7 @@ class TestConfigMigrationAnalyze:
         assert analysis.migration_needed is False
         # Only project-specific configs trigger migration, global config is preserved
         project_configs = [
-            c for c in analysis.existing_configs
-            if c["type"] != "global_config"
+            c for c in analysis.existing_configs if c["type"] != "global_config"
         ]
         assert len(project_configs) == 0
 
@@ -111,7 +108,9 @@ class TestConfigMigrationAnalyze:
         analysis = migration.analyze()
 
         assert analysis.migration_needed is True
-        assert any(c["type"] == "legacy_settings_txt" for c in analysis.existing_configs)
+        assert any(
+            c["type"] == "legacy_settings_txt" for c in analysis.existing_configs
+        )
         assert any("settings.txt" in a for a in analysis.actions)
 
     def test_analyze_with_v26_config(self, tmp_path):
@@ -119,10 +118,14 @@ class TestConfigMigrationAnalyze:
         config_dir = tmp_path / ".claude-indexer"
         config_dir.mkdir()
         config_file = config_dir / "config.json"
-        config_file.write_text(json.dumps({
-            "version": "2.6",
-            "project": {"name": "test", "collection": "test"},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "2.6",
+                    "project": {"name": "test", "collection": "test"},
+                }
+            )
+        )
 
         migration = ConfigMigration(tmp_path)
         analysis = migration.analyze()
@@ -136,10 +139,14 @@ class TestConfigMigrationAnalyze:
         config_dir = tmp_path / ".claude"
         config_dir.mkdir()
         config_file = config_dir / "settings.json"
-        config_file.write_text(json.dumps({
-            "version": "3.0",
-            "project": {"name": "test", "collection": "test"},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "3.0",
+                    "project": {"name": "test", "collection": "test"},
+                }
+            )
+        )
 
         migration = ConfigMigration(tmp_path)
         analysis = migration.analyze()
@@ -189,12 +196,14 @@ class TestConfigMigrationMigrate:
     def test_migrate_from_settings_txt(self, tmp_path):
         """Test migration from settings.txt."""
         settings_file = tmp_path / "settings.txt"
-        settings_file.write_text("""
+        settings_file.write_text(
+            """
 openai_api_key=sk-test123
 voyage_api_key=va-test456
 qdrant_url=https://test.qdrant.com
 debounce_seconds=3.0
-""")
+"""
+        )
 
         migration = ConfigMigration(tmp_path)
         result = migration.migrate()
@@ -419,10 +428,14 @@ class TestMigrationEdgeCases:
         config_dir = tmp_path / ".claude-indexer"
         config_dir.mkdir()
         config_file = config_dir / "config.json"
-        config_file.write_text(json.dumps({
-            "version": "2.6",
-            "project": {"name": "from-json", "collection": "test"},
-        }))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "version": "2.6",
+                    "project": {"name": "from-json", "collection": "test"},
+                }
+            )
+        )
 
         migration = ConfigMigration(tmp_path)
         analysis = migration.analyze()

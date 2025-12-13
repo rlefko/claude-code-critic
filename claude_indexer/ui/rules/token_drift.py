@@ -4,7 +4,10 @@ This module provides rules that detect hardcoded values that should
 be using design system tokens instead.
 """
 
-from ..models import Evidence, EvidenceType, Finding, Severity, SymbolRef, SymbolKind, Visibility
+from ..models import (
+    Finding,
+    Severity,
+)
 from ..normalizers.token_resolver import ResolutionStatus, TokenCategory
 from .base import BaseRule, RuleContext
 
