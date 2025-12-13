@@ -36,7 +36,10 @@ class TestWatcherFlow:
 
     async def test_basic_file_watch_flow(self, temp_repo, dummy_embedder, qdrant_store):
         """Test basic file watching and re-indexing."""
-        from tests.conftest import verify_entities_exist_by_name, wait_for_collection_ready
+        from tests.conftest import (
+            verify_entities_exist_by_name,
+            wait_for_collection_ready,
+        )
 
         collection_name = get_unique_collection_name("test_watcher")
         config = IndexerConfig(
@@ -113,7 +116,10 @@ class TestWatcherFlow:
 
     async def test_multiple_file_changes(self, temp_repo, dummy_embedder, qdrant_store):
         """Test watching multiple file changes."""
-        from tests.conftest import verify_entities_exist_by_name, wait_for_collection_ready
+        from tests.conftest import (
+            verify_entities_exist_by_name,
+            wait_for_collection_ready,
+        )
 
         collection_name = get_unique_collection_name("test_multi_watch")
         config = IndexerConfig(
@@ -484,9 +490,7 @@ class TestWatcherConfiguration:
                 entities = get_entities_by_name(
                     qdrant_store, "test_patterns", ignored_func, verbose=True
                 )
-                assert (
-                    len(entities) == 0
-                ), f"{ignored_func} should have been ignored"
+                assert len(entities) == 0, f"{ignored_func} should have been ignored"
 
         finally:
             await watcher.stop()
