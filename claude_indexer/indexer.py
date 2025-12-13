@@ -1664,18 +1664,20 @@ class CoreIndexer:
             found = list(self.project_path.glob(glob_pattern))
             files.update(found)  # Use update instead of extend to prevent duplicates
 
-        # Filter files using HierarchicalIgnoreManager (preferred) or legacy patterns
+        # Filter files using HierarchicalIgnoreManager (preferred) AND config patterns
         filtered_files = []
         for file_path in files:
             relative_path = file_path.relative_to(self.project_path)
+            should_exclude = False
 
-            # Use HierarchicalIgnoreManager if available (proper gitignore semantics)
+            # Check 1: HierarchicalIgnoreManager (if available)
             if self.ignore_manager is not None:
                 if self.ignore_manager.should_ignore(relative_path):
-                    continue
-            else:
-                # Legacy fallback: manual pattern matching
-                should_exclude = False
+                    should_exclude = True
+
+            # Check 2: Config exclude_patterns (always applied if present)
+            # This ensures explicit exclude_patterns in config are respected
+            if not should_exclude and exclude_patterns:
                 relative_str = str(relative_path)
 
                 for pattern in exclude_patterns:
@@ -1700,8 +1702,8 @@ class CoreIndexer:
                         should_exclude = True
                         break
 
-                if should_exclude:
-                    continue
+            if should_exclude:
+                continue
 
             # Check file size
             if file_path.stat().st_size > self.config.max_file_size:
